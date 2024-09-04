@@ -284,8 +284,20 @@ wallPattern.init()
 /* share function */
 
 function saveAsImage() {
-	html2canvas(document.querySelector(".container"), { scale: 1.5 }).then(function (canvas) {
-		var link = document.createElement("a")
+	const container = document.querySelector(".container")
+
+	// 실제 요소의 스타일로부터 크기 가져오기
+	const originalWidth = container.offsetWidth
+	const originalHeight = container.offsetHeight
+
+	// 비율을 유지하면서 scale을 2로 설정
+	html2canvas(container, {
+		width: originalWidth,
+		height: originalHeight,
+		scale: 2, // 고해상도 이미지를 위한 스케일 설정
+		useCORS: true, // CORS 문제를 해결하기 위해 필요시 추가
+	}).then(function (canvas) {
+		const link = document.createElement("a")
 		link.href = canvas.toDataURL("image/png")
 		link.download = "부자관상분석결과.png"
 		link.click()
