@@ -1,5 +1,7 @@
 # 인공지능 부자 관상 테스트
+![image](https://github.com/user-attachments/assets/9cc31f89-3bb9-4cef-bbd4-2893c67c1818)
 
+[사이트 바로가기](https://saramjh.github.io/richChecker)
 ## 프로젝트 개요
 
 이 프로젝트는 대한민국의 재벌, 정치 및 경제인들의 관상을 분석하여 사용자의 관상과의 일치율을 비교해주는 인공지능 기반 웹 애플리케이션입니다.
