@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="대한민국 부자들의 관상을 빅데이터로 활용하여 자신의 관상과의 일치율을 분석합니다.">
+  <title>인공지능 부자 관상 테스트</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <script defer src="js/script.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div id="window">
+      <h1>인공지능 부자 관상 테스트</h1>
+      <hr>
+      <p>"대한민국 재벌들과 나의 관상은 얼마 비슷할까요?"</p>
+      <p>대한민국의 50대 재벌, 정치 및 경제인으로<br>공개된 데이터를 수집 및 선별하였습니다.<br><br>- 2024년 4월 기준 -</p>
+
+      <!-- 성별 선택 (토글 스위치) -->
+      <div class="gender-toggle">
+        <input type="radio" id="male" name="gender" value="male" checked>
+        <label for="male">남성</label>
+
+        <input type="radio" id="female" name="gender" value="female">
+        <label for="female">여성</label>
+      </div>
+
+      <!-- 파일 업로드 버튼 (숨김 처리) -->
+      <input type="file" id="uploadImage" accept="image/*" style="display: none;">
+
+      <!-- 업로드된 이미지 표시 -->
+      <div id="uploadedImageContainer">
+        <img id="uploadedImage" src="assets/imgs/male.png" alt="업로드된 이미지">
+      </div>
+      <button id="reset">초기화</button>
+
+      <p id="warning">이 프로그램은 절대 개인정보를 수집하지 않습니다.</p>
+      <!-- 결과 표시 영역 -->
+      <div id="resultsContainer" style="display: none;">
+        <h2>분석 결과</h2>
+        <ul id="resultsList"></ul>
+        <p id="averageResult"></p> <!-- 평균 결과 표시 영역 추가 -->
+        <div id="saveImg">
+          <button id="saveImgBtn">분석결과 저장하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-text">
+      <a href="https://github.com/saramjh/dieterRamsCalc/tree/main">
+        <p id="pText">&copy; 2024 saramjh reserved.</p>
+      </a>
+    </div>
+  </footer>
+  <!-- 로딩 모달 -->
+  <div id="loadingModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="processTitle">분석 진행중</h2>
+      <div class="progress-bar">
+        <div id="progressBarInner" class="progress-bar-inner">0%</div>
+      </div>
+    </div>
+  </div>
+  <canvas id='canvas'></canvas>
+</body>
+
+</html>
