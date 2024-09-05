@@ -125,7 +125,7 @@ async function processImage(imageSrc) {
 				<tr>
 						<th>분류</th>
 						<th>설명</th>
-						<th>유사도 범위</th>
+						<th>일치 수준</th>
 				</tr>
 		</thead>
 		<tbody>
