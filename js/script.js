@@ -87,7 +87,102 @@ async function processImage(imageSrc) {
 	// 평균 유사도 계산
 	if (count > 0) {
 		const averageSimilarity = (totalSimilarity / count).toFixed(2)
-		document.getElementById("averageResult").innerHTML = `<div id="resultRate"><h3>내 관상으로 부자가 될 확률</h3> <span id="richRate" class="bounce">${averageSimilarity}%</span></div>`
+
+		let similarityMessage = ""
+
+		// 조건에 따른 메시지 설정
+		if (averageSimilarity >= 50) {
+			similarityMessage = `<span>완벽한 재벌관상</span> 타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.`
+		} else if (averageSimilarity >= 48.125) {
+			similarityMessage = `<span>거의 재벌관상</span> 힘과 부를 상징하는 외모, 성공한 사람의 분위기.`
+		} else if (averageSimilarity >= 46.25) {
+			similarityMessage = `<span>확실한 재벌 느낌</span> 권위와 부유함이 강하게 나타남.`
+		} else if (averageSimilarity >= 44.375) {
+			similarityMessage = `<span>눈에 띄는 특징</span> 리더십과 자신감이 표출되기 시작.`
+		} else if (averageSimilarity >= 42.5) {
+			similarityMessage = `<span>잠재력 있음</span> 카리스마나 부유함의 기운이 약간 느껴짐.`
+		} else if (averageSimilarity >= 40.625) {
+			similarityMessage = `<span>중간 단계</span> 재벌관상과는 약간의 유사성, 하지만 확실하지 않음.`
+		} else if (averageSimilarity >= 38.75) {
+			similarityMessage = `<span>평범함</span> 특별히 눈에 띄지 않는 인상.`
+		} else if (averageSimilarity >= 36.875) {
+			similarityMessage = `<span>부족한 요소</span> 자신감이나 권위가 부족한 인상.`
+		} else if (averageSimilarity >= 35) {
+			similarityMessage = `<span>근본적인 차이</span> 재벌 느낌과는 전혀 어울리지 않음.`
+		} else {
+			similarityMessage = `<span>완전히 반대</span> 재벌과는 거리가 먼 평범한 외모.`
+		}
+
+		// 결과 출력
+		document.getElementById("averageResult").innerHTML = `
+			<div id="resultRate">
+				<h3>나의 관상 분석 결과</h3> 
+				<span id="richRate" class="bounce">${averageSimilarity}%</span>
+				<p>${similarityMessage}</p>
+				<table>
+		<caption>부자 관상 분석 기준</caption>
+		<thead>
+				<tr>
+						<th>분류</th>
+						<th>설명</th>
+						<th>유사도 범위</th>
+				</tr>
+		</thead>
+		<tbody>
+				<tr>
+						<td>완벽한 재벌상</td>
+						<td>타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.</td>
+						<td>50%~</td>
+				</tr>
+				<tr>
+						<td>거의 재벌상</td>
+						<td>힘과 부를 상징하는 외모, 성공한 사람의 분위기.</td>
+						<td>50%<br>~48.125%</td>
+				</tr>
+				<tr>
+						<td>확실한 부티</td>
+						<td>권위와 부유함이 강하게 나타남.</td>
+						<td>48.125%<br>~46.25%</td>
+				</tr>
+				<tr>
+						<td>튀는 부티</td>
+						<td>리더십과 자신감이 표출되기 시작.</td>
+						<td>46.25%<br>~44.375%</td>
+				</tr>
+				<tr>
+						<td>잠재력 있음</td>
+						<td>카리스마나 부유함의 기운이 약간 느껴짐.</td>
+						<td>44.375%<br>~42.5%</td>
+				</tr>
+				<tr>
+						<td>중간 단계</td>
+						<td>재벌관상과는 약간의 유사성, 하지만 확실하지 않음.</td>
+						<td>42.5%<br>~40.625%</td>
+				</tr>
+				<tr>
+						<td>평범함</td>
+						<td>특별히 눈에 띄지 않는 인상.</td>
+						<td>40.625%<br>~38.75%</td>
+				</tr>
+				<tr>
+						<td>부족한 요소</td>
+						<td>자신감이나 권위가 부족한 인상.</td>
+						<td>38.75%<br>~36.875%</td>
+				</tr>
+				<tr>
+						<td>근본적 차이</td>
+						<td>재벌 느낌과는 전혀 어울리지 않음.</td>
+						<td>36.875%<br>~35%</td>
+				</tr>
+				<tr>
+						<td>완전히 반대</td>
+						<td>재벌과는 거리가 먼 평범한 외모.</td>
+						<td>~35%</td>
+				</tr>
+		</tbody>
+</table>
+			</div>
+		`
 	}
 
 	hideLoadingModal()
@@ -185,7 +280,6 @@ function updateLoadingModal(percentage) {
 
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
-	document.getElementById("resultsList").innerHTML = ""
 	document.getElementById("averageResult").textContent = ""
 }
 
