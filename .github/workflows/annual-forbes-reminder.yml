@@ -1,0 +1,27 @@
+name: Annual Forbes Data Reminder
+
+# 매년 1월 3일 00:00 KST(UTC+9) = 1월 2일 15:00 UTC
+# 주의: GitHub은 60일 이상 활동(push/commit)이 없는 리포지토리의 예약(schedule) 워크플로우를
+# 자동으로 비활성화합니다. 그 사이 커밋이 뜸하면 Actions 탭에서 재활성화가 필요할 수 있습니다.
+on:
+  schedule:
+    - cron: "0 15 2 1 *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create reminder issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          YEAR=$(date +%Y)
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "[연례 알림] ${YEAR}년 포브스 부자 정보 갱신 필요" \
+            --assignee saramjh \
+            --body "새해가 되었습니다. \`data/people.male.json\`, \`data/people.female.json\`의 포브스 순위(rank)·자산(netWorth)·업적(achievement) 정보를 ${YEAR}년 최신 기준으로 갱신해주세요. 갱신 후에는 \`tools/precompute.html\`을 로컬에서 다시 실행해서 \`data/embeddings.male.json\` / \`data/embeddings.female.json\`도 재생성해야 반영됩니다."
