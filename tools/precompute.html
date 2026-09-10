@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>얼굴 특징 사전계산 도구 (개발용, MediaPipe)</title>
+  <style>
+    body { font-family: monospace; max-width: 720px; margin: 40px auto; line-height: 1.5; }
+    button { font-size: 1rem; padding: 8px 16px; margin: 4px 8px 4px 0; }
+    #log { white-space: pre-wrap; background: #111; color: #0f0; padding: 12px; height: 320px; overflow-y: auto; }
+  </style>
+</head>
+
+<body>
+  <h1>얼굴 특징 사전계산 도구 (MediaPipe)</h1>
+  <p>
+    이 페이지는 배포되는 서비스가 아니라 <b>개발자가 로컬에서 실행하는 오프라인 도구</b>입니다.<br>
+    <code>data/people.male.json</code> / <code>data/people.female.json</code>에 등록된 이미지들의
+    MediaPipe 얼굴 랜드마크 기반 비율 특징을 계산해 <code>data/embeddings.{gender}.json</code>으로 내려받습니다.<br>
+    반드시 로컬 정적 서버로 프로젝트 루트를 띄운 뒤 <code>http://localhost:포트/tools/precompute.html</code>로 접속하세요.
+  </p>
+  <button id="runMale">남성(maleKR) 계산</button>
+  <button id="runFemale">여성(femaleKR) 계산</button>
+  <div id="log"></div>
+
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver } from "../js/vendor/mediapipe/vision_bundle.mjs"
+    import { computeFeatures, FEATURE_KEYS } from "../js/faceFeatures.js"
+
+    const logEl = document.getElementById("log")
+    function log(msg) {
+      logEl.textContent += msg + "\n"
+      logEl.scrollTop = logEl.scrollHeight
+    }
+
+    let faceLandmarker = null
+    async function ensureLandmarker() {
+      if (faceLandmarker) return faceLandmarker
+      log("MediaPipe FaceLandmarker 로딩 중...")
+      const fileset = await FilesetResolver.forVisionTasks("../js/vendor/mediapipe/wasm")
+      faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: "../models/mediapipe/face_landmarker.task", delegate: "CPU" },
+        outputFaceBlendshapes: true,
+        runningMode: "IMAGE",
+        numFaces: 1,
+      })
+      log("로딩 완료")
+      return faceLandmarker
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error(`이미지 로드 실패: ${src}`))
+        img.src = src
+      })
+    }
+
+    async function computeAll(gender) {
+      const landmarker = await ensureLandmarker()
+
+      const manifestRes = await fetch(`../data/people.${gender}.json`)
+      const people = await manifestRes.json()
+
+      const results = []
+      let skipped = 0
+
+      for (let i = 0; i < people.length; i++) {
+        const person = people[i]
+        log(`[${i + 1}/${people.length}] ${person.id} 처리 중...`)
+        try {
+          const img = await loadImage(`../${person.image}`)
+          const detection = landmarker.detect(img)
+          const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
+          if (!landmarks) {
+            log(`  ⚠ 얼굴 미검출, 스킵: ${person.image}`)
+            skipped++
+            continue
+          }
+          const features = computeFeatures(landmarks, img.naturalWidth, img.naturalHeight)
+          results.push({
+            id: person.id,
+            name: person.name,
+            title: person.title,
+            image: person.image,
+            rank: person.rank,
+            netWorth: person.netWorth,
+            achievement: person.achievement,
+            credit: person.credit,
+            features: FEATURE_KEYS.map((k) => features[k]),
+          })
+        } catch (err) {
+          log(`  ⚠ 오류, 스킵: ${person.image} (${err.message})`)
+          skipped++
+        }
+      }
+
+      log(`완료: ${results.length}건 성공, ${skipped}건 스킵`)
+
+      // 인구 통계(평균/표준편차) 계산 — 매칭 시 z-score 정규화에 사용
+      const n = results.length
+      const mean = FEATURE_KEYS.map((_, idx) => results.reduce((s, r) => s + r.features[idx], 0) / n)
+      const std = FEATURE_KEYS.map((_, idx) => {
+        const variance = results.reduce((s, r) => s + (r.features[idx] - mean[idx]) ** 2, 0) / n
+        return Math.sqrt(variance) || 1
+      })
+
+      downloadJSON({ featureKeys: FEATURE_KEYS, stats: { mean, std }, people: results }, `embeddings.${gender}.json`)
+    }
+
+    function downloadJSON(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      log(`→ ${filename} 다운로드됨. data/ 폴더에 옮겨넣으세요.`)
+    }
+
+    document.getElementById("runMale").addEventListener("click", () => computeAll("male").catch((e) => log("실패: " + e.message)))
+    document.getElementById("runFemale").addEventListener("click", () => computeAll("female").catch((e) => log("실패: " + e.message)))
+  </script>
+</body>
+
+</html>

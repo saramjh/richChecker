@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap:https://saramjh.github.io/richChecker/sitemap.xml

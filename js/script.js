@@ -1,8 +1,47 @@
-async function loadModels() {
-	const MODEL_URL = "./models" // 모델 디렉토리 경로
-	await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL)
-	await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
-	await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+// 나이 추정만 face-api.js를 계속 사용 (MediaPipe Tasks Vision에는 대응하는 로컬 나이 추정 모델이 없음)
+async function loadAgeModel() {
+	const MODEL_URL = "./models"
+	await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL)
+	await faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+}
+
+// MediaPipe FaceLandmarker + faceFeatures.js는 ESM이라 동적 import로 로드
+let mediapipeModules = null
+async function ensureMediapipeModules() {
+	if (mediapipeModules) return mediapipeModules
+	const [vision, features] = await Promise.all([import("./vendor/mediapipe/vision_bundle.mjs"), import("./faceFeatures.js")])
+	mediapipeModules = { ...vision, ...features }
+	return mediapipeModules
+}
+
+let faceLandmarkerInstance = null
+async function ensureFaceLandmarker() {
+	if (faceLandmarkerInstance) return faceLandmarkerInstance
+	const { FaceLandmarker, FilesetResolver } = await ensureMediapipeModules()
+	const fileset = await FilesetResolver.forVisionTasks("./js/vendor/mediapipe/wasm")
+	faceLandmarkerInstance = await FaceLandmarker.createFromOptions(fileset, {
+		baseOptions: { modelAssetPath: "./models/mediapipe/face_landmarker.task", delegate: "CPU" },
+		outputFaceBlendshapes: true,
+		runningMode: "IMAGE",
+		numFaces: 1,
+	})
+	return faceLandmarkerInstance
+}
+
+function topExpressionFromBlendshapes(categories) {
+	const score = (...names) => {
+		const vals = names.map((n) => categories.find((c) => c.categoryName === n)?.score || 0)
+		return vals.reduce((a, b) => a + b, 0) / vals.length
+	}
+	const candidates = {
+		행복: score("mouthSmileLeft", "mouthSmileRight"),
+		놀람: score("eyeWideLeft", "eyeWideRight", "jawOpen"),
+		화남: score("browDownLeft", "browDownRight"),
+		슬픔: score("mouthFrownLeft", "mouthFrownRight"),
+	}
+	const [label, topScore] = Object.entries(candidates).reduce((best, cur) => (cur[1] > best[1] ? cur : best))
+	if (topScore < 0.15) return { label: "무표정", score: 1 - topScore }
+	return { label, score: topScore }
 }
 
 // 페이지 로드 시 기본 이미지 설정
@@ -46,221 +85,462 @@ document.querySelectorAll('input[name="gender"]').forEach((element) => {
 	})
 })
 
+// data/embeddings.{gender}.json: tools/precompute.html(MediaPipe 기반)로 미리 계산해둔
+// { featureKeys, stats: {mean, std}, people: [{..., features}] } 구조.
+async function loadEmbeddings(gender) {
+	const res = await fetch(`data/embeddings.${gender}.json`)
+	if (!res.ok) throw new Error("비교 데이터를 불러오지 못했습니다.")
+	const data = await res.json()
+	if (!data || !Array.isArray(data.people) || data.people.length === 0) {
+		throw new Error("비교 데이터가 비어 있습니다.")
+	}
+	return data
+}
+
+function toMatch(person, similarity) {
+	return {
+		name: person.name,
+		title: person.title,
+		rank: person.rank,
+		netWorth: person.netWorth,
+		achievement: person.achievement,
+		credit: person.credit,
+		features: person.features,
+		similarity,
+	}
+}
+
+// z-score 거리를 0~100 유사도로 변환. SIMILARITY_SCALE은 실측 분포로 보정된 값.
+const SIMILARITY_SCALE = 14
+
+function similarityFromDistance(distance) {
+	return Math.max(0, 100 - distance * SIMILARITY_SCALE)
+}
+
+async function matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance) {
+	const { stats, people } = embeddingsData
+	const matches = []
+	for (let i = 0; i < people.length; i++) {
+		const entry = people[i]
+		const distance = zscoreDistance(uploadedFeatures, entry.features, stats)
+		matches.push(toMatch(entry, similarityFromDistance(distance)))
+		updateLoadingModal(((i + 1) / people.length) * 100)
+	}
+	return matches
+}
+
 async function processImage(imageSrc) {
 	showLoadingModal()
 
-	await loadModels()
-	const uploadedImage = document.getElementById("uploadedImage")
-	const uploadedImageDetection = await faceapi.detectSingleFace(uploadedImage).withFaceLandmarks().withFaceDescriptor()
+	try {
+		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile } = await ensureMediapipeModules()
+		const [landmarker] = await Promise.all([ensureFaceLandmarker(), loadAgeModel()])
 
-	if (!uploadedImageDetection) {
-		alert("사람 얼굴을 포함한 이미지를 선택해주세요.")
+		const uploadedImage = document.getElementById("uploadedImage")
+		const detection = landmarker.detect(uploadedImage)
+		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
+
+		if (!landmarks) {
+			alert("사람 얼굴을 포함한 이미지를 선택해주세요.")
+			return
+		}
+
+		const featureObj = computeFeatures(landmarks, uploadedImage.naturalWidth, uploadedImage.naturalHeight)
+		const uploadedFeatures = FEATURE_KEYS.map((k) => featureObj[k])
+		const gender = document.querySelector('input[name="gender"]:checked').value
+
+		const embeddingsData = await loadEmbeddings(gender)
+		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
+
+		const blendshapeCategories = detection.faceBlendshapes && detection.faceBlendshapes[0] && detection.faceBlendshapes[0].categories
+		const expression = blendshapeCategories ? topExpressionFromBlendshapes(blendshapeCategories) : null
+
+		let age = null
+		try {
+			const ageDetection = await faceapi.detectSingleFace(uploadedImage, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender()
+			if (ageDetection) age = Math.round(ageDetection.age)
+		} catch (err) {
+			console.warn("나이 추정 실패", err)
+		}
+
+		const topMatch = matches.reduce((best, m) => (m.similarity > best.similarity ? m : best))
+		const percentiles = (features) => FEATURE_KEYS.map((k, i) => zscoreToPercentile(features[i], embeddingsData.stats.mean[i], embeddingsData.stats.std[i]))
+
+		// 각 특징(이마/눈/코/입/턱/얼굴형)별로, 실명이 있는 인물 중 그 항목이 나와 가장 비슷한 사람을 찾는다.
+		// "재벌 평균과 비교하면"보다 "이 부위는 OOO 회장과 닮았다"는 게 훨씬 흥미롭다는 피드백 반영.
+		const namedPeople = embeddingsData.people.filter((p) => p.name)
+		const nearestByFeature = FEATURE_KEYS.map((_, i) => {
+			if (namedPeople.length === 0) return null
+			const userZ = (uploadedFeatures[i] - embeddingsData.stats.mean[i]) / embeddingsData.stats.std[i]
+			let best = null
+			let bestDist = Infinity
+			for (const person of namedPeople) {
+				const personZ = (person.features[i] - embeddingsData.stats.mean[i]) / embeddingsData.stats.std[i]
+				const dist = Math.abs(userZ - personZ)
+				if (dist < bestDist) {
+					bestDist = dist
+					best = person
+				}
+			}
+			return best
+		})
+
+		const radar = {
+			keys: FEATURE_KEYS,
+			labels: FEATURE_KEYS.map((k) => FEATURE_LABELS[k]),
+			user: percentiles(uploadedFeatures),
+			match: topMatch.features ? percentiles(topMatch.features) : null,
+			matchLabel: topMatch.name || "매칭 인물",
+			nearestByFeature,
+		}
+
+		renderResults(matches, { age, expression }, radar)
+	} catch (err) {
+		console.error(err)
+		alert("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+	} finally {
 		hideLoadingModal()
-		return
+	}
+}
+
+// 전통 관상학의 오악/궁(宮) 개념을 빌려온 해석 문구.
+// high/mid/low는 재벌 표본 집단 대비 백분위(percentile) 기준.
+const FEATURE_READINGS = {
+	foreheadRatio: {
+		label: "이마 · 초년운",
+		high: "재벌 표본 평균보다 이마가 훤칠하게 넓은 편입니다. 어릴 때부터 총명하고 판단이 빠르며, 윗사람의 발탁운이 따르는 재벌상의 이마 비율에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 이마 비율입니다. 무난하고 안정적인 초년운을 타고난 재벌형 이마에 가깝습니다.",
+		low: "재벌 표본 평균보다 이마가 아담한 편입니다. 신중하게 내실을 다지는 상으로, 재벌들 사이에서도 늦게 크게 트이는 대기만성형에 속합니다.",
+	},
+	eyeSpacingRatio: {
+		label: "눈매 간격 · 대인궁",
+		high: "재벌 표본 평균보다 눈 사이가 넓은 편입니다. 마음이 트여있고 포용력이 커, 재벌들 특유의 폭넓은 인맥형 눈매에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 눈매 간격입니다. 대인관계에서 균형 잡힌 처세를 보이는 재벌형에 가깝습니다.",
+		low: "재벌 표본 평균보다 눈 사이가 좁은 편입니다. 집중력이 뛰어나 한 우물을 깊게 파는 상으로, 창업형 재벌들에게서 종종 보이는 눈매입니다.",
+	},
+	noseLengthRatio: {
+		label: "코 길이 · 재백궁(재물운)",
+		high: "관상학에서 코는 재물을 담는 그릇, '재백궁'이라 했습니다. 재벌 표본 평균보다 콧대가 길게 뻗어 있어 재물을 차곡차곡 쌓는 전형적인 재벌 코에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 코 길이입니다. 크게 넘치지도 모자라지도 않게 재물을 관리하는 재벌형 재물운입니다.",
+		low: "재벌 표본 평균보다 코가 아담한 편입니다. 씀씀이가 시원시원하고 규모보다 실속을 먼저 챙기는 재물운입니다.",
+	},
+	mouthWidthRatio: {
+		label: "입 너비 · 언변궁",
+		high: "재벌 표본 평균보다 입이 큼직한 편입니다. 언변이 좋고 배포가 커, 말 한마디로 조직을 움직이는 재벌 특유의 입매에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 입 크기입니다. 신뢰감 있는 화법을 구사하는 재벌형 언변궁입니다.",
+		low: "재벌 표본 평균보다 입이 아담한 편입니다. 말수는 적지만 한마디 한마디에 무게가 실리는 상입니다.",
+	},
+	jawRatio: {
+		label: "턱선 · 말년운",
+		high: "재벌 표본 평균보다 턱선이 두드러진 편입니다. 뚝심과 추진력이 강해, 관상학에서 말년의 복이 두텁다고 보는 재벌형 턱에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 턱선입니다. 안정적으로 목표를 이뤄가는 재벌형 말년운입니다.",
+		low: "재벌 표본 평균보다 턱선이 갸름한 편입니다. 유연하고 임기응변에 강한 상입니다.",
+	},
+	faceAspectRatio: {
+		label: "얼굴형 · 전체 기질",
+		high: "재벌 표본 평균보다 얼굴이 갸름한 편입니다. 섬세하고 전략적으로 움직이는 참모·기획형 재벌 기질에 가깝습니다.",
+		mid: "재벌 표본과 비슷한 얼굴 비율입니다. 균형 잡힌 기질의 재벌형 얼굴형입니다.",
+		low: "재벌 표본 평균보다 얼굴이 둥근 편입니다. 예로부터 원만하고 복이 들어오는 인상이라 전해지는, 오너형 재벌에게서 흔히 보이는 얼굴형입니다.",
+	},
+}
+
+function tierForPercentile(percentile) {
+	if (percentile >= 66) return "high"
+	if (percentile <= 33) return "low"
+	return "mid"
+}
+
+function renderFeatureReadings(radar) {
+	if (!radar) return ""
+	const items = radar.keys
+		.map((key, i) => {
+			const reading = FEATURE_READINGS[key]
+			if (!reading) return ""
+			const percentile = radar.user[i]
+			const tier = tierForPercentile(percentile)
+			const nearest = radar.nearestByFeature && radar.nearestByFeature[i]
+			// "이 항목은 OOO 회장과 닮았다"는 게 통계적 비교보다 흥미롭다는 피드백 반영 —
+			// 핵심 문구로 승격하고, 백분위는 보조 정보로 남긴다.
+			const compareText = nearest
+				? `${nearest.name}${nearest.title ? `(${nearest.title})` : ""}과(와) 가장 비슷함`
+				: percentile >= 50
+					? `재벌 표본 대비 상위 ${Math.max(1, 100 - percentile)}%`
+					: `재벌 표본 대비 하위 ${Math.max(1, percentile)}%`
+			return `
+				<div class="reading-item">
+					<div class="reading-head">
+						<span class="reading-label">${reading.label}</span>
+						<span class="reading-compare">${compareText}</span>
+					</div>
+					<p>${reading[tier]}</p>
+				</div>
+			`
+		})
+		.join("")
+
+	return `
+		<div id="readingScroll">
+			<h4>AI 관상 풀이 — 재벌 표본과의 비교</h4>
+			${items}
+		</div>
+	`
+}
+
+// 육각 레이더 차트를 인라인 SVG로 그린다. userScores/matchScores는 0~100 퍼센타일.
+function renderRadarChart(labels, userScores, matchScores, matchLabel) {
+	const size = 220
+	const center = size / 2
+	const radius = 78
+	const angleStep = (Math.PI * 2) / labels.length
+	const startAngle = -Math.PI / 2
+
+	const pointAt = (score, i) => {
+		const angle = startAngle + angleStep * i
+		const r = (Math.max(0, Math.min(100, score)) / 100) * radius
+		return [(center + r * Math.cos(angle)).toFixed(1), (center + r * Math.sin(angle)).toFixed(1)]
 	}
 
-	const uploadedDescriptor = uploadedImageDetection.descriptor
+	const rings = [0.25, 0.5, 0.75, 1]
+		.map((f) => {
+			const pts = labels
+				.map((_, i) => {
+					const angle = startAngle + angleStep * i
+					return `${(center + radius * f * Math.cos(angle)).toFixed(1)},${(center + radius * f * Math.sin(angle)).toFixed(1)}`
+				})
+				.join(" ")
+			return `<polygon points="${pts}" fill="none" stroke="#c9b458" stroke-width="0.5" opacity="0.3"/>`
+		})
+		.join("")
 
-	const gender = document.querySelector('input[name="gender"]:checked').value
-	const targetImages = getTargetImagesForGender(gender)
+	const axisLines = labels
+		.map((_, i) => {
+			const angle = startAngle + angleStep * i
+			const x = (center + radius * Math.cos(angle)).toFixed(1)
+			const y = (center + radius * Math.sin(angle)).toFixed(1)
+			return `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#c9b458" stroke-width="0.5" opacity="0.4"/>`
+		})
+		.join("")
 
-	let totalSimilarity = 0
-	let count = 0
+	const axisLabels = labels
+		.map((label, i) => {
+			const angle = startAngle + angleStep * i
+			const lx = (center + (radius + 20) * Math.cos(angle)).toFixed(1)
+			const ly = (center + (radius + 20) * Math.sin(angle)).toFixed(1)
+			return `<text x="${lx}" y="${ly}" font-size="10" fill="#e8d9a0" text-anchor="middle" dominant-baseline="middle">${label}</text>`
+		})
+		.join("")
 
-	for (let i = 0; i < targetImages.length; i++) {
-		const target = targetImages[i]
-		const targetImage = await fetchImage(target)
-		const targetImageDetection = await faceapi.detectSingleFace(targetImage).withFaceLandmarks().withFaceDescriptor()
+	const matchPolygon = matchScores
+		? `<polygon points="${labels.map((_, i) => pointAt(matchScores[i], i).join(",")).join(" ")}" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="1.5" stroke-dasharray="4,3"/>`
+		: ""
+	const userPolygon = `<polygon points="${labels.map((_, i) => pointAt(userScores[i], i).join(",")).join(" ")}" fill="rgba(255,90,90,0.28)" stroke="#ff5a5a" stroke-width="1.5"/>`
 
-		if (targetImageDetection) {
-			const targetDescriptor = targetImageDetection.descriptor
-			const distance = faceapi.euclideanDistance(uploadedDescriptor, targetDescriptor)
-			const similarity = Math.max(0, (1 - distance) * 100).toFixed(2)
+	return `
+		<div id="radarChart">
+			<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:220px">
+				${rings}${axisLines}${matchPolygon}${userPolygon}${axisLabels}
+			</svg>
+			<div id="radarLegend"><span class="legend-user">● 나</span>${matchScores ? `<span class="legend-match">✦ ${matchLabel}</span>` : ""}</div>
+		</div>
+	`
+}
 
-			totalSimilarity += parseFloat(similarity)
-			count++
-		}
+function renderTopMatch(match, radar) {
+	const badges = []
+	if (match.rank) badges.push(`<span class="badge">포브스 순위 ${match.rank}위</span>`)
+	if (match.netWorth) badges.push(`<span class="badge">자산 ${match.netWorth}</span>`)
 
-		updateLoadingModal(((i + 1) / targetImages.length) * 100)
-	}
+	const achievementHtml = match.achievement ? `<p id="topMatchAchievement">${match.achievement}</p>` : ""
+	const creditHtml = match.credit
+		? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>`
+		: ""
+	const radarHtml = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel) : ""
 
-	// 평균 유사도 계산
-	if (count > 0) {
-		const averageSimilarity = (totalSimilarity / count).toFixed(2)
-
-		let similarityMessage = ""
-
-		// 조건에 따른 메시지 설정
-		if (averageSimilarity >= 50) {
-			similarityMessage = `<span>완벽한 재벌관상</span> 타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.`
-		} else if (averageSimilarity >= 48.125) {
-			similarityMessage = `<span>거의 재벌관상</span> 힘과 부를 상징하는 외모, 성공한 사람의 분위기.`
-		} else if (averageSimilarity >= 46.25) {
-			similarityMessage = `<span>확실한 재벌 느낌</span> 권위와 부유함이 강하게 나타남.`
-		} else if (averageSimilarity >= 44.375) {
-			similarityMessage = `<span>눈에 띄는 특징</span> 리더십과 자신감이 표출되기 시작.`
-		} else if (averageSimilarity >= 42.5) {
-			similarityMessage = `<span>잠재력 있음</span> 카리스마나 부유함의 기운이 약간 느껴짐.`
-		} else if (averageSimilarity >= 40.625) {
-			similarityMessage = `<span>중간 단계</span> 재벌관상과는 약간의 유사성, 하지만 확실하지 않음.`
-		} else if (averageSimilarity >= 38.75) {
-			similarityMessage = `<span>평범함</span> 특별히 눈에 띄지 않는 인상.`
-		} else if (averageSimilarity >= 36.875) {
-			similarityMessage = `<span>부족한 요소</span> 자신감이나 권위가 부족한 인상.`
-		} else if (averageSimilarity >= 35) {
-			similarityMessage = `<span>근본적인 차이</span> 재벌 느낌과는 전혀 어울리지 않음.`
-		} else {
-			similarityMessage = `<span>완전히 반대</span> 재벌과는 거리가 먼 평범한 외모.`
-		}
-
-		// 결과 출력
-		document.getElementById("averageResult").innerHTML = `
-			<div id="resultRate">
-				<h3>나의 관상 분석 결과</h3> 
-				<span id="richRate" class="bounce">${averageSimilarity}%</span>
-				<p>${similarityMessage}</p>
-				<table>
-		<caption>부자 관상 분석 기준</caption>
-		<thead>
-				<tr>
-						<th>분류</th>
-						<th>설명</th>
-						<th>일치 수준</th>
-				</tr>
-		</thead>
-		<tbody>
-				<tr>
-						<td>완벽한 재벌상</td>
-						<td>타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.</td>
-						<td>50%~</td>
-				</tr>
-				<tr>
-						<td>거의 재벌상</td>
-						<td>힘과 부를 상징하는 외모, 성공한 사람의 분위기.</td>
-						<td>50%<br>~48.125%</td>
-				</tr>
-				<tr>
-						<td>확실한 부티</td>
-						<td>권위와 부유함이 강하게 나타남.</td>
-						<td>48.125%<br>~46.25%</td>
-				</tr>
-				<tr>
-						<td>튀는 부티</td>
-						<td>리더십과 자신감이 표출되기 시작.</td>
-						<td>46.25%<br>~44.375%</td>
-				</tr>
-				<tr>
-						<td>잠재력 있음</td>
-						<td>카리스마나 부유함의 기운이 약간 느껴짐.</td>
-						<td>44.375%<br>~42.5%</td>
-				</tr>
-				<tr>
-						<td>중간 단계</td>
-						<td>재벌관상과는 약간의 유사성, 하지만 확실하지 않음.</td>
-						<td>42.5%<br>~40.625%</td>
-				</tr>
-				<tr>
-						<td>평범함</td>
-						<td>특별히 눈에 띄지 않는 인상.</td>
-						<td>40.625%<br>~38.75%</td>
-				</tr>
-				<tr>
-						<td>부족한 요소</td>
-						<td>자신감이나 권위가 부족한 인상.</td>
-						<td>38.75%<br>~36.875%</td>
-				</tr>
-				<tr>
-						<td>근본적 차이</td>
-						<td>재벌 느낌과는 전혀 어울리지 않음.</td>
-						<td>36.875%<br>~35%</td>
-				</tr>
-				<tr>
-						<td>완전히 반대</td>
-						<td>재벌과는 거리가 먼 평범한 외모.</td>
-						<td>~35%</td>
-				</tr>
-		</tbody>
-</table>
+	return `
+		<div id="topMatch">
+			<div id="topMatchShine"></div>
+			<div id="topMatchHeader">
+				<span id="topMatchName">${match.name}</span>
+				<span id="topMatchHP">일치율 ${match.similarity.toFixed(1)}%</span>
 			</div>
-		`
+			${match.title ? `<div id="topMatchTitle">${match.title}</div>` : ""}
+			${badges.length ? `<div id="topMatchBadges">${badges.join("")}</div>` : ""}
+			${radarHtml}
+			${achievementHtml}
+			${creditHtml}
+		</div>
+	`
+}
+
+function renderResults(matches, aiInfo, radar) {
+	// 메인 지표는 "가장 닮은 인물과의 일치율" 하나로 통일한다.
+	// (예전에는 전체 인물 평균을 헤드라인으로 썼는데, 카드에 뜨는 1위 매칭 %와 숫자가 달라서
+	// 헷갈린다는 지적 반영. 사용자는 "100%에 가까울수록 재벌 같다"는 직관적 관례를 기대하므로
+	// 그 관례에 맞는 단일 숫자만 크게 보여준다.)
+	const topMatch = matches.reduce((best, m) => (m.similarity > best.similarity ? m : best))
+	const topSimilarity = topMatch.similarity.toFixed(1)
+
+	const topMatchHtml = topMatch.name
+		? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar)}</div>`
+		: ""
+	const readingHtml = renderFeatureReadings(radar)
+
+	const aiInfoParts = []
+	if (aiInfo && aiInfo.age) aiInfoParts.push(`AI 추정 나이 ${aiInfo.age}세`)
+	if (aiInfo && aiInfo.expression) aiInfoParts.push(`표정 ${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%`)
+	const aiInfoHtml = aiInfoParts.length ? `<p id="aiInfo">${aiInfoParts.join(" · ")}</p>` : ""
+
+	let similarityMessage = ""
+
+	// 조건에 따른 메시지 설정 (topSimilarity 기준: 100%에 가까울수록 "재벌상"이라는
+	// 일반적인 직관에 맞춘 등급)
+	if (topSimilarity >= 90) {
+		similarityMessage = `<span>완벽한 재벌관상</span> 타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.`
+	} else if (topSimilarity >= 80) {
+		similarityMessage = `<span>거의 재벌관상</span> 힘과 부를 상징하는 외모, 성공한 사람의 분위기.`
+	} else if (topSimilarity >= 70) {
+		similarityMessage = `<span>확실한 재벌 느낌</span> 권위와 부유함이 강하게 나타남.`
+	} else if (topSimilarity >= 60) {
+		similarityMessage = `<span>눈에 띄는 특징</span> 리더십과 자신감이 표출되기 시작.`
+	} else if (topSimilarity >= 50) {
+		similarityMessage = `<span>잠재력 있음</span> 카리스마나 부유함의 기운이 약간 느껴짐.`
+	} else if (topSimilarity >= 40) {
+		similarityMessage = `<span>중간 단계</span> 재벌관상과는 약간의 유사성, 하지만 확실하지 않음.`
+	} else if (topSimilarity >= 30) {
+		similarityMessage = `<span>평범함</span> 특별히 눈에 띄지 않는 인상.`
+	} else if (topSimilarity >= 20) {
+		similarityMessage = `<span>부족한 요소</span> 자신감이나 권위가 부족한 인상.`
+	} else if (topSimilarity >= 10) {
+		similarityMessage = `<span>근본적인 차이</span> 재벌 느낌과는 전혀 어울리지 않음.`
+	} else {
+		similarityMessage = `<span>완전히 반대</span> 재벌과는 거리가 먼 평범한 외모.`
 	}
 
-	hideLoadingModal()
+	// 결과 출력
+	document.getElementById("averageResult").innerHTML = `
+		<div id="resultRate">
+			<h3>나의 관상 분석 결과</h3>
+			<span id="richRate" class="bounce">${topSimilarity}%</span>
+			${aiInfoHtml}
+			${topMatchHtml}
+			${readingHtml}
+			<p>${similarityMessage}</p>
+			<table>
+	<caption>부자 관상 분석 기준 (가장 닮은 인물과의 일치율 기준)</caption>
+	<thead>
+			<tr>
+					<th>분류</th>
+					<th>설명</th>
+					<th>일치 수준</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>완벽한 재벌상</td>
+					<td>타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.</td>
+					<td>90%~</td>
+			</tr>
+			<tr>
+					<td>거의 재벌상</td>
+					<td>힘과 부를 상징하는 외모, 성공한 사람의 분위기.</td>
+					<td>80%<br>~90%</td>
+			</tr>
+			<tr>
+					<td>확실한 부티</td>
+					<td>권위와 부유함이 강하게 나타남.</td>
+					<td>70%<br>~80%</td>
+			</tr>
+			<tr>
+					<td>튀는 부티</td>
+					<td>리더십과 자신감이 표출되기 시작.</td>
+					<td>60%<br>~70%</td>
+			</tr>
+			<tr>
+					<td>잠재력 있음</td>
+					<td>카리스마나 부유함의 기운이 약간 느껴짐.</td>
+					<td>50%<br>~60%</td>
+			</tr>
+			<tr>
+					<td>중간 단계</td>
+					<td>재벌관상과는 약간의 유사성, 하지만 확실하지 않음.</td>
+					<td>40%<br>~50%</td>
+			</tr>
+			<tr>
+					<td>평범함</td>
+					<td>특별히 눈에 띄지 않는 인상.</td>
+					<td>30%<br>~40%</td>
+			</tr>
+			<tr>
+					<td>부족한 요소</td>
+					<td>자신감이나 권위가 부족한 인상.</td>
+					<td>20%<br>~30%</td>
+			</tr>
+			<tr>
+					<td>근본적 차이</td>
+					<td>재벌 느낌과는 전혀 어울리지 않음.</td>
+					<td>10%<br>~20%</td>
+			</tr>
+			<tr>
+					<td>완전히 반대</td>
+					<td>재벌과는 거리가 먼 평범한 외모.</td>
+					<td>~10%</td>
+			</tr>
+	</tbody>
+</table>
+		</div>
+	`
+
 	document.getElementById("resultsContainer").style.display = "block"
+
+	const revealEl = document.getElementById("topMatchReveal")
+	if (revealEl) {
+		// 짧은 대기 후 카드가 팝업되는 연출 (두구두구 효과)
+		requestAnimationFrame(() => {
+			setTimeout(() => revealEl.classList.add("revealed"), 500)
+		})
+	}
+
+	const cardEl = document.getElementById("topMatch")
+	if (cardEl) initHoloEffect(cardEl)
+}
+
+// 마우스/터치 위치에 따라 카드가 기울어지고 무지개 시광이 움직이는 홀로그래픽 효과
+function initHoloEffect(cardEl) {
+	const shine = document.getElementById("topMatchShine")
+	if (!shine) return
+
+	const applyTilt = (clientX, clientY) => {
+		const rect = cardEl.getBoundingClientRect()
+		const x = (clientX - rect.left) / rect.width
+		const y = (clientY - rect.top) / rect.height
+		const rotateY = (x - 0.5) * 16
+		const rotateX = (0.5 - y) * 16
+		cardEl.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.015)`
+		shine.style.backgroundPosition = `${x * 100}% ${y * 100}%`
+		shine.style.opacity = "0.7"
+	}
+
+	const resetTilt = () => {
+		cardEl.style.transform = ""
+		shine.style.opacity = "0"
+	}
+
+	cardEl.addEventListener("mousemove", (e) => applyTilt(e.clientX, e.clientY))
+	cardEl.addEventListener("mouseleave", resetTilt)
+	cardEl.addEventListener(
+		"touchmove",
+		(e) => {
+			const touch = e.touches[0]
+			if (touch) applyTilt(touch.clientX, touch.clientY)
+		},
+		{ passive: true }
+	)
+	cardEl.addEventListener("touchend", resetTilt)
 }
 
 document.getElementById("reset").addEventListener("click", function () {
 	window.location.reload()
 })
-
-async function fetchImage(src) {
-	const response = await fetch(src)
-	const blob = await response.blob()
-	return await faceapi.bufferToImage(blob)
-}
-
-function getTargetImagesForGender(gender) {
-	if (gender === "male") {
-		return [
-			"assets/maleKR/2LAp8CxoD3pTIsMttiFdMdk2xFW8leNJOCUpaG_eeXnuQmesQPFR5cZH-GR7WdxES3cYrwTMtcZBE9n9I8Sbr1XrQo85OvMkbOmSQiyhEmqpVYzr84jxwzyg2BnDOAQtw6ACloqZF26XuThs3fai0Q.webp",
-			"assets/maleKR/3GK-DtkmjRwE3b8z3Ut-BN5dyd3-ukR5PyzxtdLVDY2q7NrfGRZyWiNpks74fMAqo_RJJIgbyORNslkBP1JavxbnhnyldBBsXS8iGi-1Wr-KEe5mISrUDnfmzLcF3b5SXjdt6fo8CNacrqBiPkF1iQ.webp",
-			"assets/maleKR/3n7y5otAxHtbLNt1ktj9MvN41410vOcngd40TbRmILAhtwUASPTfwwZCGyO_GamWjMrsCjOEPt_ROvYLjkd1uo0Gl8r7sI0mlme7wUs1Unm_XoWVkyO-8ZpLTtxm1YOfFJ36yJTYmUCMX79b2Wa3Ng.webp",
-			"assets/maleKR/4WT5ZVzp1SJzgxd9ZR19fq9NmoEW5Xkl4CiZhPiYVR-zTKDCogdDuUFXFOh7OFIUUqlGT8fn05sIvb57JaFHWTkciNt8AsUHCfGNYy0PpvZiMtKElielHvYnmKvGd0kd-hHQXRVXT0z7ZZsb0xPi5g.webp",
-			"assets/maleKR/6evxzuJ3QJbx3o3rcQgF2BzWexT3uzCa_wkE_pbZSBreSyFqXVZaeP-mhJ3OKYU9MCKbb3H02W1pCEUibWbrsr1MM8dbOMH5MK-eDlJ3YkGH3E0oLQEPRKRK-rczfOsua8jbnrFEBl0-hVebX6BjMA.webp",
-			"assets/maleKR/FQRof2nbq8UcIPsmFhtar1or33at2yHg6ufI_tNYeHmgcoouklx31DRBDbKbe7rQKkWdPCoWM4bdTqGdLH3-nGHdUWI46nqLjmC6fZsn_Y4quWV_QXP3AvSY1bNal_7_Ic_rm57URC48rZWQejsm5w.webp",
-			"assets/maleKR/GGeRgbfBPv1BB44tcwGAG_YMVplluFjrkOHRoyzisYW0yqRnd8yZtY_lV-99DX6fZPQMy6VkrfsMmYyVAM7jujKf9hTuwH85R3Dxby2RA5TuefZRVdrdQokXm0xxoix62noCiVNxw32ZlGTEy-bQgA.webp",
-			"assets/maleKR/HHb4Lao9elKZ85wgAPo3r8dGhy-negIzTACu1OQnypVyTdEqdzPsppv5Wck89qgurklJkZZpnEgHf8Ajaj_-IWdhnQqfDZziycZHFkQ17Q1wmuZQho40A9_7-n25I55eq2aXRZ8t-aDP8Y2f2SUfTQ.webp",
-			"assets/maleKR/IBBZ6fICkDcyoBuwOm9DpHUsc51EZGiRk4fybvKkBQeAgoxv9uqwLFni8KgSv14qZiESkKSZADjJDSEGeFg6kNlQcCHT5TrF8-5NK9ggAzMoZyTTp5-wiZdHwpx555W8SJ6_I-e9j7MW0dueOUxpFg.webp",
-			"assets/maleKR/Ikoy67HmwECWtGuyyQIoG_NOVa4i38CpO0zg-xADHDP3RsqMPp6B6VpMRInynm3DtF2FUDjtQPEAoiFDgIhEXbJr3Rxozs2YBlRRnksiJ0ObKfZHWjuXmEd84ZbMzfZ7lVbXh5YnO_rk0tf5PX3alg.webp",
-			"assets/maleKR/LUGZdI95NNixuecErMKsqdtY3jXSiH22paatCrNuyzw3qj9M74_zyBlsn2rb9snZSGFu6t2jlz_MCp2XdbaNr-2xxQ9AM0n8eNFUZPA9ikU9Y-s26OJnFLQfn1C_joILxIysYt2cootGD-5699dHRQ.webp",
-			"assets/maleKR/LgqbxQFrYVgqjEebfbPtbRdw1ot-iCry-eycUUrx1z79RTnQXadb4S_U92WNAulf94MB38J7mrz2IEMs0NWnIf02eFbfb2rpMKCb40qWG5nYFYYdz5TCFFkGRDIN-69NcvJWYH9LHwa1LJnH1HyOdw.webp",
-			"assets/maleKR/RRElEWw1OmyUalDofOwHvcF7b_lYehun_csQpc7ftq9HQeMyZt_EIAZRUhWhN6zmosv8IUlUEoRllYDTDf2ji9SCSXsLTOCgr8QnxbDlBgCx6j8-YVvxbKJU2Ur8k_5RSNjFURUfKyQU00tFKKLiOA.webp",
-			"assets/maleKR/TYFSKJxFSm0ioUlG8JuTH26ihiR7makI3_3k7F5ZETVV4-4fiXgJkiCdCpTCt1FMj7rc1CCfI0Egt4LKLvHsroWcQQYBnxt34QZtxu1mFlwqNG4zfdppmf-ouAVxUtBxoQOKxBXXJDDA027fUVymzg.webp",
-			"assets/maleKR/XA8qqCsrfqeu7bD2Ux_5oe8X0V3FEEzToOZfANAEmloFqHT9apO0jO-GcxGLOxuOX7OiNK4pdlrsnmzQ2a2-E-aZGtRRwhFHehV89fNTD4Tctbb8T0S-4dlFg4n-aOCVzq9m8LqQoGMuS2hZ_Sa0zg.webp",
-			"assets/maleKR/XULkzgrTIDp8U1sTlPhYaT5mk1Uxthx4pkFh4XkLkhxDUsJ-c658mxBLB1N6D5P69jAPmgZVQ3VEcnOMCdzDsg_-_lI_uFCHDmPYkoFS5f4dMwqfgSk10SMbDjsGFMMIOlIyjw8b-c1SIXB9bvG2IA.webp",
-			"assets/maleKR/XoE5k29pC0a-h6O1jePn--TAAl_IEsNZxTewvqW2SByUll1iJgEHuoaWCrQHP4vm87ya1i9xcDywfgdYUZWtxuk94BYKRhP8vf12hMKSCjMFObLmy2Q1e3ocyNzLXD2ZBiDdUhsBKpV4L_By2pdQnQ.webp",
-			"assets/maleKR/Y2a0J1zTE1yzz-IZoT8d7wbs7pLFESInRgK5C1-Ts3qKFbNo3FQf1q9PrgQiQ2cAzXb-alx8tAXUhp8dUCXgd843nLaOx-tUukfXqplG9LOO-b-1P1EKJOdtkWI7NXhmVYwDTQ4MR0s0l2pWqaKjqA.webp",
-			"assets/maleKR/ZTY4LjfWfVheqJj1ipuUjw0pzEhuSxU4rQCnLm5W1HS1ted_RSVr3seg4YCzvByLydJVx6sV8796eY_Jk6lIMKEW1VUPd4M27liM_RDkgtqG7O-oyBHBoZqfD9KGin4BCE2ldmO9cQg3RfK6cpBdGg.webp",
-			"assets/maleKR/diYaDKwbXK7G-v4dlUkFuFngaLG6b16wCsFIeHageCF2GxMt_thEjqeg3R2UDiTtxLTB9Ihy0SF86fpoV3ejoiUprvnv0tFwTI5ylmJiLiwZK1QwXVl0fOnM0UGbT8kThJUlkyKd24KQo38XTYv-Dw.webp",
-			"assets/maleKR/gv__WVMkdXyOiCyWh4BYw24DavFS0F0c3ob5d_Xu1fH5u9JFY1vnin2H-XWEXHqvZtaRv2TFL1Z-YVTmJDG1cdcGRYXKP0A5XUB_SEfWSptpEu7yfWRi90UVWu30CfuFxSWHuMoYvtkajVkCJ4mZ5Q.webp",
-			"assets/maleKR/nl6IpEnM1rTpvAoW15cvPpjTKgniULH1S9OyeCrPhWCrcTQa-bIlmGmyg2-v4nyk8eeW0Pb1P8NMxfhpUIq4OtyOhV24BJo_skm1qzjEBsliKGejQbSYgdeLwStYGbZcynkwrVX_Z4fDqFDFEKundQ.webp",
-			"assets/maleKR/u-Fbx7fABPavF-9Hx74hoqQdd2QH6Yzi4dlugcya45PVQ7mDa0Wb72N_5X3Rxcj-6KIzkZ2eVA7sngXYrZTkVNiEXQyPmof671RZBDYQkcTVXjYoL-dKpT9rcmRDhY3iUK4NSg9-yFpf8nTpaFZCQA.webp",
-			"assets/maleKR/ujq_GL1yzkrCLpjbNWw544xejsYj82Z7GOOW8AErlfl4OfnGlHtSTAbRO2zo9lrD1k75U17TUHkXowlYNkZFxOSQocFwP5ksQeKK-StzPYLhrQEZJYSVkjo_RylrGOCtEpOS-s5OLnkP-WvNr0yDrQ.webp",
-			"assets/maleKR/vcdLxb_MDHBBDJIKlJoiL3suz3c5VIuGdYlguWD8Pexumr_4OBu4w41LDdKlPdAM_UK1pwT3pOJrzTMyubckFhFkzrKBVB6O3-rW3HBKOBRU3GjLUdnxMtIOMtznM3cZScLyJb2nz2mvb83njnTUOw.webp",
-			"assets/maleKR/wh6zG6dgMKTAv0jUpaeruIHfX2_Q5e5Ljal4emMPk_pfiK6rpXUWSz4IHt7CMrWDzBv-htZXUwaeqUxiEEBfDReZjiDXPaMsAgVEwMCW2WF5hqoHz81C-LHuwRLvknsCamO-w4IB2WrNHJo1SG_8EQ.webp",
-			"assets/maleKR/xfT596HJeElTXG_ATTDlQLbhh-5-C8ZYDFvqp-7dw_ZqHDMoVj6FqmNTsS1xsfh6b4BerSbj84oOyo-K1Wy4tx7mBVlHztcqcGPp2yU9V8_eQiHtCo0o_cABf4_IUTyqbZPi0gdQOXFMQgGeOgV-nQ.webp",
-			// ... (더 많은 남성 이미지)
-		]
-	} else {
-		return [
-			"assets/femaleKR/107748_106566_930.jpg",
-			"assets/femaleKR/1642099816533.jpeg",
-			"assets/femaleKR/2022111700193_0.jpg",
-			"assets/femaleKR/2211241059480190_119_tc.jpg",
-			"assets/femaleKR/229008_130396_511.jpg",
-			"assets/femaleKR/40963_78843.jpeg",
-			"assets/femaleKR/5053_5563_233.jpg",
-			"assets/femaleKR/672109_2064_5143.jpg",
-			"assets/femaleKR/CX0xZvQraxY0tKM5Qdy8Mfp3BiyjkLUSvOz6f0Xg42eD299eoOTxP4BEvdBT0YV4Md4YN-khdxZbj6BDGM94ABNy0cZklt1Qvzuhf02J6feA6F-Iq1XdD_AqEjsGJaPpLISm56sl_Jr8VAVPJerizw.webp",
-			"assets/femaleKR/JH0jd7jiuMEMStIrFgh-E048ki_rBcFY4cCW6zsTxnXu6XvCffbKvjPaU_HlgkCfTx8Se-TRS0YjZdg_8R1ze5GvixL9sBLNq_9piOnXCGLKBzmAMTn_BuimnKXluKO8chWIo1AuFKSRCuSRw2upFQ.webp",
-			"assets/femaleKR/K3a6TxMxdt-nLv9JXAZBvNL55_Sh-XEz6TAiveH8kwdJdaeJfrpOnBdXGPA1h4yMuplUgSVf4GQQg80FxOrxJA.webp",
-			"assets/femaleKR/PP10081600034.jpeg",
-			"assets/femaleKR/SSI_20140817180729_O2.jpg",
-			"assets/femaleKR/V1dimmqQ51ymFT6TLC4dWHxr7PPaym48-kofQpdK6SZwSmcccJgPN71r7kDpjMHhA7c9zajWIv5-FPkmWVhzFg.webp",
-			"assets/femaleKR/a-CyZb40jxEj6w3smXKgDPi5TASEsEjAyvZ43dLCNohFfvxj9YCOaCabR7h1fvt_g8n2TnUd-XK_Uh769FkqtbcreP-Blu5UhOyFm92URxGMBwIlj5AMrXfPPIFYE8Z6UdWEwfLndvrV2Ojw5kK-hQ.webp",
-			"assets/femaleKR/image-6c18e1fa-ebbc-477b-8128-6a623505c790.jpeg",
-			"assets/femaleKR/image_readtop_2016_786587_1478839394.jpg",
-			"assets/femaleKR/images.jpeg",
-			"assets/femaleKR/isp20230112000217.466x551.0.jpeg",
-			"assets/femaleKR/isp20230112000218.409x614.0.jpg",
-			"assets/femaleKR/news_1718088311_1370607_m_1.jpeg",
-			"assets/femaleKR/rg_VWdoKbINZ1kN1DvchSuKznzkDO6qs_80D8TAmmclzKxKmUJNwqOJLQZFlQlJqcTdRDnYRcS24hP_FxzflvXPnm3utrDfV54Icfw2GxKC1X9bUIWMi-jITRe2jHyCY6crfvyFI0QY5Z5Fal33h3Q.webp",
-			"assets/femaleKR/tjalswjd191025.jpg",
-
-			// ... (더 많은 여성 이미지)
-		]
-	}
-}
 
 function showLoadingModal() {
 	const modal = document.getElementById("loadingModal")
@@ -378,24 +658,43 @@ wallPattern.init()
 /* share function */
 
 function saveAsImage() {
-	const container = document.querySelector(".container")
+	// 업로드 폼/버튼 등은 제외하고 결과 카드만 캡처 (공유 이미지 품질을 위해)
+	const container = document.getElementById("resultsContainer")
+	const saveButtonWrapper = document.getElementById("saveImg")
+	const richRateEl = document.getElementById("richRate")
 
-	// 실제 요소의 스타일로부터 크기 가져오기
 	const originalWidth = container.offsetWidth
 	const originalHeight = container.offsetHeight
 
-	// 비율을 유지하면서 scale을 2로 설정
+	saveButtonWrapper.style.visibility = "hidden"
+	// 진입 애니메이션(bounce)이 아직 재생 중이면 캡처 시 텍스트가 겹쳐 보이므로 캡처 직전 정지시킨다
+	if (richRateEl) richRateEl.style.animation = "none"
+	const revealEl = document.getElementById("topMatchReveal")
+	if (revealEl) {
+		revealEl.style.transition = "none"
+		revealEl.classList.add("revealed")
+	}
+	// 홀로그래픽 카드가 마우스 틸트 중이었다면 캡처 전에 평평하게 되돌린다
+	const cardEl = document.getElementById("topMatch")
+	const shineEl = document.getElementById("topMatchShine")
+	if (cardEl) cardEl.style.transform = "none"
+	if (shineEl) shineEl.style.opacity = "0"
+
 	html2canvas(container, {
 		width: originalWidth,
 		height: originalHeight,
 		scale: 2, // 고해상도 이미지를 위한 스케일 설정
 		useCORS: true, // CORS 문제를 해결하기 위해 필요시 추가
-	}).then(function (canvas) {
-		const link = document.createElement("a")
-		link.href = canvas.toDataURL("image/png")
-		link.download = "부자관상분석결과.png"
-		link.click()
 	})
+		.then(function (canvas) {
+			const link = document.createElement("a")
+			link.href = canvas.toDataURL("image/png")
+			link.download = "부자관상분석결과.png"
+			link.click()
+		})
+		.finally(function () {
+			saveButtonWrapper.style.visibility = "visible"
+		})
 }
 
 document.getElementById("saveImgBtn").addEventListener("click", function () {

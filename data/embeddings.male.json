@@ -1,0 +1,628 @@
+{
+  "featureKeys": [
+    "foreheadRatio",
+    "eyeSpacingRatio",
+    "noseLengthRatio",
+    "mouthWidthRatio",
+    "jawRatio",
+    "faceAspectRatio"
+  ],
+  "stats": {
+    "mean": [
+      0.3199699469894431,
+      0.23986314924321292,
+      0.2113392404125638,
+      0.3716429290256441,
+      0.28454777458296243,
+      1.18708465063813
+    ],
+    "std": [
+      0.016727383585684836,
+      0.01396177656011146,
+      0.013330255279074464,
+      0.03958636049876342,
+      0.022712948908092192,
+      0.0874200674817479
+    ]
+  },
+  "people": [
+    {
+      "id": "lee-jae-yong",
+      "name": "이재용",
+      "title": "삼성전자 회장",
+      "image": "assets/richKR/male/lee-jae-yong.jpg",
+      "rank": 1,
+      "netWorth": "$21.6B",
+      "achievement": "삼성전자 회장 · 반도체·스마트폰 글로벌 1위 이끎",
+      "credit": {
+        "author": "KBS",
+        "license": "CC BY 3.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Lee_Jae-yong_in_2016.jpg"
+      },
+      "features": [
+        0.3251718719858433,
+        0.24377477082170892,
+        0.20321958730289985,
+        0.3238925440115438,
+        0.2565463482674868,
+        1.183445036681471
+      ]
+    },
+    {
+      "id": "chung-eui-sun",
+      "name": "정의선",
+      "title": "현대자동차그룹 회장",
+      "image": "assets/richKR/male/chung-eui-sun.jpg",
+      "rank": 9,
+      "netWorth": "$6.3B",
+      "achievement": "현대차그룹 회장 · 전기차·로보틱스 미래사업 확장",
+      "credit": {
+        "author": "The White House",
+        "license": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Chung_Eui-sun_(2025)_cropped_1.jpg"
+      },
+      "features": [
+        0.3154600141769714,
+        0.20889788789964628,
+        0.2388417902633907,
+        0.2730178531391962,
+        0.23159986390077328,
+        1.486562045606545
+      ]
+    },
+    {
+      "id": "chey-tae-won",
+      "name": "최태원",
+      "title": "SK그룹 회장",
+      "image": "assets/richKR/male/chey-tae-won.jpg",
+      "rank": 18,
+      "netWorth": "$2.9B",
+      "achievement": "SK그룹 회장 · SK하이닉스 반도체 신화 주도",
+      "credit": {
+        "author": "대한민국 정부(Republic of Korea)",
+        "license": "CC BY-SA 2.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Korea_Portuguese_Business_Forum_01_(cropped).jpg"
+      },
+      "features": [
+        0.3221044694850194,
+        0.22374776508979896,
+        0.21723710212925632,
+        0.3083315478017875,
+        0.2504958905676176,
+        1.430099202714878
+      ]
+    },
+    {
+      "id": "bang-si-hyuk",
+      "name": "방시혁",
+      "title": "하이브 의장",
+      "image": "assets/richKR/male/bang-si-hyuk.png",
+      "rank": 41,
+      "netWorth": "$1.25B",
+      "achievement": "하이브 의장 · BTS 등 K팝 세계화 이끈 프로듀서",
+      "credit": {
+        "author": "티비텐 TV10",
+        "license": "CC BY 3.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Bang_Si-hyuk_on_15_September_2025_01.png"
+      },
+      "features": [
+        0.30986186364879387,
+        0.21570470962320032,
+        0.21438058101380683,
+        0.33805004400186545,
+        0.27469012998550185,
+        1.2858564617169066
+      ]
+    },
+    {
+      "id": "chung-yong-jin",
+      "name": "정용진",
+      "title": "신세계그룹 회장",
+      "image": "assets/richKR/male/chung-yong-jin.jpg",
+      "rank": 28,
+      "netWorth": "$2.1B",
+      "achievement": "신세계그룹 회장 · 이마트·스타필드 유통 혁신",
+      "credit": {
+        "author": "SSG BLOG",
+        "license": "CC BY 4.0",
+        "source": "https://commons.wikimedia.org/wiki/File:%EC%A0%95%EC%9A%A9%EC%A7%84-%EC%8B%A0%EC%84%B8%EA%B3%84%EA%B7%B8%EB%A3%B9-%EB%B6%80%ED%9A%8C%EC%9E%A5_Chung_Yong-jin.jpg"
+      },
+      "features": [
+        0.30798090024351416,
+        0.24249098294170146,
+        0.17828029809213228,
+        0.40278570189937646,
+        0.3165453650759997,
+        1.2436493141273404
+      ]
+    },
+    {
+      "id": "chung-mong-koo",
+      "name": "정몽구",
+      "title": "현대자동차그룹 명예회장",
+      "image": "assets/richKR/male/chung-mong-koo.jpg",
+      "rank": 7,
+      "netWorth": "$7.3B",
+      "achievement": "현대차그룹 명예회장 · 글로벌 톱5 완성차로 성장시킴",
+      "credit": {
+        "author": "Hyundai Motor Company",
+        "license": "CC BY 3.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Chung_Mong-koo_2005-04-01_001.jpg"
+      },
+      "features": [
+        0.30003111248548625,
+        0.21561308306979698,
+        0.2056785928357049,
+        0.3384814897631811,
+        0.30359337982650964,
+        1.1582087537978931
+      ]
+    },
+    {
+      "id": "cho-hyun-joon",
+      "name": "조현준",
+      "title": "효성그룹 회장",
+      "image": "assets/richKR/male/cho-hyun-joon.jpg",
+      "rank": 17,
+      "netWorth": "$2.95B",
+      "achievement": "효성그룹 회장 · 섬유·중공업 사업 다각화",
+      "credit": {
+        "author": "Cho Hyun-joon",
+        "license": "CC BY-SA 2.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Cho_Hyun-joon.jpg"
+      },
+      "features": [
+        0.3004984543523773,
+        0.26485174512520243,
+        0.20063067457001887,
+        0.3496288684233553,
+        0.2769919752547283,
+        1.102055170429272
+      ]
+    },
+    {
+      "id": "kim-taek-jin",
+      "name": "김택진",
+      "title": "엔씨소프트 창업자",
+      "image": "assets/richKR/male/kim-taek-jin.jpg",
+      "rank": 44,
+      "netWorth": "$1.18B",
+      "achievement": "엔씨소프트 창업자 · 리니지 시리즈로 게임산업 개척",
+      "credit": {
+        "author": "acrofan.com",
+        "license": "CC BY-SA 3.0",
+        "source": "https://commons.wikimedia.org/wiki/File:T.J._Kim_(the_CEO_of_NC_Soft)_from_acrofan.jpg"
+      },
+      "features": [
+        0.30368626904677515,
+        0.25228637499070483,
+        0.19236500518240798,
+        0.38740557615920584,
+        0.29858826601438154,
+        1.179531087679159
+      ]
+    },
+    {
+      "id": "bom-kim",
+      "name": "김범석",
+      "title": "쿠팡 창업자",
+      "image": "assets/richKR/male/bom-kim.jpg",
+      "rank": 14,
+      "netWorth": "$3.2B",
+      "achievement": "쿠팡 창업자 · 로켓배송으로 이커머스 판도 변화",
+      "credit": {
+        "author": "桃園市政府(타오위안시 정부)",
+        "license": "Attribution",
+        "source": "https://commons.wikimedia.org/wiki/File:20231102%E9%87%91%E7%AF%84%E9%8C%AB.jpg"
+      },
+      "features": [
+        0.3145809854497833,
+        0.23229511623037455,
+        0.21881969010353314,
+        0.41216584773197307,
+        0.3027838663663606,
+        1.1472242633437244
+      ]
+    },
+    {
+      "id": "chung-mong-joon",
+      "name": "정몽준",
+      "title": "HD현대 최대주주",
+      "image": "assets/richKR/male/chung-mong-joon.jpg",
+      "rank": 20,
+      "netWorth": "$2.8B",
+      "achievement": "HD현대 최대주주 · 조선업 세계 1위 성장 견인",
+      "credit": {
+        "author": "Kinocine (Wikimedia Commons)",
+        "license": "CC BY-SA 4.0",
+        "source": "https://commons.wikimedia.org/wiki/File:Chung_Mong-joon_(3x4_cropped).jpg"
+      },
+      "features": [
+        0.3244972067933947,
+        0.24880239340830201,
+        0.2082057637086285,
+        0.40048791610658463,
+        0.285589976612566,
+        1.2053922120414022
+      ]
+    },
+    {
+      "id": "2LAp8CxoD3pTIsMttiFdMdk2",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/2LAp8CxoD3pTIsMttiFdMdk2xFW8leNJOCUpaG_eeXnuQmesQPFR5cZH-GR7WdxES3cYrwTMtcZBE9n9I8Sbr1XrQo85OvMkbOmSQiyhEmqpVYzr84jxwzyg2BnDOAQtw6ACloqZF26XuThs3fai0Q.webp",
+      "features": [
+        0.3057395044903495,
+        0.25422881558917015,
+        0.22901493236167914,
+        0.4462880457189785,
+        0.3418831854593193,
+        1.1792319515449452
+      ]
+    },
+    {
+      "id": "3GK-DtkmjRwE3b8z3Ut-BN5d",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/3GK-DtkmjRwE3b8z3Ut-BN5dyd3-ukR5PyzxtdLVDY2q7NrfGRZyWiNpks74fMAqo_RJJIgbyORNslkBP1JavxbnhnyldBBsXS8iGi-1Wr-KEe5mISrUDnfmzLcF3b5SXjdt6fo8CNacrqBiPkF1iQ.webp",
+      "features": [
+        0.3170116651112375,
+        0.23463768893909356,
+        0.20078222499220236,
+        0.4723769702152543,
+        0.33170679201276215,
+        1.268920912908437
+      ]
+    },
+    {
+      "id": "3n7y5otAxHtbLNt1ktj9MvN4",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/3n7y5otAxHtbLNt1ktj9MvN41410vOcngd40TbRmILAhtwUASPTfwwZCGyO_GamWjMrsCjOEPt_ROvYLjkd1uo0Gl8r7sI0mlme7wUs1Unm_XoWVkyO-8ZpLTtxm1YOfFJ36yJTYmUCMX79b2Wa3Ng.webp",
+      "features": [
+        0.32935666347359804,
+        0.25618004498550845,
+        0.2089282254289306,
+        0.36065498252698247,
+        0.2825606316340216,
+        1.1379742463926847
+      ]
+    },
+    {
+      "id": "4WT5ZVzp1SJzgxd9ZR19fq9N",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/4WT5ZVzp1SJzgxd9ZR19fq9NmoEW5Xkl4CiZhPiYVR-zTKDCogdDuUFXFOh7OFIUUqlGT8fn05sIvb57JaFHWTkciNt8AsUHCfGNYy0PpvZiMtKElielHvYnmKvGd0kd-hHQXRVXT0z7ZZsb0xPi5g.webp",
+      "features": [
+        0.32926912078165205,
+        0.24628574831461536,
+        0.21127763550026604,
+        0.3415588795322861,
+        0.27286051978867704,
+        1.181563968662805
+      ]
+    },
+    {
+      "id": "6evxzuJ3QJbx3o3rcQgF2BzW",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/6evxzuJ3QJbx3o3rcQgF2BzWexT3uzCa_wkE_pbZSBreSyFqXVZaeP-mhJ3OKYU9MCKbb3H02W1pCEUibWbrsr1MM8dbOMH5MK-eDlJ3YkGH3E0oLQEPRKRK-rczfOsua8jbnrFEBl0-hVebX6BjMA.webp",
+      "features": [
+        0.2884679887641668,
+        0.2479593559865985,
+        0.19806977751299884,
+        0.3662540480490893,
+        0.28186810355599995,
+        1.133335267253508
+      ]
+    },
+    {
+      "id": "FQRof2nbq8UcIPsmFhtar1or",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/FQRof2nbq8UcIPsmFhtar1or33at2yHg6ufI_tNYeHmgcoouklx31DRBDbKbe7rQKkWdPCoWM4bdTqGdLH3-nGHdUWI46nqLjmC6fZsn_Y4quWV_QXP3AvSY1bNal_7_Ic_rm57URC48rZWQejsm5w.webp",
+      "features": [
+        0.34432743836359353,
+        0.2341025299262108,
+        0.212764400396222,
+        0.37808450420904777,
+        0.27714932323904484,
+        1.1565313954224226
+      ]
+    },
+    {
+      "id": "GGeRgbfBPv1BB44tcwGAG_YM",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/GGeRgbfBPv1BB44tcwGAG_YMVplluFjrkOHRoyzisYW0yqRnd8yZtY_lV-99DX6fZPQMy6VkrfsMmYyVAM7jujKf9hTuwH85R3Dxby2RA5TuefZRVdrdQokXm0xxoix62noCiVNxw32ZlGTEy-bQgA.webp",
+      "features": [
+        0.3363458214973973,
+        0.23860827265340562,
+        0.21830361679626178,
+        0.3842472549528861,
+        0.2747700265852312,
+        1.1455108655089927
+      ]
+    },
+    {
+      "id": "HHb4Lao9elKZ85wgAPo3r8dG",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/HHb4Lao9elKZ85wgAPo3r8dGhy-negIzTACu1OQnypVyTdEqdzPsppv5Wck89qgurklJkZZpnEgHf8Ajaj_-IWdhnQqfDZziycZHFkQ17Q1wmuZQho40A9_7-n25I55eq2aXRZ8t-aDP8Y2f2SUfTQ.webp",
+      "features": [
+        0.26648677523878805,
+        0.2620825514852267,
+        0.17962264756976118,
+        0.3585602571756435,
+        0.3020973295715221,
+        1.0563112807708606
+      ]
+    },
+    {
+      "id": "IBBZ6fICkDcyoBuwOm9DpHUs",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/IBBZ6fICkDcyoBuwOm9DpHUsc51EZGiRk4fybvKkBQeAgoxv9uqwLFni8KgSv14qZiESkKSZADjJDSEGeFg6kNlQcCHT5TrF8-5NK9ggAzMoZyTTp5-wiZdHwpx555W8SJ6_I-e9j7MW0dueOUxpFg.webp",
+      "features": [
+        0.307434276110877,
+        0.2401370455473892,
+        0.23563000483169855,
+        0.4377163107961717,
+        0.29900828112523237,
+        1.1454889840558289
+      ]
+    },
+    {
+      "id": "Ikoy67HmwECWtGuyyQIoG_NO",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/Ikoy67HmwECWtGuyyQIoG_NOVa4i38CpO0zg-xADHDP3RsqMPp6B6VpMRInynm3DtF2FUDjtQPEAoiFDgIhEXbJr3Rxozs2YBlRRnksiJ0ObKfZHWjuXmEd84ZbMzfZ7lVbXh5YnO_rk0tf5PX3alg.webp",
+      "features": [
+        0.3349322362211165,
+        0.22330097087173317,
+        0.22690815312561072,
+        0.37602775827237667,
+        0.27495759572072764,
+        1.1051875023294877
+      ]
+    },
+    {
+      "id": "LUGZdI95NNixuecErMKsqdtY",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/LUGZdI95NNixuecErMKsqdtY3jXSiH22paatCrNuyzw3qj9M74_zyBlsn2rb9snZSGFu6t2jlz_MCp2XdbaNr-2xxQ9AM0n8eNFUZPA9ikU9Y-s26OJnFLQfn1C_joILxIysYt2cootGD-5699dHRQ.webp",
+      "features": [
+        0.33180792626353534,
+        0.22843782763598833,
+        0.2198424157846116,
+        0.4110156185608153,
+        0.2794174932221343,
+        1.1505747247756029
+      ]
+    },
+    {
+      "id": "LgqbxQFrYVgqjEebfbPtbRdw",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/LgqbxQFrYVgqjEebfbPtbRdw1ot-iCry-eycUUrx1z79RTnQXadb4S_U92WNAulf94MB38J7mrz2IEMs0NWnIf02eFbfb2rpMKCb40qWG5nYFYYdz5TCFFkGRDIN-69NcvJWYH9LHwa1LJnH1HyOdw.webp",
+      "features": [
+        0.3112860371818761,
+        0.2322449323757522,
+        0.20978585453116508,
+        0.3377222627294506,
+        0.2937179031099934,
+        1.3202439733138207
+      ]
+    },
+    {
+      "id": "RRElEWw1OmyUalDofOwHvcF7",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/RRElEWw1OmyUalDofOwHvcF7b_lYehun_csQpc7ftq9HQeMyZt_EIAZRUhWhN6zmosv8IUlUEoRllYDTDf2ji9SCSXsLTOCgr8QnxbDlBgCx6j8-YVvxbKJU2Ur8k_5RSNjFURUfKyQU00tFKKLiOA.webp",
+      "features": [
+        0.32503910519857704,
+        0.23767322410147054,
+        0.20657871381865703,
+        0.3719520877715929,
+        0.282818531253925,
+        1.2542682992465135
+      ]
+    },
+    {
+      "id": "TYFSKJxFSm0ioUlG8JuTH26i",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/TYFSKJxFSm0ioUlG8JuTH26ihiR7makI3_3k7F5ZETVV4-4fiXgJkiCdCpTCt1FMj7rc1CCfI0Egt4LKLvHsroWcQQYBnxt34QZtxu1mFlwqNG4zfdppmf-ouAVxUtBxoQOKxBXXJDDA027fUVymzg.webp",
+      "features": [
+        0.3440008148506072,
+        0.22611839776433346,
+        0.21492343305470682,
+        0.34630015935058933,
+        0.26699454950288565,
+        1.1488394270728732
+      ]
+    },
+    {
+      "id": "XA8qqCsrfqeu7bD2Ux_5oe8X",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/XA8qqCsrfqeu7bD2Ux_5oe8X0V3FEEzToOZfANAEmloFqHT9apO0jO-GcxGLOxuOX7OiNK4pdlrsnmzQ2a2-E-aZGtRRwhFHehV89fNTD4Tctbb8T0S-4dlFg4n-aOCVzq9m8LqQoGMuS2hZ_Sa0zg.webp",
+      "features": [
+        0.34110188356466503,
+        0.23616576492757674,
+        0.2276478651497319,
+        0.34927601011765286,
+        0.25080642559058375,
+        1.2062597775321966
+      ]
+    },
+    {
+      "id": "XULkzgrTIDp8U1sTlPhYaT5m",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/XULkzgrTIDp8U1sTlPhYaT5mk1Uxthx4pkFh4XkLkhxDUsJ-c658mxBLB1N6D5P69jAPmgZVQ3VEcnOMCdzDsg_-_lI_uFCHDmPYkoFS5f4dMwqfgSk10SMbDjsGFMMIOlIyjw8b-c1SIXB9bvG2IA.webp",
+      "features": [
+        0.291266990945344,
+        0.2315023798403771,
+        0.20076595056380847,
+        0.3849352658278407,
+        0.2964481312559971,
+        1.2399091246657925
+      ]
+    },
+    {
+      "id": "XoE5k29pC0a-h6O1jePn--TA",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/XoE5k29pC0a-h6O1jePn--TAAl_IEsNZxTewvqW2SByUll1iJgEHuoaWCrQHP4vm87ya1i9xcDywfgdYUZWtxuk94BYKRhP8vf12hMKSCjMFObLmy2Q1e3ocyNzLXD2ZBiDdUhsBKpV4L_By2pdQnQ.webp",
+      "features": [
+        0.33543459470087844,
+        0.27229694573278185,
+        0.22534651849932363,
+        0.405440952431143,
+        0.29828084402757354,
+        1.062510022010235
+      ]
+    },
+    {
+      "id": "Y2a0J1zTE1yzz-IZoT8d7wbs",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/Y2a0J1zTE1yzz-IZoT8d7wbs7pLFESInRgK5C1-Ts3qKFbNo3FQf1q9PrgQiQ2cAzXb-alx8tAXUhp8dUCXgd843nLaOx-tUukfXqplG9LOO-b-1P1EKJOdtkWI7NXhmVYwDTQ4MR0s0l2pWqaKjqA.webp",
+      "features": [
+        0.33522594493890845,
+        0.25389613630263225,
+        0.22452290713884115,
+        0.3698733349737856,
+        0.29365733965731833,
+        1.1965840906688183
+      ]
+    },
+    {
+      "id": "ZTY4LjfWfVheqJj1ipuUjw0p",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/ZTY4LjfWfVheqJj1ipuUjw0pzEhuSxU4rQCnLm5W1HS1ted_RSVr3seg4YCzvByLydJVx6sV8796eY_Jk6lIMKEW1VUPd4M27liM_RDkgtqG7O-oyBHBoZqfD9KGin4BCE2ldmO9cQg3RfK6cpBdGg.webp",
+      "features": [
+        0.33620897355619017,
+        0.2223538815116155,
+        0.20703128245009694,
+        0.3842593306455757,
+        0.2900776199176016,
+        1.1223031875595404
+      ]
+    },
+    {
+      "id": "diYaDKwbXK7G-v4dlUkFuFng",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/diYaDKwbXK7G-v4dlUkFuFngaLG6b16wCsFIeHageCF2GxMt_thEjqeg3R2UDiTtxLTB9Ihy0SF86fpoV3ejoiUprvnv0tFwTI5ylmJiLiwZK1QwXVl0fOnM0UGbT8kThJUlkyKd24KQo38XTYv-Dw.webp",
+      "features": [
+        0.3354713853643315,
+        0.2313964440599186,
+        0.22107415475360548,
+        0.44222381523677273,
+        0.3313221706992396,
+        1.1223372313983235
+      ]
+    },
+    {
+      "id": "gv__WVMkdXyOiCyWh4BYw24D",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/gv__WVMkdXyOiCyWh4BYw24DavFS0F0c3ob5d_Xu1fH5u9JFY1vnin2H-XWEXHqvZtaRv2TFL1Z-YVTmJDG1cdcGRYXKP0A5XUB_SEfWSptpEu7yfWRi90UVWu30CfuFxSWHuMoYvtkajVkCJ4mZ5Q.webp",
+      "features": [
+        0.3304743306841438,
+        0.24937865968354708,
+        0.2160333311307794,
+        0.3352643319042031,
+        0.2563345552174347,
+        1.066946292228049
+      ]
+    },
+    {
+      "id": "nl6IpEnM1rTpvAoW15cvPpjT",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/nl6IpEnM1rTpvAoW15cvPpjTKgniULH1S9OyeCrPhWCrcTQa-bIlmGmyg2-v4nyk8eeW0Pb1P8NMxfhpUIq4OtyOhV24BJo_skm1qzjEBsliKGejQbSYgdeLwStYGbZcynkwrVX_Z4fDqFDFEKundQ.webp",
+      "features": [
+        0.32896218675940053,
+        0.24348299804350163,
+        0.20765744656226573,
+        0.35307187239574606,
+        0.27882759162549,
+        1.2043881313078453
+      ]
+    },
+    {
+      "id": "u-Fbx7fABPavF-9Hx74hoqQd",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/u-Fbx7fABPavF-9Hx74hoqQdd2QH6Yzi4dlugcya45PVQ7mDa0Wb72N_5X3Rxcj-6KIzkZ2eVA7sngXYrZTkVNiEXQyPmof671RZBDYQkcTVXjYoL-dKpT9rcmRDhY3iUK4NSg9-yFpf8nTpaFZCQA.webp",
+      "features": [
+        0.327777408662516,
+        0.2550213630804242,
+        0.19569808593554228,
+        0.362946765902077,
+        0.28289061427971024,
+        1.1423716989174888
+      ]
+    },
+    {
+      "id": "ujq_GL1yzkrCLpjbNWw544xe",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/ujq_GL1yzkrCLpjbNWw544xejsYj82Z7GOOW8AErlfl4OfnGlHtSTAbRO2zo9lrD1k75U17TUHkXowlYNkZFxOSQocFwP5ksQeKK-StzPYLhrQEZJYSVkjo_RylrGOCtEpOS-s5OLnkP-WvNr0yDrQ.webp",
+      "features": [
+        0.3297131690175947,
+        0.24276813413500586,
+        0.21805934865215967,
+        0.36738088271662195,
+        0.2653058433963313,
+        1.2081675104959946
+      ]
+    },
+    {
+      "id": "vcdLxb_MDHBBDJIKlJoiL3su",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/vcdLxb_MDHBBDJIKlJoiL3suz3c5VIuGdYlguWD8Pexumr_4OBu4w41LDdKlPdAM_UK1pwT3pOJrzTMyubckFhFkzrKBVB6O3-rW3HBKOBRU3GjLUdnxMtIOMtznM3cZScLyJb2nz2mvb83njnTUOw.webp",
+      "features": [
+        0.31245477141287886,
+        0.2449373663064835,
+        0.21790731462124968,
+        0.37790553854973,
+        0.28610247212402273,
+        1.18188543789804
+      ]
+    },
+    {
+      "id": "wh6zG6dgMKTAv0jUpaeruIHf",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/wh6zG6dgMKTAv0jUpaeruIHfX2_Q5e5Ljal4emMPk_pfiK6rpXUWSz4IHt7CMrWDzBv-htZXUwaeqUxiEEBfDReZjiDXPaMsAgVEwMCW2WF5hqoHz81C-LHuwRLvknsCamO-w4IB2WrNHJo1SG_8EQ.webp",
+      "features": [
+        0.32232195679598064,
+        0.23811854114842837,
+        0.21080449034255958,
+        0.36718775007401344,
+        0.26875670308817823,
+        1.1562533826921695
+      ]
+    },
+    {
+      "id": "xfT596HJeElTXG_ATTDlQLbh",
+      "name": null,
+      "title": null,
+      "image": "assets/maleKR/xfT596HJeElTXG_ATTDlQLbhh-5-C8ZYDFvqp-7dw_ZqHDMoVj6FqmNTsS1xsfh6b4BerSbj84oOyo-K1Wy4tx7mBVlHztcqcGPp2yU9V8_eQiHtCo0o_cABf4_IUTyqbZPi0gdQOXFMQgGeOgV-nQ.webp",
+      "features": [
+        0.3170959209912336,
+        0.243155671849651,
+        0.19691207855834797,
+        0.32801599427444106,
+        0.2702220210367276,
+        1.2062098388389408
+      ]
+    }
+  ]
+}
