@@ -25,16 +25,16 @@
 	--font-body: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
 }
 
-#canvas {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-}
-
-/* 신비로운 점성술/관상학 테마 */
+/* 신비로운 점성술/관상학 테마.
+   배경 물결무늬는 예전엔 JS 캔버스로 페이지 로드 시점 높이만큼만 한 번 그렸는데, 결과가
+   나오면서 페이지가 훨씬 길어지면 그 작은 비트맵이 늘어나 찌그러져 보이는 문제가 있었다.
+   CSS의 네이티브 반복 배경(SVG 타일)은 페이지 길이와 무관하게 항상 완벽하게 이어진다. */
 body {
 	font-family: var(--font-body);
 	background-color: var(--bg-deep);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cg fill='none' stroke='%233a2a5c' stroke-width='1'%3E%3Cpath d='M0,40 A40,40 0 0,1 80,40'/%3E%3Cpath d='M12,40 A28,28 0 0,1 68,40'/%3E%3Cpath d='M24,40 A16,16 0 0,1 56,40'/%3E%3C/g%3E%3C/svg%3E");
+	background-repeat: repeat;
+	background-size: 80px 40px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -119,8 +119,20 @@ hr {
 }
 
 #howItWorks .step-icon {
-	font-size: 1.3rem;
-	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: rgba(212, 175, 55, 0.1);
+	border: 1px solid var(--gold-dim);
+	color: var(--gold-light);
+}
+
+#howItWorks .step-icon svg {
+	width: 16px;
+	height: 16px;
 }
 
 #howItWorks .step-label {
@@ -128,12 +140,21 @@ hr {
 	font-weight: 700;
 	color: var(--text-primary);
 	white-space: nowrap;
+	margin-top: 3px;
 }
 
 #howItWorks .step-arrow {
+	display: flex;
+	align-items: center;
 	color: var(--gold-dim);
-	font-size: 0.9rem;
 	margin: 0 1px;
+	align-self: flex-start;
+	margin-top: 15px;
+}
+
+#howItWorks .step-arrow svg {
+	width: 14px;
+	height: 14px;
 }
 
 .value-prop {
@@ -191,6 +212,10 @@ p {
 }
 
 #saveImg button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
 	color: var(--text-primary);
 	width: 100%;
 	padding: 10px;
@@ -199,6 +224,12 @@ p {
 	border-radius: 5px;
 	background: rgba(0, 0, 0, 0.35);
 	cursor: pointer;
+}
+
+.btn-icon {
+	width: 15px;
+	height: 15px;
+	flex-shrink: 0;
 }
 
 #saveImg button:hover {
@@ -220,9 +251,13 @@ p {
 }
 
 #shareButtons button {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
 	flex: 1;
 	color: var(--text-primary);
-	font-size: 0.75rem;
+	font-size: 0.68rem;
 	padding: 10px 4px;
 	border: 1px solid var(--gold-dim);
 	border-radius: 5px;
@@ -327,31 +362,35 @@ p {
 	color: var(--gold-light);
 }
 
+/* 분석 자체가 너무 빨리 끝나서(수십ms) 실제 진행률 %로 채우면 0→100이 한 프레임에 튀어
+   버벅이는 것처럼 보인다. 그래서 실제 진행률과 무관하게 계속 좌우로 흐르는 "불확정
+   (indeterminate)" 바로 바꿔서, 몇 %인지가 아니라 "멈추지 않고 처리 중"이라는 것만 보여준다. */
 .progress-bar {
+	position: relative;
 	width: 100%;
+	height: 20px;
 	background-color: rgba(0, 0, 0, 0.4);
 	border-radius: 10px;
 	overflow: hidden;
 }
 
 .progress-bar-inner {
-	height: 20px;
-	background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
-	background-size: 200% 100%;
-	animation: shimmer 1.1s linear infinite;
-	text-align: center;
-	color: #1a1035;
-	font-weight: 700;
+	position: absolute;
+	top: 0;
+	left: -35%;
+	width: 35%;
+	height: 100%;
 	border-radius: 10px;
-	transition: width 0.2s ease;
+	background: linear-gradient(90deg, transparent, var(--gold-light), var(--gold), var(--gold-light), transparent);
+	animation: indeterminate 1.2s ease-in-out infinite;
 }
 
-@keyframes shimmer {
+@keyframes indeterminate {
 	0% {
-		background-position: 200% 0;
+		left: -35%;
 	}
 	100% {
-		background-position: -200% 0;
+		left: 100%;
 	}
 }
 
@@ -608,9 +647,19 @@ p {
 }
 
 .reading-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	font-size: 0.78rem;
 	font-weight: 700;
 	color: var(--text-primary);
+}
+
+.trait-icon {
+	width: 14px;
+	height: 14px;
+	color: var(--gold);
+	flex-shrink: 0;
 }
 
 .reading-compare {

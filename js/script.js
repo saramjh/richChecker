@@ -168,16 +168,16 @@ function similarityFromDistance(distance) {
 	return Math.max(0, 100 - distance * SIMILARITY_SCALE)
 }
 
+// z-score 거리 계산은 순수 연산이라 62명을 비교해도 수십 ms 안에 끝난다 — 항목별로
+// 진행률 %를 업데이트해봐야 브라우저가 리페인트할 틈도 없이 0→100으로 튀어 버벅이는 것처럼
+// 보이므로, 진행률 표시는 (아래 showLoadingModal의) 불확정 애니메이션에 맡기고 여기서는
+// 계산만 한다.
 async function matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance) {
 	const { stats, people } = embeddingsData
-	const matches = []
-	for (let i = 0; i < people.length; i++) {
-		const entry = people[i]
+	return people.map((entry) => {
 		const distance = zscoreDistance(uploadedFeatures, entry.features, stats)
-		matches.push(toMatch(entry, similarityFromDistance(distance)))
-		updateLoadingModal(((i + 1) / people.length) * 100)
-	}
-	return matches
+		return toMatch(entry, similarityFromDistance(distance))
+	})
 }
 
 async function processImage(imageSrc) {
@@ -253,41 +253,64 @@ async function processImage(imageSrc) {
 	}
 }
 
+// Lucide 아이콘(MIT) 경로를 그대로 인라인해서 쓴다 — 이모지는 OS/브라우저마다 렌더링이
+// 다 달라서(그리고 장식적이라) 제품 아이콘으로는 안 어울린다는 피드백 반영.
+const ICON_PATHS = {
+	brain:
+		'<path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>',
+	eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+	gem: '<path d="M10.5 3 8 9l4 13 4-13-2.5-6"/><path d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z"/><path d="M2 9h20"/>',
+	smile: '<path d="M15 10V9"/><path d="M16.472 15a6 6 0 0 1-8.943 0"/><path d="M9 10V9"/><circle cx="12" cy="12" r="10"/>',
+	shieldCheck:
+		'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+	squareUser: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>',
+}
+
+function icon(name) {
+	return `<svg class="trait-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]}</svg>`
+}
+
 // 전통 관상학의 오악/궁(宮) 개념을 빌려온 해석 문구.
 // high/mid/low는 재벌 표본 집단 대비 백분위(percentile) 기준.
 const FEATURE_READINGS = {
 	foreheadRatio: {
-		label: "🧠 이마 · 초년운",
+		icon: "brain",
+		label: "이마 · 초년운",
 		high: "재벌 표본 평균보다 이마가 훤칠하게 넓은 편입니다. 어릴 때부터 총명하고 판단이 빠르며, 윗사람의 발탁운이 따르는 재벌상의 이마 비율에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 이마 비율입니다. 무난하고 안정적인 초년운을 타고난 재벌형 이마에 가깝습니다.",
 		low: "재벌 표본 평균보다 이마가 아담한 편입니다. 신중하게 내실을 다지는 상으로, 재벌들 사이에서도 늦게 크게 트이는 대기만성형에 속합니다.",
 	},
 	eyeSpacingRatio: {
-		label: "👁 눈매 간격 · 대인궁",
+		icon: "eye",
+		label: "눈매 간격 · 대인궁",
 		high: "재벌 표본 평균보다 눈 사이가 넓은 편입니다. 마음이 트여있고 포용력이 커, 재벌들 특유의 폭넓은 인맥형 눈매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 눈매 간격입니다. 대인관계에서 균형 잡힌 처세를 보이는 재벌형에 가깝습니다.",
 		low: "재벌 표본 평균보다 눈 사이가 좁은 편입니다. 집중력이 뛰어나 한 우물을 깊게 파는 상으로, 창업형 재벌들에게서 종종 보이는 눈매입니다.",
 	},
 	noseLengthRatio: {
-		label: "💰 코 길이 · 재백궁(재물운)",
+		icon: "gem",
+		label: "코 길이 · 재백궁(재물운)",
 		high: "관상학에서 코는 재물을 담는 그릇, '재백궁'이라 했습니다. 재벌 표본 평균보다 콧대가 길게 뻗어 있어 재물을 차곡차곡 쌓는 전형적인 재벌 코에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 코 길이입니다. 크게 넘치지도 모자라지도 않게 재물을 관리하는 재벌형 재물운입니다.",
 		low: "재벌 표본 평균보다 코가 아담한 편입니다. 씀씀이가 시원시원하고 규모보다 실속을 먼저 챙기는 재물운입니다.",
 	},
 	mouthWidthRatio: {
-		label: "💬 입 너비 · 언변궁",
+		icon: "smile",
+		label: "입 너비 · 언변궁",
 		high: "재벌 표본 평균보다 입이 큼직한 편입니다. 언변이 좋고 배포가 커, 말 한마디로 조직을 움직이는 재벌 특유의 입매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 입 크기입니다. 신뢰감 있는 화법을 구사하는 재벌형 언변궁입니다.",
 		low: "재벌 표본 평균보다 입이 아담한 편입니다. 말수는 적지만 한마디 한마디에 무게가 실리는 상입니다.",
 	},
 	jawRatio: {
-		label: "💪 턱선 · 말년운",
+		icon: "shieldCheck",
+		label: "턱선 · 말년운",
 		high: "재벌 표본 평균보다 턱선이 두드러진 편입니다. 뚝심과 추진력이 강해, 관상학에서 말년의 복이 두텁다고 보는 재벌형 턱에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 턱선입니다. 안정적으로 목표를 이뤄가는 재벌형 말년운입니다.",
 		low: "재벌 표본 평균보다 턱선이 갸름한 편입니다. 유연하고 임기응변에 강한 상입니다.",
 	},
 	faceAspectRatio: {
-		label: "🎭 얼굴형 · 전체 기질",
+		icon: "squareUser",
+		label: "얼굴형 · 전체 기질",
 		high: "재벌 표본 평균보다 얼굴이 갸름한 편입니다. 섬세하고 전략적으로 움직이는 참모·기획형 재벌 기질에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 얼굴 비율입니다. 균형 잡힌 기질의 재벌형 얼굴형입니다.",
 		low: "재벌 표본 평균보다 얼굴이 둥근 편입니다. 예로부터 원만하고 복이 들어오는 인상이라 전해지는, 오너형 재벌에게서 흔히 보이는 얼굴형입니다.",
@@ -315,7 +338,7 @@ function renderFeatureReadings(radar) {
 			return `
 				<div class="reading-item">
 					<div class="reading-head">
-						<span class="reading-label">${reading.label}</span>
+						<span class="reading-label">${icon(reading.icon)}${reading.label}</span>
 						<span class="reading-compare">${compareText}</span>
 					</div>
 					<p>${reading[tier]}</p>
@@ -643,6 +666,7 @@ function showLoadingModal() {
 	loadingStartedAt = Date.now()
 	const modal = document.getElementById("loadingModal")
 	modal.style.display = "block"
+	startLoadingMessages()
 
 	if (typeof gsap === "undefined") return
 	playWhoosh("out")
@@ -664,6 +688,7 @@ async function hideLoadingModal() {
 	if (elapsed < MIN_LOADING_MS) {
 		await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
 	}
+	stopLoadingMessages()
 
 	if (typeof gsap === "undefined") {
 		modal.style.display = "none"
@@ -689,100 +714,37 @@ async function hideLoadingModal() {
 	})
 }
 
-function updateLoadingModal(percentage) {
-	const progressBarInner = document.getElementById("progressBarInner")
-	progressBarInner.style.width = percentage + "%"
-	progressBarInner.textContent = Math.round(percentage) + "%"
+// 실제 진행률이 아니라 그냥 "지금 뭘 하고 있는지" 느낌을 주려고 순환시키는 문구들.
+const LOADING_MESSAGES = [
+	"먼 곳의 재벌들과 관상을 비교하는 중입니다...",
+	"이마 · 눈매 · 코 · 턱선을 하나씩 대조하는 중...",
+	"가장 닮은 재벌상을 찾는 중...",
+	"관상 카드를 완성하는 중...",
+]
+let loadingMessageTimer = null
+
+function startLoadingMessages() {
+	const el = document.getElementById("loadingStatus")
+	if (!el) return
+	let i = 0
+	el.textContent = LOADING_MESSAGES[0]
+	loadingMessageTimer = setInterval(() => {
+		i = (i + 1) % LOADING_MESSAGES.length
+		el.textContent = LOADING_MESSAGES[i]
+	}, 550)
+}
+
+function stopLoadingMessages() {
+	if (loadingMessageTimer) {
+		clearInterval(loadingMessageTimer)
+		loadingMessageTimer = null
+	}
 }
 
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
 	document.getElementById("averageResult").textContent = ""
 }
-
-//wallPattern
-var wallPattern = {
-	// Settings
-	spacingX: 55,
-	spacingY: 35,
-	offsetVariance: 13,
-	baseRadius: 55,
-
-	// Other Globals
-	points: [],
-	canvas: null,
-	context: null,
-
-	init: function () {
-		this.canvas = document.getElementById("canvas")
-		this.context = canvas.getContext("2d")
-		this.canvas.width = window.innerWidth
-		this.canvas.height = window.innerHeight
-		this.preparePoints()
-		this.createPattern()
-	},
-
-	preparePoints: function () {
-		var width, height, i, j, k, offsetX, offsetY
-		var maxVariance = this.offsetVariance * 2
-
-		// Vertical spacing
-		for (i = this.spacingY; i < this.canvas.height; i += this.spacingY) {
-			var pointSet = []
-
-			// Horizontal spacing
-			for (j = this.spacingX; j < this.canvas.width; j += this.spacingX) {
-				offsetX = Math.round(Math.random() * maxVariance - this.offsetVariance)
-				offsetY = Math.round(Math.random() * maxVariance - this.offsetVariance)
-				var offsetR = Math.round(Math.random() * maxVariance - this.offsetVariance)
-
-				pointSet.push({ x: j + offsetX, y: i + offsetY, radius: this.baseRadius + offsetR })
-			}
-
-			this.points.push(this.shuffleArray(pointSet))
-		}
-	},
-
-	createPattern: function () {
-		var i, j, k, currentPoints, currentPoint
-
-		for (i = 0; i < this.points.length; i++) {
-			currentPoints = this.points[i]
-
-			for (j = 0; j < currentPoints.length; j++) {
-				currentPoint = currentPoints[j]
-				for (k = currentPoint.radius; k > 0; k -= 3) {
-					this.context.beginPath()
-					this.context.arc(currentPoint.x, currentPoint.y, k, 0, Math.PI * 2, true)
-					this.context.closePath()
-					this.context.fillStyle = "#150c28"
-					this.context.strokeStyle = "#3a2a5c"
-					this.context.fill()
-					this.context.stroke()
-				}
-			}
-		}
-	},
-
-	// Shuffle algorithm from: http://stackoverflow.com/questions/962802/is-it-correct-to-use-javascript-array-sort-method-for-shuffling
-	shuffleArray: function (array) {
-		var tmp,
-			current,
-			top = array.length
-
-		if (top)
-			while (--top) {
-				current = Math.floor(Math.random() * (top + 1))
-				tmp = array[current]
-				array[current] = array[top]
-				array[top] = tmp
-			}
-
-		return array
-	},
-}
-
-wallPattern.init()
 
 /* share function */
 
