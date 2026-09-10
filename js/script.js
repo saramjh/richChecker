@@ -1,3 +1,51 @@
+// 카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 "JavaScript 키"를 여기에 붙여넣으세요.
+// 이 키는 비밀값이 아니라 카카오 콘솔에서 도메인 화이트리스트로 보호되는 공개용 키입니다.
+const KAKAO_JS_KEY = "b9b76fcef8436714dacc3c76d6843731"
+
+// ===== 효과음 (Tone.js로 직접 합성 — 외부 음원 파일 없이 저작권 이슈 없이 재생) =====
+let sfx = null
+async function ensureSfx() {
+	if (sfx) return sfx
+	if (typeof Tone === "undefined") return null
+	await Tone.start()
+	sfx = {
+		click: new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 2, volume: -18 }).toDestination(),
+		whooshNoise: new Tone.Noise("white").start(),
+		whooshFilter: new Tone.Filter({ frequency: 200, type: "bandpass", Q: 1.2 }).toDestination(),
+		chime: new Tone.PolySynth(Tone.FMSynth, { volume: -10 }).toDestination(),
+	}
+	sfx.whooshNoise.connect(sfx.whooshFilter)
+	sfx.whooshNoise.volume.value = -Infinity
+	return sfx
+}
+
+function playClick() {
+	if (!sfx) return
+	sfx.click.triggerAttackRelease("C2", "32n")
+}
+
+function playWhoosh(direction) {
+	if (!sfx) return
+	const now = Tone.now()
+	sfx.whooshNoise.volume.cancelScheduledValues(now)
+	sfx.whooshNoise.volume.setValueAtTime(-Infinity, now)
+	sfx.whooshNoise.volume.linearRampToValueAtTime(-14, now + 0.05)
+	sfx.whooshNoise.volume.linearRampToValueAtTime(-Infinity, now + 0.4)
+	sfx.whooshFilter.frequency.cancelScheduledValues(now)
+	if (direction === "out") {
+		sfx.whooshFilter.frequency.setValueAtTime(200, now)
+		sfx.whooshFilter.frequency.exponentialRampToValueAtTime(4000, now + 0.4)
+	} else {
+		sfx.whooshFilter.frequency.setValueAtTime(4000, now)
+		sfx.whooshFilter.frequency.exponentialRampToValueAtTime(200, now + 0.4)
+	}
+}
+
+function playChime() {
+	if (!sfx) return
+	sfx.chime.triggerAttackRelease(["C5", "E5", "G5"], "8n")
+}
+
 // 나이 추정만 face-api.js를 계속 사용 (MediaPipe Tasks Vision에는 대응하는 로컬 나이 추정 모델이 없음)
 async function loadAgeModel() {
 	const MODEL_URL = "./models"
@@ -51,10 +99,24 @@ window.onload = function () {
 	uploadedImage.style.display = "block"
 }
 
-// 이미지 클릭 시 파일 업로드 트리거
+// 이미지 클릭 시 파일 업로드 트리거 (오디오 컨텍스트는 반드시 사용자 제스처 안에서 시작해야 함)
 document.getElementById("uploadedImage").addEventListener("click", function () {
+	ensureSfx().then(playClick)
 	document.getElementById("uploadImage").click()
 })
+
+// 메인 카드가 공중에 둥둥 떠 있는 듯한 아이들 애니메이션
+if (typeof gsap !== "undefined") {
+	gsap.to(".container", {
+		y: -10,
+		rotationZ: 0.6,
+		rotationX: 1.5,
+		duration: 2.6,
+		repeat: -1,
+		yoyo: true,
+		ease: "sine.inOut",
+	})
+}
 
 // 이미지 업로드 시 처리
 document.getElementById("uploadImage").addEventListener("change", function () {
@@ -89,6 +151,7 @@ function toMatch(person, similarity) {
 	return {
 		name: person.name,
 		title: person.title,
+		image: person.image, // 공유 카드에서 "나 vs 매칭 인물" 사진 비교에 사용
 		rank: person.rank,
 		netWorth: person.netWorth,
 		achievement: person.achievement,
@@ -186,7 +249,7 @@ async function processImage(imageSrc) {
 		console.error(err)
 		alert("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 	} finally {
-		hideLoadingModal()
+		await hideLoadingModal()
 	}
 }
 
@@ -194,37 +257,37 @@ async function processImage(imageSrc) {
 // high/mid/low는 재벌 표본 집단 대비 백분위(percentile) 기준.
 const FEATURE_READINGS = {
 	foreheadRatio: {
-		label: "이마 · 초년운",
+		label: "🧠 이마 · 초년운",
 		high: "재벌 표본 평균보다 이마가 훤칠하게 넓은 편입니다. 어릴 때부터 총명하고 판단이 빠르며, 윗사람의 발탁운이 따르는 재벌상의 이마 비율에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 이마 비율입니다. 무난하고 안정적인 초년운을 타고난 재벌형 이마에 가깝습니다.",
 		low: "재벌 표본 평균보다 이마가 아담한 편입니다. 신중하게 내실을 다지는 상으로, 재벌들 사이에서도 늦게 크게 트이는 대기만성형에 속합니다.",
 	},
 	eyeSpacingRatio: {
-		label: "눈매 간격 · 대인궁",
+		label: "👁 눈매 간격 · 대인궁",
 		high: "재벌 표본 평균보다 눈 사이가 넓은 편입니다. 마음이 트여있고 포용력이 커, 재벌들 특유의 폭넓은 인맥형 눈매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 눈매 간격입니다. 대인관계에서 균형 잡힌 처세를 보이는 재벌형에 가깝습니다.",
 		low: "재벌 표본 평균보다 눈 사이가 좁은 편입니다. 집중력이 뛰어나 한 우물을 깊게 파는 상으로, 창업형 재벌들에게서 종종 보이는 눈매입니다.",
 	},
 	noseLengthRatio: {
-		label: "코 길이 · 재백궁(재물운)",
+		label: "💰 코 길이 · 재백궁(재물운)",
 		high: "관상학에서 코는 재물을 담는 그릇, '재백궁'이라 했습니다. 재벌 표본 평균보다 콧대가 길게 뻗어 있어 재물을 차곡차곡 쌓는 전형적인 재벌 코에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 코 길이입니다. 크게 넘치지도 모자라지도 않게 재물을 관리하는 재벌형 재물운입니다.",
 		low: "재벌 표본 평균보다 코가 아담한 편입니다. 씀씀이가 시원시원하고 규모보다 실속을 먼저 챙기는 재물운입니다.",
 	},
 	mouthWidthRatio: {
-		label: "입 너비 · 언변궁",
+		label: "💬 입 너비 · 언변궁",
 		high: "재벌 표본 평균보다 입이 큼직한 편입니다. 언변이 좋고 배포가 커, 말 한마디로 조직을 움직이는 재벌 특유의 입매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 입 크기입니다. 신뢰감 있는 화법을 구사하는 재벌형 언변궁입니다.",
 		low: "재벌 표본 평균보다 입이 아담한 편입니다. 말수는 적지만 한마디 한마디에 무게가 실리는 상입니다.",
 	},
 	jawRatio: {
-		label: "턱선 · 말년운",
+		label: "💪 턱선 · 말년운",
 		high: "재벌 표본 평균보다 턱선이 두드러진 편입니다. 뚝심과 추진력이 강해, 관상학에서 말년의 복이 두텁다고 보는 재벌형 턱에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 턱선입니다. 안정적으로 목표를 이뤄가는 재벌형 말년운입니다.",
 		low: "재벌 표본 평균보다 턱선이 갸름한 편입니다. 유연하고 임기응변에 강한 상입니다.",
 	},
 	faceAspectRatio: {
-		label: "얼굴형 · 전체 기질",
+		label: "🎭 얼굴형 · 전체 기질",
 		high: "재벌 표본 평균보다 얼굴이 갸름한 편입니다. 섬세하고 전략적으로 움직이는 참모·기획형 재벌 기질에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 얼굴 비율입니다. 균형 잡힌 기질의 재벌형 얼굴형입니다.",
 		low: "재벌 표본 평균보다 얼굴이 둥근 편입니다. 예로부터 원만하고 복이 들어오는 인상이라 전해지는, 오너형 재벌에게서 흔히 보이는 얼굴형입니다.",
@@ -248,11 +311,7 @@ function renderFeatureReadings(radar) {
 			const nearest = radar.nearestByFeature && radar.nearestByFeature[i]
 			// "이 항목은 OOO 회장과 닮았다"는 게 통계적 비교보다 흥미롭다는 피드백 반영 —
 			// 핵심 문구로 승격하고, 백분위는 보조 정보로 남긴다.
-			const compareText = nearest
-				? `${nearest.name}${nearest.title ? `(${nearest.title})` : ""}과(와) 가장 비슷함`
-				: percentile >= 50
-					? `재벌 표본 대비 상위 ${Math.max(1, 100 - percentile)}%`
-					: `재벌 표본 대비 하위 ${Math.max(1, percentile)}%`
+			const compareText = nearest ? `${nearest.name}${nearest.title ? `(${nearest.title})` : ""}과(와) 가장 비슷함` : percentile >= 50 ? `재벌 표본 대비 상위 ${Math.max(1, 100 - percentile)}%` : `재벌 표본 대비 하위 ${Math.max(1, percentile)}%`
 			return `
 				<div class="reading-item">
 					<div class="reading-head">
@@ -317,10 +376,8 @@ function renderRadarChart(labels, userScores, matchScores, matchLabel) {
 		})
 		.join("")
 
-	const matchPolygon = matchScores
-		? `<polygon points="${labels.map((_, i) => pointAt(matchScores[i], i).join(",")).join(" ")}" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="1.5" stroke-dasharray="4,3"/>`
-		: ""
-	const userPolygon = `<polygon points="${labels.map((_, i) => pointAt(userScores[i], i).join(",")).join(" ")}" fill="rgba(255,90,90,0.28)" stroke="#ff5a5a" stroke-width="1.5"/>`
+	const matchPolygon = matchScores ? `<polygon class="radar-poly" points="${labels.map((_, i) => pointAt(matchScores[i], i).join(",")).join(" ")}" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="1.5" stroke-dasharray="4,3" style="transform-origin:${center}px ${center}px"/>` : ""
+	const userPolygon = `<polygon class="radar-poly" points="${labels.map((_, i) => pointAt(userScores[i], i).join(",")).join(" ")}" fill="rgba(255,90,90,0.28)" stroke="#ff5a5a" stroke-width="1.5" style="transform-origin:${center}px ${center}px"/>`
 
 	return `
 		<div id="radarChart">
@@ -338,9 +395,7 @@ function renderTopMatch(match, radar) {
 	if (match.netWorth) badges.push(`<span class="badge">자산 ${match.netWorth}</span>`)
 
 	const achievementHtml = match.achievement ? `<p id="topMatchAchievement">${match.achievement}</p>` : ""
-	const creditHtml = match.credit
-		? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>`
-		: ""
+	const creditHtml = match.credit ? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>` : ""
 	const radarHtml = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel) : ""
 
 	return `
@@ -367,9 +422,7 @@ function renderResults(matches, aiInfo, radar) {
 	const topMatch = matches.reduce((best, m) => (m.similarity > best.similarity ? m : best))
 	const topSimilarity = topMatch.similarity.toFixed(1)
 
-	const topMatchHtml = topMatch.name
-		? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar)}</div>`
-		: ""
+	const topMatchHtml = topMatch.name ? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar)}</div>` : ""
 	const readingHtml = renderFeatureReadings(radar)
 
 	const aiInfoParts = []
@@ -377,56 +430,164 @@ function renderResults(matches, aiInfo, radar) {
 	if (aiInfo && aiInfo.expression) aiInfoParts.push(`표정 ${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%`)
 	const aiInfoHtml = aiInfoParts.length ? `<p id="aiInfo">${aiInfoParts.join(" · ")}</p>` : ""
 
-	let similarityMessage = ""
-
-	// 조건에 따른 메시지 설정 (topSimilarity 기준: 100%에 가까울수록 "재벌상"이라는
-	// 일반적인 직관에 맞춘 등급)
+	// 조건에 따른 등급 설정 (topSimilarity 기준: 100%에 가까울수록 "재벌상"이라는
+	// 일반적인 직관에 맞춘 등급). 라벨을 따로 빼두는 건 공유 카드에서도 그대로 재사용하기 위함.
+	let tierLabel = ""
+	let tierDesc = ""
 	if (topSimilarity >= 90) {
-		similarityMessage = `<span>완벽한 재벌관상</span> 타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.`
+		tierLabel = "완벽한 재벌관상"
+		tierDesc = "타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모."
 	} else if (topSimilarity >= 80) {
-		similarityMessage = `<span>거의 재벌관상</span> 힘과 부를 상징하는 외모, 성공한 사람의 분위기.`
+		tierLabel = "거의 재벌관상"
+		tierDesc = "힘과 부를 상징하는 외모, 성공한 사람의 분위기."
 	} else if (topSimilarity >= 70) {
-		similarityMessage = `<span>확실한 재벌 느낌</span> 권위와 부유함이 강하게 나타남.`
+		tierLabel = "확실한 재벌 느낌"
+		tierDesc = "권위와 부유함이 강하게 나타남."
 	} else if (topSimilarity >= 60) {
-		similarityMessage = `<span>눈에 띄는 특징</span> 리더십과 자신감이 표출되기 시작.`
+		tierLabel = "눈에 띄는 특징"
+		tierDesc = "리더십과 자신감이 표출되기 시작."
 	} else if (topSimilarity >= 50) {
-		similarityMessage = `<span>잠재력 있음</span> 카리스마나 부유함의 기운이 약간 느껴짐.`
+		tierLabel = "잠재력 있음"
+		tierDesc = "카리스마나 부유함의 기운이 약간 느껴짐."
 	} else if (topSimilarity >= 40) {
-		similarityMessage = `<span>중간 단계</span> 재벌관상과는 약간의 유사성, 하지만 확실하지 않음.`
+		tierLabel = "중간 단계"
+		tierDesc = "재벌관상과는 약간의 유사성, 하지만 확실하지 않음."
 	} else if (topSimilarity >= 30) {
-		similarityMessage = `<span>평범함</span> 특별히 눈에 띄지 않는 인상.`
+		tierLabel = "평범함"
+		tierDesc = "특별히 눈에 띄지 않는 인상."
 	} else if (topSimilarity >= 20) {
-		similarityMessage = `<span>부족한 요소</span> 자신감이나 권위가 부족한 인상.`
+		tierLabel = "부족한 요소"
+		tierDesc = "자신감이나 권위가 부족한 인상."
 	} else if (topSimilarity >= 10) {
-		similarityMessage = `<span>근본적인 차이</span> 재벌 느낌과는 전혀 어울리지 않음.`
+		tierLabel = "근본적인 차이"
+		tierDesc = "재벌 느낌과는 전혀 어울리지 않음."
 	} else {
-		similarityMessage = `<span>완전히 반대</span> 재벌과는 거리가 먼 평범한 외모.`
+		tierLabel = "완전히 반대"
+		tierDesc = "재벌과는 거리가 먼 평범한 외모."
 	}
+	const similarityMessage = `<span>${tierLabel}</span> ${tierDesc}`
 
-	// 결과 출력
+	const divider = `<div class="section-divider"><span></span>✦<span></span></div>`
+
+	// 결과 출력 (헤드라인 %는 0에서 카운트업 애니메이션으로 채워짐)
 	document.getElementById("averageResult").innerHTML = `
 		<div id="resultRate">
 			<h3>나의 관상 분석 결과</h3>
-			<span id="richRate" class="bounce">${topSimilarity}%</span>
+			<span id="richRate" class="bounce">0.0%</span>
 			${aiInfoHtml}
-			${topMatchHtml}
-			${readingHtml}
+			${topMatchHtml ? divider + topMatchHtml : ""}
+			${readingHtml ? divider + readingHtml : ""}
+			${divider}
 			<p>${similarityMessage}</p>
 		</div>
 	`
 
 	document.getElementById("resultsContainer").style.display = "block"
 
+	const richRateEl = document.getElementById("richRate")
+	const topMatchHPEl = document.getElementById("topMatchHP")
+	if (typeof gsap !== "undefined") {
+		gsap.to(
+			{ v: 0 },
+			{
+				v: parseFloat(topSimilarity),
+				duration: 0.9,
+				ease: "power2.out",
+				delay: 0.15,
+				onUpdate: function () {
+					richRateEl.textContent = this.targets()[0].v.toFixed(1) + "%"
+				},
+			},
+		)
+		if (topMatchHPEl) {
+			topMatchHPEl.textContent = "일치율 0.0%"
+			gsap.to(
+				{ v: 0 },
+				{
+					v: topMatch.similarity,
+					duration: 0.9,
+					ease: "power2.out",
+					delay: 0.55,
+					onUpdate: function () {
+						topMatchHPEl.textContent = "일치율 " + this.targets()[0].v.toFixed(1) + "%"
+					},
+				},
+			)
+		}
+		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
+		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
+	} else {
+		richRateEl.textContent = topSimilarity + "%"
+	}
+
 	const revealEl = document.getElementById("topMatchReveal")
 	if (revealEl) {
-		// 짧은 대기 후 카드가 팝업되는 연출 (두구두구 효과)
+		// 짧은 대기 후 카드가 팝업되는 연출 (두구두구 효과) + 차임 효과음
 		requestAnimationFrame(() => {
-			setTimeout(() => revealEl.classList.add("revealed"), 500)
+			setTimeout(() => {
+				revealEl.classList.add("revealed")
+				playChime()
+			}, 500)
 		})
 	}
 
 	const cardEl = document.getElementById("topMatch")
 	if (cardEl) initHoloEffect(cardEl)
+
+	populateShareCard(topMatch, topSimilarity, tierLabel)
+}
+
+// 인스타/페이스북/카카오톡에 공유하기 좋은 4:5 비율 카드(화면엔 안 보임, 캡처 전용)에
+// 결과를 채워넣는다. "나 vs 매칭 인물" 사진 비교 포맷이 핵심.
+function populateShareCard(topMatch, topSimilarity, tierLabel) {
+	const userPhotoSrc = document.getElementById("uploadedImage").src
+
+	document.getElementById("shareCardUserPhoto").src = userPhotoSrc
+	document.getElementById("shareCardPercent").textContent = topSimilarity + "%"
+	document.getElementById("shareCardTier").textContent = tierLabel
+
+	const photosEl = document.querySelector(".share-card-photos")
+	const vsEl = document.querySelector(".share-card-vs")
+	const matchBoxEl = document.getElementById("shareCardMatchPhoto").closest(".share-card-photo-box")
+	const matchNameEl = document.getElementById("shareCardMatchName")
+	const matchNameEl2 = document.getElementById("shareCardMatchName2")
+	const matchPhotoEl = document.getElementById("shareCardMatchPhoto")
+	const badgesEl = document.getElementById("shareCardBadges")
+
+	if (topMatch.name) {
+		matchNameEl.textContent = topMatch.name
+		matchNameEl2.textContent = topMatch.name
+		matchPhotoEl.src = topMatch.image || ""
+		vsEl.style.display = ""
+		matchBoxEl.style.display = ""
+		photosEl.classList.remove("solo")
+
+		const badges = []
+		if (topMatch.rank) badges.push(`<span class="badge">포브스 ${topMatch.rank}위</span>`)
+		if (topMatch.netWorth) badges.push(`<span class="badge">${topMatch.netWorth}</span>`)
+		badgesEl.innerHTML = badges.join("")
+	} else {
+		// 매칭된 실명 인물이 없으면 "나 vs 회장님" 비교 없이 내 사진만 중앙에 크게 보여준다
+		// (빈 여백이 크게 남지 않도록 사진 박스 자체를 키운다)
+		matchNameEl.textContent = "재벌 표본"
+		vsEl.style.display = "none"
+		matchBoxEl.style.display = "none"
+		photosEl.classList.add("solo")
+		badgesEl.innerHTML = ""
+	}
+}
+
+// 저장/공유 버튼이 공용으로 사용할 카드 캡처. #shareCard는 항상 360x450(4:5) 고정 크기라
+// scale:3으로 캡처하면 1080x1350 — 인스타그램 피드에 바로 올릴 수 있는 해상도가 된다.
+async function captureShareCard() {
+	const el = document.getElementById("shareCard")
+	return html2canvas(el, {
+		width: el.offsetWidth,
+		height: el.offsetHeight,
+		scale: 3,
+		useCORS: true,
+		backgroundColor: null,
+	})
 }
 
 // 마우스/터치 위치에 따라 카드가 기울어지고 무지개 시광이 움직이는 홀로그래픽 효과
@@ -458,23 +619,74 @@ function initHoloEffect(cardEl) {
 			const touch = e.touches[0]
 			if (touch) applyTilt(touch.clientX, touch.clientY)
 		},
-		{ passive: true }
+		{ passive: true },
 	)
 	cardEl.addEventListener("touchend", resetTilt)
 }
 
 document.getElementById("reset").addEventListener("click", function () {
+	playClick()
 	window.location.reload()
 })
 
+// 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
+// 유지한다. 그렇지 않으면 들어오는 애니메이션과 나가는 애니메이션이 서로 충돌해 뚝뚝 끊겨 보인다.
+const MIN_LOADING_MS = 900
+let loadingStartedAt = 0
+
+// 화면 중앙에서 원(iris)이 확 번지며 화면을 덮는 "순간이동 출발" 연출 + 휘익 효과음.
+// (Star Wars식 iris wipe 레퍼런스 — 좌우에서 흐린 패널이 슬라이드하던 예전 방식보다
+// 훨씬 또렷하게 "포탈이 열린다"는 느낌을 줌)
+// GSAP/Tone이 아직 로드되기 전이거나 로드 실패한 극단적인 경우에도 분석 자체는 막히지 않도록
+// 항상 modal을 보이게 만드는 폴백을 먼저 깔아둔다.
 function showLoadingModal() {
+	loadingStartedAt = Date.now()
 	const modal = document.getElementById("loadingModal")
 	modal.style.display = "block"
+
+	if (typeof gsap === "undefined") return
+	playWhoosh("out")
+	gsap
+		.timeline()
+		.fromTo("#uploadedImageContainer", { scale: 1, opacity: 1 }, { scale: 0.5, opacity: 0, duration: 0.22, ease: "power4.in" }, 0)
+		.fromTo(modal, { clipPath: "circle(0px at 50% 50%)" }, { clipPath: "circle(150vmax at 50% 50%)", duration: 0.4, ease: "power3.out" }, 0.05)
+		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.9, duration: 0.12, ease: "power1.out" }, 0.05)
+		.to("#portalFlash", { opacity: 0, duration: 0.35, ease: "power2.out" }, 0.17)
+		.to(".modal-content", { opacity: 1, duration: 0.2 }, 0.3)
 }
 
-function hideLoadingModal() {
+// 원이 다시 중앙으로 오므라들며 "먼 곳으로 순간이동해서 도착한" 듯 결과를 드러내는 연출 + 효과음.
+// 최소 노출 시간을 채울 때까지 기다린 뒤, 나가는 애니메이션이 끝날 때까지 대기한다.
+async function hideLoadingModal() {
 	const modal = document.getElementById("loadingModal")
-	modal.style.display = "none"
+
+	const elapsed = Date.now() - loadingStartedAt
+	if (elapsed < MIN_LOADING_MS) {
+		await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
+	}
+
+	if (typeof gsap === "undefined") {
+		modal.style.display = "none"
+		return
+	}
+
+	playWhoosh("in")
+	await new Promise((resolve) => {
+		gsap
+			.timeline({
+				onComplete: () => {
+					modal.style.display = "none"
+					gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
+					gsap.set("#uploadedImageContainer", { clearProps: "all" })
+					resolve()
+				},
+			})
+			.to(".modal-content", { opacity: 0, duration: 0.12 }, 0)
+			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.9, duration: 0.1 }, 0.12)
+			.to("#portalFlash", { opacity: 0, duration: 0.3 }, 0.22)
+			.to(modal, { clipPath: "circle(0px at 50% 50%)", duration: 0.35, ease: "power3.in" }, 0.12)
+			.fromTo("#uploadedImageContainer", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 0.4)
+	})
 }
 
 function updateLoadingModal(percentage) {
@@ -487,14 +699,6 @@ function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
 	document.getElementById("averageResult").textContent = ""
 }
-
-// 모달 닫기
-document.querySelectorAll(".close").forEach((element) => {
-	element.addEventListener("click", function () {
-		const modal = this.parentElement.parentElement
-		modal.style.display = "none"
-	})
-})
 
 //wallPattern
 var wallPattern = {
@@ -582,46 +786,85 @@ wallPattern.init()
 
 /* share function */
 
-function saveAsImage() {
-	// 업로드 폼/버튼 등은 제외하고 결과 카드만 캡처 (공유 이미지 품질을 위해)
-	const container = document.getElementById("resultsContainer")
-	const saveButtonWrapper = document.getElementById("saveImg")
-	const richRateEl = document.getElementById("richRate")
-
-	const originalWidth = container.offsetWidth
-	const originalHeight = container.offsetHeight
-
-	saveButtonWrapper.style.visibility = "hidden"
-	// 진입 애니메이션(bounce)이 아직 재생 중이면 캡처 시 텍스트가 겹쳐 보이므로 캡처 직전 정지시킨다
-	if (richRateEl) richRateEl.style.animation = "none"
-	const revealEl = document.getElementById("topMatchReveal")
-	if (revealEl) {
-		revealEl.style.transition = "none"
-		revealEl.classList.add("revealed")
-	}
-	// 홀로그래픽 카드가 마우스 틸트 중이었다면 캡처 전에 평평하게 되돌린다
-	const cardEl = document.getElementById("topMatch")
-	const shineEl = document.getElementById("topMatchShine")
-	if (cardEl) cardEl.style.transform = "none"
-	if (shineEl) shineEl.style.opacity = "0"
-
-	html2canvas(container, {
-		width: originalWidth,
-		height: originalHeight,
-		scale: 2, // 고해상도 이미지를 위한 스케일 설정
-		useCORS: true, // CORS 문제를 해결하기 위해 필요시 추가
-	})
-		.then(function (canvas) {
-			const link = document.createElement("a")
-			link.href = canvas.toDataURL("image/png")
-			link.download = "부자관상분석결과.png"
-			link.click()
-		})
-		.finally(function () {
-			saveButtonWrapper.style.visibility = "visible"
-		})
+async function saveAsImage() {
+	const canvas = await captureShareCard()
+	const link = document.createElement("a")
+	link.href = canvas.toDataURL("image/png")
+	link.download = "부자관상분석결과.png"
+	link.click()
 }
 
-document.getElementById("saveImgBtn").addEventListener("click", function () {
-	saveAsImage()
+document.getElementById("saveImgBtn").addEventListener("click", async function () {
+	playClick()
+	await saveAsImage()
+})
+
+// 모바일 OS 공유 시트(카카오톡/인스타그램/페이스북 앱 등에 실제 결과 이미지를 바로 보낼 수 있는
+// 사실상 유일한 방법). 데스크톱이나 미지원 브라우저에서는 이미지를 저장한 뒤 알림으로 안내한다.
+document.getElementById("webShareBtn").addEventListener("click", async function () {
+	playClick()
+	const canvas = await captureShareCard()
+	const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
+	const file = new File([blob], "부자관상분석결과.png", { type: "image/png" })
+
+	if (navigator.canShare && navigator.canShare({ files: [file] })) {
+		try {
+			await navigator.share({
+				files: [file],
+				title: "인공지능 부자 관상 테스트",
+				text: "나의 부자 관상 분석 결과!",
+			})
+			return
+		} catch (err) {
+			if (err.name === "AbortError") return // 사용자가 공유를 취소함
+			console.warn("공유 실패", err)
+		}
+	}
+
+	// Web Share API 미지원 (대부분의 데스크톱 브라우저) → 저장으로 대체
+	const link = document.createElement("a")
+	link.href = canvas.toDataURL("image/png")
+	link.download = "부자관상분석결과.png"
+	link.click()
+	alert("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
+})
+
+// 카카오톡/페이스북 공식 공유는 "지금 생성된 카드 이미지"가 아니라 사이트 링크(og:image 고정 이미지)를
+// 공유하는 방식이다 — 두 서비스 모두 클라이언트에서 방금 만든 이미지를 즉석 업로드하는 API가 없다.
+document.getElementById("fbShareBtn").addEventListener("click", function () {
+	playClick()
+	const shareUrl = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(location.href)
+	window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=500")
+})
+
+document.getElementById("kakaoShareBtn").addEventListener("click", function () {
+	playClick()
+	if (!KAKAO_JS_KEY) {
+		alert("카카오톡 공유는 아직 설정되지 않았습니다. developers.kakao.com에서 JavaScript 키를 발급받아 js/script.js의 KAKAO_JS_KEY에 붙여넣어주세요.")
+		return
+	}
+	if (typeof Kakao === "undefined") {
+		alert("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
+		return
+	}
+	if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY)
+
+	Kakao.Share.sendDefault({
+		objectType: "feed",
+		content: {
+			title: "인공지능 부자 관상 테스트",
+			description: "대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? AI로 확인해보세요.",
+			imageUrl: "https://saramjh.github.io/richChecker/assets/imgs/male.png",
+			link: {
+				mobileWebUrl: location.href,
+				webUrl: location.href,
+			},
+		},
+		buttons: [
+			{
+				title: "나도 테스트하기",
+				link: { mobileWebUrl: location.href, webUrl: location.href },
+			},
+		],
+	})
 })
