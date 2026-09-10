@@ -1,6 +1,6 @@
 # 인공지능 부자 관상 테스트
 
-![image](https://github.com/user-attachments/assets/9cc31f89-3bb9-4cef-bbd4-2893c67c1818)
+![인공지능 부자 관상 테스트 스크린샷](docs/readme-preview.png)
 
 [사이트 바로가기](https://saramjh.github.io/richChecker/)
 

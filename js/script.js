@@ -789,12 +789,12 @@ function renderResults(matches, aiInfo, radar, archetype) {
 	if (cardEl) initHoloEffect(cardEl)
 
 	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity }
-	populateShareCard(topMatch, topSimilarity, tierLabel, archetype)
+	populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar)
 }
 
-// 인스타/페이스북/카카오톡에 공유하기 좋은 4:5 비율 카드(화면엔 안 보임, 캡처 전용)에
-// 결과를 채워넣는다. "나 vs 매칭 인물" 사진 비교 포맷이 핵심.
-function populateShareCard(topMatch, topSimilarity, tierLabel, archetype) {
+// 인스타/페이스북/카카오톡에 공유하기 좋은 비율 카드(화면엔 안 보임, 캡처 전용)에 결과를
+// 채워넣는다. "나 vs 매칭 인물" 사진 비교 + 육각 레이더 차트가 핵심.
+function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar) {
 	const userPhotoSrc = document.getElementById("uploadedImage").src
 
 	document.getElementById("shareCardUserPhoto").src = userPhotoSrc
@@ -810,6 +810,7 @@ function populateShareCard(topMatch, topSimilarity, tierLabel, archetype) {
 	const matchNameEl2 = document.getElementById("shareCardMatchName2")
 	const matchPhotoEl = document.getElementById("shareCardMatchPhoto")
 	const badgesEl = document.getElementById("shareCardBadges")
+	const radarEl = document.getElementById("shareCardRadar")
 
 	if (topMatch.name) {
 		matchNameEl.textContent = topMatch.name
@@ -823,6 +824,11 @@ function populateShareCard(topMatch, topSimilarity, tierLabel, archetype) {
 		if (topMatch.rank) badges.push(`<span class="badge">포브스 ${topMatch.rank}위</span>`)
 		if (topMatch.netWorth) badges.push(`<span class="badge">${topMatch.netWorth}</span>`)
 		badgesEl.innerHTML = badges.join("")
+
+		// 저장한 이미지에 육각 레이더 차트가 안 담겨서 아쉽다는 피드백 — 온페이지 카드와 같은
+		// 함수를 재사용한다. tierLabel/tierDesc는 넘기지 않아 등급 문구(#radarNote)는 이
+		// 카드에선 생략(같은 내용이 #shareCardTier에 이미 있어 중복 방지).
+		radarEl.innerHTML = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel) : ""
 	} else {
 		// 매칭된 실명 인물이 없으면 "나 vs 회장님" 비교 없이 내 사진만 중앙에 크게 보여준다
 		// (빈 여백이 크게 남지 않도록 사진 박스 자체를 키운다)
@@ -831,11 +837,13 @@ function populateShareCard(topMatch, topSimilarity, tierLabel, archetype) {
 		matchBoxEl.style.display = "none"
 		photosEl.classList.add("solo")
 		badgesEl.innerHTML = ""
+		radarEl.innerHTML = ""
 	}
 }
 
-// 저장/공유 버튼이 공용으로 사용할 카드 캡처. #shareCard는 항상 360x450(4:5) 고정 크기라
-// scale:3으로 캡처하면 1080x1350 — 인스타그램 피드에 바로 올릴 수 있는 해상도가 된다.
+// 저장/공유 버튼이 공용으로 사용할 카드 캡처. 폭은 360px로 고정하지만 높이는 레이더 차트
+// 포함 여부에 따라 내용물 기준으로 자연스럽게 늘어난다(el.offsetHeight로 실측) —
+// scale:3으로 캡처하면 실제 폭은 1080px, 세로는 그만큼 비례해서 커진다.
 async function captureShareCard() {
 	const el = document.getElementById("shareCard")
 	return html2canvas(el, {

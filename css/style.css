@@ -62,7 +62,9 @@ body {
 	width: 100%;
 	margin-bottom: 70px;
 	z-index: 3;
-	transform-style: preserve-3d;
+	/* preserve-3d는 제거함 — 아이들 float 애니메이션은 y 이동뿐이라 자식의 3D 위치를 보존할
+	   필요가 없고, 이 3D 렌더링 컨텍스트가 안쪽의 #topMatchShine(mix-blend-mode) 요소와
+	   맞물려 일부 안드로이드 GPU에서 카드가 새까맣게 렌더링되는 버그의 요인이 될 수 있다. */
 	will-change: transform;
 	position: relative;
 }
@@ -472,14 +474,15 @@ p {
 }
 
 /* 예전엔 밝은 코어가 화면 68% 반경까지 번져서, 열릴 때/닫힐 때 두 번 다 화면 전체가
-   하얗게 "번쩍"였다 — 사용자에게는 깜빡이는 것처럼 보였다. 코어를 훨씬 작게, 더 흐리게
-   줄이고 screen 블렌드로 밑에 깔린 화면과 섞이게 해서 "번쩍"이 아니라 "반짝"이는 정도로만. */
+   하얗게 "번쩍"였다 — 코어를 훨씬 작게, 더 흐리게 줄여서 해결했었다. mix-blend-mode:
+   screen도 같이 걸려있었는데, 블렌드 모드 자체가 일부 안드로이드 GPU 컴포지터에서 화면
+   전체를 새까맣게(!) 렌더링하는 버그를 일으킨다는 게 실기기 재현으로 확인돼 제거함
+   (#topMatchShine의 color-dodge 제거와 동일한 이유). */
 #portalFlash {
 	position: absolute;
 	inset: 0;
 	background: radial-gradient(circle at 50% 50%, #fff8e0 0%, var(--gold-light) 12%, transparent 32%);
 	opacity: 0;
-	mix-blend-mode: screen;
 	pointer-events: none;
 }
 
@@ -625,6 +628,11 @@ p {
 }
 
 /* 신비로운 트레이딩 카드 프레임 */
+/* transform-style: preserve-3d를 mix-blend-mode(아래 #topMatchShine)와 같은 요소에 같이
+   걸어두면, 일부 안드로이드 기기(삼성 인터넷 등)의 GPU 컴포지터가 이 카드 전체를 새까맣게
+   렌더링해버리는 실제 버그가 있다(실기기 영상으로 확인됨). initHoloEffect()의 틸트는
+   #topMatch 하나에만 회전을 걸 뿐 자식 요소가 별도의 3D 위치를 가질 필요가 없어서
+   preserve-3d 자체가 애초에 불필요했다 — 제거해도 기울임 효과는 동일하게 동작한다. */
 #topMatch {
 	position: relative;
 	width: 100%;
@@ -638,11 +646,14 @@ p {
 	text-align: center;
 	overflow: hidden;
 	font-family: var(--font-body);
-	transform-style: preserve-3d;
 	transition: transform 0.15s ease-out;
 	will-change: transform;
 }
 
+/* mix-blend-mode: color-dodge를 썼었는데, preserve-3d를 떼어냈는데도 실기기에서 카드가
+   계속 새까맣게 렌더링됐다 — 원인이 preserve-3d와의 조합이 아니라 블렌드 모드 자체였다는
+   뜻이라 아예 제거했다. 대신 무지개 색을 직접 알파값으로 조금 더 진하게 줘서(0.55→0.68),
+   dodge의 밝아지는 효과 없이도 카드 위에 얹힌 느낌이 나게 보정했다. */
 #topMatchShine {
 	position: absolute;
 	inset: 0;
@@ -650,14 +661,13 @@ p {
 	background: linear-gradient(
 		115deg,
 		transparent 15%,
-		rgba(255, 0, 150, 0.55) 32%,
-		rgba(0, 225, 255, 0.55) 41%,
-		rgba(255, 240, 0, 0.55) 50%,
-		rgba(0, 255, 150, 0.55) 59%,
+		rgba(255, 0, 150, 0.68) 32%,
+		rgba(0, 225, 255, 0.68) 41%,
+		rgba(255, 240, 0, 0.68) 50%,
+		rgba(0, 255, 150, 0.68) 59%,
 		transparent 75%
 	);
 	background-size: 250% 250%;
-	mix-blend-mode: color-dodge;
 	opacity: 0;
 	transition: opacity 0.25s ease;
 	pointer-events: none;
@@ -1054,15 +1064,15 @@ p {
 	padding: 12px 4px;
 }
 
-/* 인스타그램 피드(4:5) 비율의 저장/공유 전용 카드. 화면엔 절대 안 보이고 캡처될 때만
-   쓰인다(고정 픽셀 크기 + 화면 밖 위치라야 html2canvas가 항상 같은 결과물을 뽑는다).
-   scale:3으로 캡처하면 360x450 → 1080x1350 출력이 된다. */
+/* 저장/공유 전용 카드. 화면엔 절대 안 보이고 캡처될 때만 쓰인다(고정 픽셀 폭 + 화면 밖
+   위치라야 html2canvas가 항상 같은 결과물을 뽑는다). 예전엔 인스타그램 피드(4:5) 비율에
+   맞춰 높이도 고정(450px)이었는데, 저장한 이미지에 육각 레이더 차트도 담아달라는 피드백으로
+   내용물 기준으로 높이가 자연스럽게 늘어나게 바꿨다(scale:3 캡처 시 실제 폭 1080px). */
 #shareCard {
 	position: fixed;
 	left: -9999px;
 	top: 0;
 	width: 360px;
-	height: 450px;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -1165,9 +1175,28 @@ p {
 
 .share-card-cta {
 	text-align: center;
+	margin-top: 10px;
+}
+
+.share-card-cta-hook {
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: var(--gold-soft);
+	margin-bottom: 2px;
+}
+
+.share-card-cta-url {
 	font-size: 0.65rem;
 	color: var(--text-faint);
-	margin-top: 10px;
+}
+
+/* 저장 이미지에 포함되는 육각 레이더 차트 — #radarChart/#radarLegend 등 온페이지 카드와
+   같은 id/class를 재사용해 같은 스타일을 그대로 물려받는다(캡처 전용 요소라 문서 안에서
+   id가 중복돼도 실제 기능상 충돌은 없음). */
+#shareCardRadar {
+	display: flex;
+	justify-content: center;
+	margin-top: 8px;
 }
 
 footer {
