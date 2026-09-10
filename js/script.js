@@ -105,6 +105,12 @@ document.getElementById("uploadedImage").addEventListener("click", function () {
 	document.getElementById("uploadImage").click()
 })
 
+// 위 리스너를 붙이는 줄이 실행됐다는 건 이 시점부터 클릭이 실제로 동작한다는 뜻이므로,
+// 그제서야 "초기화 중" 표시를 걷어낸다. index.html에서 모든 외부 스크립트를 defer로 바꾸고
+// script.js를 맨 마지막에 두었기 때문에, 이 줄이 실행되는 시점엔 GSAP/Tone/face-api 등
+// 의존 라이브러리도 이미 전부 로드가 끝나 있다.
+document.getElementById("uploadedImageContainer").classList.remove("is-initializing")
+
 // 메인 카드가 공중에 둥둥 떠 있는 듯한 아이들 애니메이션
 if (typeof gsap !== "undefined") {
 	gsap.to(".container", {

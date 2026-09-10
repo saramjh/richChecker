@@ -276,6 +276,7 @@ p {
 }
 
 #uploadedImageContainer {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -283,6 +284,38 @@ p {
 	margin: 10px 0 10px;
 	width: 300px;
 	height: 400px;
+}
+
+/* 클릭 리스너가 실제로 붙기 전까지는 눌러도 반응 없는 상태를 "로딩 중"으로 분명히 보여준다.
+   script.js가 실행되는 즉시(붙일 리스너를 다 붙인 다음) 이 클래스를 제거한다. */
+#uploadedImageContainer.is-initializing #uploadedImage {
+	opacity: 0.35;
+	cursor: default;
+	pointer-events: none;
+}
+
+#initSpinner {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 36px;
+	height: 36px;
+	margin: -18px 0 0 -18px;
+	border: 3px solid rgba(212, 175, 55, 0.25);
+	border-top-color: var(--gold);
+	border-radius: 50%;
+}
+
+#uploadedImageContainer.is-initializing #initSpinner {
+	display: block;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 #uploadedImage {
@@ -294,6 +327,7 @@ p {
 	box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
 	cursor: pointer;
 	object-fit: cover;
+	transition: opacity 0.25s ease;
 }
 
 #uploadedImage:hover {

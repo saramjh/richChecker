@@ -53,13 +53,16 @@
   <meta name="twitter:image" content="https://saramjh.github.io/richChecker/assets/imgs/male.png">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/animations.css">
-  <script defer src="js/script.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- 전부 defer로 로드한다. defer가 아닌 스크립트는 다운로드·실행이 끝날 때까지 HTML 파싱
+       자체를 멈춰버려서, 업로드 버튼은 화면에 보이는데 클릭 이벤트는 아직 안 붙어있는(먹통처럼
+       느껴지는) 구간이 생긴다. defer 스크립트는 문서 순서대로 실행되므로, script.js가 의존하는
+       라이브러리들을 먼저 두고 script.js를 마지막에 둔다. -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script defer src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script defer src="js/script.js"></script>
 </head>
 
 <body>
@@ -107,9 +110,12 @@
       <!-- 파일 업로드 버튼 (숨김 처리) -->
       <input type="file" id="uploadImage" accept="image/*" style="display: none;">
 
-      <!-- 업로드된 이미지 표시 -->
-      <div id="uploadedImageContainer">
+      <!-- 업로드된 이미지 표시. is-initializing 상태에서는 클릭이 안 먹는 게 정상이라는 걸
+           시각적으로 보여준다(스피너+반투명) — script.js가 로드를 끝내고 클릭 리스너를 실제로
+           건 다음에만 이 클래스를 제거해서, "눌러도 반응 없는 버튼"이 생기지 않게 한다. -->
+      <div id="uploadedImageContainer" class="is-initializing">
         <img id="uploadedImage" src="assets/imgs/placeholder.svg" alt="업로드된 이미지">
+        <div id="initSpinner"></div>
       </div>
       <button id="reset">초기화</button>
 
