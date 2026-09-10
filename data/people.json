@@ -466,5 +466,33 @@
     "name": null,
     "title": null,
     "image": "assets/femaleKR/tjalswjd191025.jpg"
+  },
+  {
+    "id": "kim-beom-su",
+    "name": "김범수",
+    "title": "카카오 창업자",
+    "image": "assets/richKR/male/kim-beom-su.jpg",
+    "credit": {
+      "author": "ACROFAN",
+      "license": "CC BY-SA 3.0",
+      "source": "https://commons.wikimedia.org/wiki/File:Kim_Bum-soo,_Chairman_of_board,_Kakao_Inc.jpg"
+    },
+    "rank": 13,
+    "netWorth": "$3.8B",
+    "achievement": "카카오 창업자 · 국민 메신저 '카카오톡'으로 모바일 플랫폼 시대 이끎"
+  },
+  {
+    "id": "lee-hae-jin",
+    "name": "이해진",
+    "title": "네이버 창업자",
+    "image": "assets/richKR/male/lee-hae-jin.jpg",
+    "credit": {
+      "author": "Spyderkmoto",
+      "license": "CC0 1.0 (Public Domain)",
+      "source": "https://commons.wikimedia.org/wiki/File:이해진(네이버).jpg"
+    },
+    "rank": 38,
+    "netWorth": "$1.44B",
+    "achievement": "네이버 창업자 · 한국 대표 포털·글로벌 IT 기업으로 성장시킴"
   }
 ]

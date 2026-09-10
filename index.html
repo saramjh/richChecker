@@ -35,34 +35,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="대한민국 부자들의 관상을 빅데이터로 활용하여 자신의 관상과의 일치율을 분석합니다.">
+  <meta name="theme-color" content="#1a1035">
   <title>인공지능 부자 관상 테스트</title>
   <link rel="canonical" href="https://saramjh.github.io/richChecker/">
+  <link rel="icon" type="image/svg+xml" href="assets/imgs/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/imgs/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/imgs/apple-touch-icon.png">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://saramjh.github.io/richChecker/">
   <meta property="og:title" content="인공지능 부자 관상 테스트">
   <meta property="og:description" content="대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? AI로 확인해보세요.">
-  <meta property="og:image" content="https://saramjh.github.io/richChecker/assets/imgs/male.png">
+  <meta property="og:image" content="https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="인공지능 부자 관상 테스트">
   <meta property="og:locale" content="ko_KR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="인공지능 부자 관상 테스트">
   <meta name="twitter:description" content="대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? AI로 확인해보세요.">
-  <meta name="twitter:image" content="https://saramjh.github.io/richChecker/assets/imgs/male.png">
+  <meta name="twitter:image" content="https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg">
+
+  <!-- 검색엔진이 이 페이지를 "일반 웹앱"으로 명확히 이해하도록 구조화 데이터를 준다 —
+       구글 등에서 리치 결과(앱 이름/설명/무료 여부 등)로 노출될 확률을 높인다. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "인공지능 부자 관상 테스트",
+    "url": "https://saramjh.github.io/richChecker/",
+    "description": "대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? 포브스 선정 2026 대한민국 부자 순위를 기반으로 AI가 얼굴 관상을 분석해 비교해주는 엔터테인먼트 서비스입니다.",
+    "applicationCategory": "EntertainmentApplication",
+    "operatingSystem": "Any",
+    "inLanguage": "ko",
+    "isAccessibleForFree": true,
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "KRW"
+    }
+  }
+  </script>
+
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/animations.css">
-  <!-- 전부 defer로 로드한다. defer가 아닌 스크립트는 다운로드·실행이 끝날 때까지 HTML 파싱
-       자체를 멈춰버려서, 업로드 버튼은 화면에 보이는데 클릭 이벤트는 아직 안 붙어있는(먹통처럼
-       느껴지는) 구간이 생긴다. defer 스크립트는 문서 순서대로 실행되므로, script.js가 의존하는
-       라이브러리들을 먼저 두고 script.js를 마지막에 둔다. -->
+  <!-- 전부 defer로 로드한다(파싱을 막지 않기 위해). script.js는 맨 먼저 둔다 — defer 스크립트는
+       "문서 순서대로 실행"되므로, script.js를 라이브러리들 뒤에 두면 그 라이브러리들의 실행이
+       전부 끝날 때까지 업로드/초기화 버튼 리스너가 안 붙는 채로 남는다. script.js 안에서 외부
+       라이브러리(gsap/Tone/faceapi 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
+       최상단에서 즉시 실행되는 건 없으므로, 순서를 앞으로 당겨도 안전하다. -->
+  <script defer src="js/script.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script defer src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-  <script defer src="js/script.js"></script>
 </head>
 
 <body>
@@ -71,10 +100,18 @@
       style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
   <div class="container">
+    <!-- 부팅 오버레이: script.js가 실제로 실행되어 리스너를 다 붙이기 전까지 카드 전체를 덮어서
+         "로딩 중"임을 명확히 알려준다. 작은 스피너 하나로는 눈에 안 띄어서 고장난 걸로 오해하고
+         이탈할 수 있다는 피드백 반영 — script.js 맨 위에서 즉시 제거한다. -->
+    <div id="bootOverlay">
+      <div id="bootSpinner"></div>
+      <p>불러오는 중입니다...</p>
+    </div>
     <div id="window">
       <h1>인공지능 부자 관상 테스트</h1>
       <hr>
       <p class="tagline">"대한민국 재벌들과 나의 관상은 얼마 비슷할까요?"</p>
+      <p class="forbes-badge">✦ 포브스(Forbes) 선정 2026 대한민국 부자 순위 기반 ✦</p>
 
       <!-- 이용 흐름: 무엇을 하게 되고, 무엇을 얻는지 미리 보여준다 -->
       <div id="howItWorks">
@@ -94,7 +131,7 @@
         </span>
         <div class="step">
           <span class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg></span>
-          <span class="step-label">재벌 62인과 비교</span>
+          <span class="step-label">재벌 64인과 비교</span>
         </div>
         <span class="step-arrow">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -105,7 +142,7 @@
         </div>
       </div>
       <p class="value-prop">가장 닮은 재벌을 찾아 초년·재물·말년운까지 읽어주는 <strong>나만의 관상 카드</strong>를 받아보세요.</p>
-      <p class="fine-print">포브스 선정 2026년 대한민국 부자 순위 기준 · 공개된 데이터로 선별</p>
+      <p class="fine-print">공개된 데이터로 선별했습니다</p>
 
       <!-- 파일 업로드 버튼 (숨김 처리) -->
       <input type="file" id="uploadImage" accept="image/*" style="display: none;">
@@ -116,14 +153,19 @@
       <div id="uploadedImageContainer" class="is-initializing">
         <img id="uploadedImage" src="assets/imgs/placeholder.svg" alt="업로드된 이미지">
         <div id="initSpinner"></div>
+        <!-- 헤드라인 %를 따로 텍스트 블록으로 보여주지 말고, 사진 자체에 뱃지처럼 박아서
+             "이 사진이 몇 % 재벌 관상인지"가 사진과 분리되지 않고 한눈에 보이게 한다. 뱃지
+             안에 % 숫자만 있으면 "누구와" 닮았다는 건지 뱃지만 봐서는 알 수 없다는 피드백 —
+             매칭된 인물 이름을 같이 넣는다(JS에서 채움). -->
+        <div id="matchBadge"></div>
       </div>
+      <!-- AI 추정 나이/표정은 "이 사진 자체"에 대한 정보라, 매칭 결과 카드 쪽이 아니라
+           내가 올린 사진 바로 아래(가까이)에 둔다. -->
+      <p id="aiInfo"></p>
       <button id="reset">초기화</button>
 
-      <p id="warning">이 프로그램은 절대 개인정보를 수집하지 않습니다.</p>
       <!-- 결과 표시 영역 -->
       <div id="resultsContainer" style="display: none;">
-        <p id="shareBrand">인공지능 부자 관상 테스트</p>
-        <h2>분석 결과</h2>
         <p id="averageResult"></p> <!-- 평균 결과 표시 영역 추가 -->
         <div id="saveImg">
           <button id="saveImgBtn">
@@ -131,21 +173,39 @@
             분석결과 저장하기
           </button>
         </div>
-        <div id="shareButtons">
-          <button id="webShareBtn">
+        <!-- 카카오톡/페이스북/X 공식 공유 API는 서버가 없으면 "방금 만든 개인 결과 이미지"를
+             전달할 방법이 없어서 사이트 링크만 보낼 수 있다(플랫폼 자체의 한계). 반면 공유하기/
+             인스타그램은 OS 공유 시트로 실제 카드 이미지 파일을 첨부해서 보낸다 — 이 둘을 같은
+             줄에 섞어두면 "왜 어떤 건 이미지가 가고 어떤 건 링크만 가지?"라는 혼란이 생기므로,
+             "실제로 뭐가 가는지" 기준으로 두 그룹으로 나누고 라벨을 붙인다. -->
+        <p class="share-group-label">이미지로 공유</p>
+        <div class="share-row">
+          <button id="webShareBtn" aria-label="다른 앱으로 공유" title="다른 앱으로 공유">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
-            공유하기
           </button>
-          <button id="kakaoShareBtn">
+          <button id="instagramShareBtn" aria-label="인스타그램으로 공유" title="인스타그램">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+          </button>
+        </div>
+        <p class="share-group-label">링크로 공유</p>
+        <div class="share-row">
+          <button id="kakaoShareBtn" aria-label="카카오톡으로 공유" title="카카오톡">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
-            카카오톡
           </button>
-          <button id="fbShareBtn">
+          <button id="fbShareBtn" aria-label="페이스북으로 공유" title="페이스북">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-            페이스북
+          </button>
+          <button id="xShareBtn" aria-label="X로 공유" title="X">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
       </div>
+      <!-- "개인정보를 절대 수집하지 않습니다"는 부정확했다 — 사진 자체는 서버로 안 가고 기기
+           안에서만 분석되는 게 맞지만, 구글 애널리틱스/애드센스가 쿠키를 쓰는 건 사실이라 그
+           부분까지 정직하게 밝히는 문구로 바꿨다. 예전엔 하단 고정 푸터(높이 30px 고정, 한 줄용)
+           안에 욱여넣었더니 두 번째 줄이 overflow:hidden에 잘려서 아예 안 보였다 — 카드 하단의
+           일반 흐름 안에 작은 글씨 각주로 옮긴다. -->
+      <p id="privacyNote">사진은 서버 전송 없이 기기에서만 분석되며, 통계·광고 쿠키가 사용될 수 있습니다.</p>
     </div>
   </div>
 
@@ -190,6 +250,8 @@
       </div>
     </div>
   </div>
+  <!-- 알림 토스트 (브라우저 기본 alert() 대신 테마에 맞춘 알림) -->
+  <div id="toast"></div>
 </body>
 
 </html>

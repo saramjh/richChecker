@@ -28,13 +28,17 @@
 /* 신비로운 점성술/관상학 테마.
    배경 물결무늬는 예전엔 JS 캔버스로 페이지 로드 시점 높이만큼만 한 번 그렸는데, 결과가
    나오면서 페이지가 훨씬 길어지면 그 작은 비트맵이 늘어나 찌그러져 보이는 문제가 있었다.
-   CSS의 네이티브 반복 배경(SVG 타일)은 페이지 길이와 무관하게 항상 완벽하게 이어진다. */
+   CSS의 네이티브 반복 배경(SVG 타일)은 페이지 길이와 무관하게 항상 완벽하게 이어진다.
+   진짜 세이가이하(青海波) 문양은 한 행의 부채꼴이 아래 행에서 타일 폭의 절반만큼
+   가로로 어긋나고, 세로로도 살짝 겹치며 이어진다. 타일 하나 안에 두 행(위: 타일
+   중앙 기준 부채꼴, 아래: 타일 좌우 모서리에 반씩 걸친 부채꼴)을 함께 그려 넣어서
+   단순 반복만으로도 그 어긋남이 자동으로 재현되게 했다. */
 body {
 	font-family: var(--font-body);
 	background-color: var(--bg-deep);
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'%3E%3Cg fill='none' stroke='%233a2a5c' stroke-width='1'%3E%3Cpath d='M0,40 A40,40 0 0,1 80,40'/%3E%3Cpath d='M12,40 A28,28 0 0,1 68,40'/%3E%3Cpath d='M24,40 A16,16 0 0,1 56,40'/%3E%3C/g%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='64' viewBox='0 0 80 64'%3E%3Cg fill='none' stroke='%233a2a5c' stroke-width='1'%3E%3Cpath d='M0,40 A40,40 0 0,1 80,40'/%3E%3Cpath d='M12,40 A28,28 0 0,1 68,40'/%3E%3Cpath d='M24,40 A16,16 0 0,1 56,40'/%3E%3Cpath d='M-40,64 A40,40 0 0,1 40,64'/%3E%3Cpath d='M-28,64 A28,28 0 0,1 28,64'/%3E%3Cpath d='M-16,64 A16,16 0 0,1 16,64'/%3E%3Cpath d='M40,64 A40,40 0 0,1 120,64'/%3E%3Cpath d='M52,64 A28,28 0 0,1 108,64'/%3E%3Cpath d='M64,64 A16,16 0 0,1 96,64'/%3E%3C/g%3E%3C/svg%3E");
 	background-repeat: repeat;
-	background-size: 80px 40px;
+	background-size: 80px 64px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -60,7 +64,51 @@ body {
 	z-index: 3;
 	transform-style: preserve-3d;
 	will-change: transform;
+	position: relative;
 }
+
+#bootOverlay {
+	position: absolute;
+	inset: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+	background: linear-gradient(165deg, var(--panel-1) 0%, var(--panel-2) 55%, var(--panel-1) 100%);
+	border-radius: 18px;
+}
+
+#bootOverlay p {
+	color: var(--gold-soft);
+	font-size: 0.75rem;
+	width: auto;
+}
+
+#bootSpinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid rgba(212, 175, 55, 0.25);
+	border-top-color: var(--gold);
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+.forbes-badge {
+	display: inline-block;
+	width: auto;
+	margin: 8px auto 0;
+	padding: 4px 12px;
+	font-size: 0.65rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--gold-light);
+	background: rgba(212, 175, 55, 0.12);
+	border: 1px solid var(--gold-dim);
+	border-radius: 20px;
+}
+
 #window {
 	display: flex;
 	flex-direction: column;
@@ -211,18 +259,22 @@ p {
 	width: 300px;
 }
 
+/* "저장하기"는 확실한 주 액션으로 보이게 꽉 찬 골드 톤으로, 아래 SNS 공유 줄과는 확실히
+   다르게 만든다 — 예전엔 저장 버튼과 공유 버튼이 똑같은 회색 사각 버튼이라 구분이 안 된다는
+   피드백을 받았다. */
 #saveImg button {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	color: var(--text-primary);
+	color: #1a1035;
+	font-weight: 700;
 	width: 100%;
-	padding: 10px;
+	padding: 12px;
 	margin: 5px 0 0;
-	border: 1px solid var(--gold-dim);
-	border-radius: 5px;
-	background: rgba(0, 0, 0, 0.35);
+	border: 1px solid var(--gold);
+	border-radius: 8px;
+	background: linear-gradient(160deg, var(--gold-light), var(--gold));
 	cursor: pointer;
 }
 
@@ -233,7 +285,7 @@ p {
 }
 
 #saveImg button:hover {
-	background: rgba(212, 175, 55, 0.15);
+	filter: brightness(1.06);
 	transition: transform 0.1s ease;
 	transform: scale(0.99);
 }
@@ -242,36 +294,55 @@ p {
 	transform: scale(0.95);
 }
 
-#shareButtons {
-	display: flex;
-	justify-content: center;
-	gap: 6px;
+/* SNS 공유 줄: 저장 버튼과 확실히 구분되도록 아이콘만 있는 작은 원형 버튼들을 나열한다.
+   카카오톡/페이스북/X 공식 공유는 서버가 없으면 "방금 만든 개인 결과 이미지"를 전달할
+   방법이 없어 링크만 보낼 수 있다(플랫폼 자체의 한계). 공유하기/인스타그램은 OS 공유
+   시트로 실제 이미지 파일을 첨부한다 — "실제로 뭐가 전달되는지" 기준으로 두 그룹을
+   나누고 라벨을 달아서, 어느 버튼이 진짜 결과 이미지를 보내는지 헷갈리지 않게 한다. */
+.share-group-label {
 	width: 300px;
-	margin-top: 5px;
+	margin: 10px auto 6px;
+	text-align: center;
+	font-size: 0.62rem;
+	color: var(--text-faint);
+	letter-spacing: 0.04em;
 }
 
-#shareButtons button {
+.share-row {
 	display: flex;
-	flex-direction: column;
+	justify-content: center;
+	gap: 8px;
+	width: 300px;
+	margin: 0 auto;
+}
+
+.share-row button {
+	display: flex;
 	align-items: center;
-	gap: 4px;
-	flex: 1;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 44px;
+	height: 44px;
 	color: var(--text-primary);
-	font-size: 0.68rem;
-	padding: 10px 4px;
 	border: 1px solid var(--gold-dim);
-	border-radius: 5px;
+	border-radius: 50%;
 	background: rgba(0, 0, 0, 0.35);
 	cursor: pointer;
 }
 
-#shareButtons button:hover {
+.share-row button .btn-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.share-row button:hover {
 	background: rgba(212, 175, 55, 0.15);
+	border-color: var(--gold);
 	transition: transform 0.1s ease;
 	transform: scale(0.99);
 }
 
-#shareButtons button:active {
+.share-row button:active {
 	transform: scale(0.95);
 }
 
@@ -318,6 +389,45 @@ p {
 	}
 }
 
+/* 헤드라인 %를 사진과 분리된 텍스트 블록으로 두지 않고, 업로드된 사진 위에 인증 마크처럼
+   박아서 "이 사진이 몇 % 재벌 관상인지"가 사진과 한 덩어리로 보이게 한다. */
+#matchBadge {
+	display: none;
+	position: absolute;
+	top: -14px;
+	right: -14px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 78px;
+	height: 78px;
+	border-radius: 50%;
+	background: radial-gradient(circle, #000 0%, #1a1035 100%);
+	border: 2px solid var(--gold);
+	box-shadow: 0 0 16px rgba(212, 175, 55, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5);
+	transform: rotate(-8deg);
+	z-index: 3;
+	pointer-events: none;
+}
+
+#matchBadge.show {
+	display: flex;
+}
+
+#matchBadgeValue {
+	font-weight: 700;
+	font-size: 1.05rem;
+	color: var(--gold-light);
+	text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+	line-height: 1.1;
+}
+
+#matchBadgeLabel {
+	font-size: 0.55rem;
+	color: var(--text-muted);
+	letter-spacing: 0.02em;
+}
+
 #uploadedImage {
 	width: 100%;
 	height: 100%;
@@ -339,14 +449,13 @@ p {
 	transform: scale(0.95);
 }
 
-#warning {
-	font-size: 0.7rem;
-}
-
-/* 로딩/순간이동 오버레이: 화면 중앙에서 원(iris)이 확 번지며 화면을 덮고, 그 뒤에서 분석이
-   진행된 다음, 원이 다시 중앙으로 오므라들며 결과가 "다른 곳으로 순간이동한 듯" 드러난다.
-   (예전에는 좌우에서 흐린 사각형이 슬라이드하는 방식이었는데 부자연스럽다는 피드백을 받고,
-   실제로 잘 쓰이는 iris wipe/radial reveal 레퍼런스를 참고해 교체함) */
+/* 로딩 오버레이: 화면을 덮고, 그 뒤에서 분석이 진행된 다음 다시 걷히며 결과를 드러낸다.
+   예전엔 원(clip-path circle)이 자라나며 화면을 덮는 방식이었는데, 원이 자라는 동안에는
+   화면 네 귀퉁이에 원이 아직 닿지 않은 부분으로 몸체 뒤 배경 물결무늬가 계속 보였다 —
+   열릴 때 한 번, 닫힐 때 한 번, 총 두 번 "배경이 나타났다 사라지는" 것처럼 보였다는 신고를
+   반복해서 받았다. clip-path 대신 화면 전체를 한 번에 균일하게 opacity로 페이드시키면
+   특정 영역만 드러나는 순간이 아예 없어서 이 문제가 구조적으로 사라진다. "원이 번지는"
+   느낌은 안쪽의 #portalFlash 장식 효과로만 남긴다. */
 .modal {
 	display: none;
 	position: fixed;
@@ -357,16 +466,20 @@ p {
 	height: 100%;
 	overflow: hidden;
 	background: radial-gradient(circle at 50% 50%, var(--panel-2) 0%, var(--panel-1) 55%, #05030a 100%);
-	clip-path: circle(0px at 50% 50%);
-	filter: drop-shadow(0 0 50px rgba(212, 175, 55, 0.55));
+	box-shadow: inset 0 0 80px rgba(212, 175, 55, 0.4);
+	opacity: 0;
 	pointer-events: none;
 }
 
+/* 예전엔 밝은 코어가 화면 68% 반경까지 번져서, 열릴 때/닫힐 때 두 번 다 화면 전체가
+   하얗게 "번쩍"였다 — 사용자에게는 깜빡이는 것처럼 보였다. 코어를 훨씬 작게, 더 흐리게
+   줄이고 screen 블렌드로 밑에 깔린 화면과 섞이게 해서 "번쩍"이 아니라 "반짝"이는 정도로만. */
 #portalFlash {
 	position: absolute;
 	inset: 0;
-	background: radial-gradient(circle at 50% 50%, #fff8e0 0%, var(--gold-light) 28%, transparent 68%);
+	background: radial-gradient(circle at 50% 50%, #fff8e0 0%, var(--gold-light) 12%, transparent 32%);
 	opacity: 0;
+	mix-blend-mode: screen;
 	pointer-events: none;
 }
 
@@ -394,6 +507,47 @@ p {
 	font-size: 1.3rem;
 	margin: 0 0 10px;
 	color: var(--gold-light);
+}
+
+/* 브라우저 기본 alert()는 다크 점성술 테마 한복판에 흰 OS 팝업이 튀어나와 몰입이 완전히
+   깨지므로, 같은 자리에 계속 떠 있는 테마 톤 토스트로 대체한다. 업로드 영역이 화면 위쪽에
+   있는데 알림이 하단에서만 뜨면 놓치기 쉽다는 피드백으로 뷰포트 상단에 고정. */
+#toast {
+	position: fixed;
+	left: 50%;
+	top: 16px;
+	transform: translateX(-50%);
+	z-index: 999;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: max-content;
+	max-width: min(90vw, 380px);
+	/* 사이트 전체가 어차피 골드 테두리 카드투성이라 토스트도 같은 골드 배경/테두리를 쓰면
+	   "그냥 또 다른 카드"로 묻혀서 눈에 안 띈다는 피드백을 받았다. 경고성 알림이니 레이더
+	   차트의 "나" 색으로 이미 쓰던 accent-red로 확실히 다른 톤을 준다. */
+	background: linear-gradient(160deg, #3a1420 0%, var(--panel-1) 100%);
+	border: 1px solid var(--accent-red);
+	color: var(--text-primary);
+	font-size: 0.82rem;
+	line-height: 1.45;
+	padding: 12px 16px;
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 90, 90, 0.45);
+	opacity: 0;
+	pointer-events: none;
+	cursor: pointer;
+}
+
+#toast.show {
+	pointer-events: auto;
+}
+
+.toast-icon {
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	color: var(--accent-red);
 }
 
 /* 분석 자체가 너무 빨리 끝나서(수십ms) 실제 진행률 %로 채우면 0→100이 한 프레임에 튀어
@@ -426,23 +580,6 @@ p {
 	100% {
 		left: 100%;
 	}
-}
-
-#richRate {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	margin: 15px 0 10px;
-	background-color: #000;
-	border: 1px solid var(--gold);
-	color: var(--gold-light);
-	padding: 20px 30px;
-	font-size: 2rem;
-	font-weight: 700;
-	border-radius: 3rem;
-	width: 100%;
-	text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
 }
 
 .section-divider {
@@ -537,7 +674,7 @@ p {
 
 #topMatchHeader {
 	display: flex;
-	justify-content: space-between;
+	justify-content: center;
 	align-items: center;
 	gap: 8px;
 	position: relative;
@@ -549,17 +686,6 @@ p {
 	font-weight: 700;
 	color: var(--gold-light);
 	text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
-}
-
-#topMatchHP {
-	background-color: #000;
-	border: 1px solid var(--gold);
-	border-radius: 20px;
-	padding: 3px 10px;
-	font-size: 0.85rem;
-	font-weight: 700;
-	color: #ffd700;
-	white-space: nowrap;
 }
 
 #topMatchTitle {
@@ -588,6 +714,47 @@ p {
 	font-weight: 600;
 }
 
+/* 결과 카드 안 "나 vs 매칭 인물" 사진 비교 — 텍스트로만 설명하지 말고 실제 얼굴을 바로
+   보여달라는 피드백 반영 */
+#topMatchPhotos {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.topMatch-photo-box {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.topMatch-photo-box img {
+	width: 92px;
+	height: 112px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 2px solid var(--gold);
+	box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.topMatch-photo-box span {
+	font-size: 0.68rem;
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.topMatch-vs {
+	font-family: var(--font-display);
+	font-size: 1.3rem;
+	font-weight: 700;
+	color: var(--gold);
+	position: relative;
+}
+
 #radarChart {
 	position: relative;
 	display: flex;
@@ -609,6 +776,12 @@ p {
 
 #radarLegend .legend-match {
 	color: var(--gold-soft);
+}
+
+/* #radarNote는 #resultRate p의 기본 박스 스타일을 그대로 쓴다(등급 판정을 위해 별도
+   금색 박스를 또 만들지 않기 위함) — 등급 이름만 강조색으로 구분한다. */
+#radarNote strong {
+	color: var(--gold-light);
 }
 
 /* #resultRate 접두를 붙여 상위의 `#resultRate p` 규칙이
@@ -660,8 +833,32 @@ p {
 	text-align: center;
 	font-size: 0.85rem;
 	color: var(--gold-light);
-	margin-bottom: 8px;
+	margin-bottom: 2px;
 	letter-spacing: 0.02em;
+}
+
+/* 위쪽 헤드라인(종합 1위 매칭)과 여기 부위별 매칭이 다른 사람일 수 있다는 걸 미리 설명해서
+   "왜 이름이 다르지?" 하는 혼란을 없앤다. */
+/* 한 문장으로 붙여서 가운데정렬했더니, 좁은 화면에서 "="와 "·" 앞뒤로 줄이 꺾이면서 마치
+   메뉴 항목이 뚝뚝 끊겨 쌓인 것처럼 보였다 — 짧은 두 줄로 완전히 분리하고 왼쪽 정렬해서
+   각 줄이 그 자체로 안 끊기는 한 덩어리가 되게 한다. */
+.reading-legend {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	margin-bottom: 10px;
+}
+
+.reading-legend-item {
+	font-size: 0.65rem;
+	color: var(--text-faint);
+	white-space: nowrap;
+}
+
+.reading-legend-item strong {
+	color: var(--gold-soft);
+	font-weight: 700;
 }
 
 .reading-item {
@@ -675,9 +872,10 @@ p {
 
 .reading-head {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: baseline;
-	gap: 6px;
+	gap: 4px 6px;
 }
 
 .reading-label {
@@ -696,10 +894,62 @@ p {
 	flex-shrink: 0;
 }
 
-.reading-compare {
-	font-size: 0.65rem;
+/* 표본 백분위(막대)와 매칭 인물 근접도(아래 .reading-match)는 계산 자체가 다른 별개의
+   지표다 — 막대는 62명 안에서의 내 위치, .reading-match는 가장 가까운 한 명과의 근접도.
+   둘 다 %라 옆에 붙여두면 "왜 숫자가 다르냐"는 혼란을 주므로, 막대에는 그 숫자가 뭘
+   뜻하는지 보이는 캡션을 붙이고 줄 자체를 분리한다. */
+.reading-bar-row {
+	margin: 6px 0 2px;
+}
+
+.reading-bar-caption {
+	display: block;
+	font-size: 0.62rem;
 	color: var(--text-faint);
-	white-space: nowrap;
+	margin-bottom: 3px;
+}
+
+/* 50% 지점의 세로선은 재벌 표본 평균 위치 — 이 선을 기준으로 내가 위/아래 어느 쪽인지
+   한눈에 보이게 한다. */
+.reading-bar {
+	position: relative;
+	width: 100%;
+	height: 5px;
+	background: rgba(0, 0, 0, 0.35);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.reading-bar-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+	border-radius: 3px;
+}
+
+.reading-bar-marker {
+	position: absolute;
+	top: -1px;
+	left: 50%;
+	width: 1px;
+	height: 7px;
+	background: var(--text-faint);
+}
+
+/* .reading-item p 규칙보다 확실히 이기도록 클래스 하나를 더 겹쳐 명시도를 올린다
+   (소스 순서에 기대지 않기 위함). */
+#resultRate .reading-item .reading-match {
+	display: block;
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 4px 0 0;
+	font-size: 0.68rem;
+	color: var(--gold-soft);
+	text-align: left;
+}
+
+#resultRate .reading-item .reading-match strong {
+	color: var(--gold-light);
 }
 
 #resultRate .reading-item p {
@@ -714,9 +964,12 @@ p {
 	text-align: left;
 }
 
-#resultRate #aiInfo {
-	display: block;
-	width: 100%;
+/* AI 추정 나이/표정은 업로드한 사진 자체에 대한 정보라 결과 카드가 아니라 사진 바로
+   아래에 둔다. 결과가 없을 땐(:empty) 빈 박스가 뜨지 않도록 숨긴다. */
+#aiInfo {
+	width: 300px;
+	max-width: 100%;
+	margin: 8px auto 0;
 	font-size: 0.75rem;
 	color: var(--gold-soft);
 	background: rgba(0, 0, 0, 0.3);
@@ -724,7 +977,62 @@ p {
 	border-radius: 5px;
 	padding: 6px 10px;
 	text-align: center;
-	margin-bottom: 0.5rem;
+}
+
+#aiInfo:empty {
+	display: none;
+}
+
+/* "당신은 OO형" 정체성 배지 — 등급 박스(금색 필)와는 다른 톤(어두운 패널 + 얇은 금테)으로
+   구분해서, 이게 "등급"이 아니라 "나만의 타입"이라는 걸 시각적으로도 다르게 느끼게 한다.
+   MBTI류 성향 테스트에서 사람들이 숫자보다 유형명을 훨씬 더 기억하고 공유하는 패턴을 따른다. */
+#archetypeBadge {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	margin-top: 10px;
+	padding: 14px;
+	background: linear-gradient(160deg, var(--panel-3) 0%, var(--panel-4) 100%);
+	border: 1.5px solid var(--gold);
+	border-radius: 10px;
+	box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+}
+
+#archetypeEyebrow {
+	font-size: 0.65rem;
+	color: var(--text-faint);
+	letter-spacing: 0.05em;
+}
+
+#archetypeName {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--font-display);
+	font-size: 1.3rem;
+	font-weight: 700;
+	color: var(--gold-light);
+	text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+.archetype-icon {
+	width: 20px;
+	height: 20px;
+	color: var(--gold);
+	flex-shrink: 0;
+}
+
+#resultRate #archetypeDesc {
+	display: block;
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin-top: 4px;
+	font-size: 0.72rem;
+	color: var(--text-primary);
+	text-align: center;
 }
 
 .pending-reveal {
@@ -736,13 +1044,6 @@ p {
 .pending-reveal.revealed {
 	opacity: 1;
 	transform: scale(1) rotateY(0deg);
-}
-
-#shareBrand {
-	font-size: 0.75rem;
-	font-weight: 700;
-	color: var(--text-faint);
-	letter-spacing: 0.02em;
 }
 
 #resultsContainer {
@@ -907,6 +1208,16 @@ footer:active {
 #pText {
 	margin: 0;
 	color: var(--text-faint);
+}
+
+#privacyNote {
+	margin: 14px auto 0;
+	max-width: 320px;
+	font-size: 0.62rem;
+	line-height: 1.5;
+	color: var(--text-faint);
+	opacity: 0.75;
+	text-align: center;
 }
 
 #saveImg {

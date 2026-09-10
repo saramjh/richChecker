@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /tools/
 
 Sitemap: https://saramjh.github.io/richChecker/sitemap.xml

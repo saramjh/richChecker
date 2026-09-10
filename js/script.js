@@ -1,3 +1,7 @@
+// script.js가 실행되기 시작했다는 것 자체가 "이제부터 클릭이 실제로 동작한다"는 뜻이므로,
+// 가장 먼저(다른 어떤 로직보다도 앞서) 부팅 오버레이부터 걷어낸다.
+document.getElementById("bootOverlay")?.remove()
+
 // 카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 "JavaScript 키"를 여기에 붙여넣으세요.
 // 이 키는 비밀값이 아니라 카카오 콘솔에서 도메인 화이트리스트로 보호되는 공개용 키입니다.
 const KAKAO_JS_KEY = "b9b76fcef8436714dacc3c76d6843731"
@@ -62,6 +66,11 @@ async function ensureMediapipeModules() {
 	return mediapipeModules
 }
 
+// 카카오톡/X 공유 문구를 "나의 부자 관상 분석 결과!" 같은 뻔한 고정 문구 대신 실제 결과로
+// 채우기 위해 가장 최근 결과를 기억해둔다 — 개인화된 문구가 공유율이 훨씬 높다는 건
+// 마케팅 콘텐츠의 기본 원리.
+let lastResultSummary = null
+
 let faceLandmarkerInstance = null
 async function ensureFaceLandmarker() {
 	if (faceLandmarkerInstance) return faceLandmarkerInstance
@@ -88,7 +97,11 @@ function topExpressionFromBlendshapes(categories) {
 		슬픔: score("mouthFrownLeft", "mouthFrownRight"),
 	}
 	const [label, topScore] = Object.entries(candidates).reduce((best, cur) => (cur[1] > best[1] ? cur : best))
-	if (topScore < 0.15) return { label: "무표정", score: 1 - topScore }
+	// 실측해보니 진짜 무표정 사진은 모든 항목이 0.02 근처였고, 뚜렷한 미소도 0.35 정도였다.
+	// 예전 기준(0.15)은 그 사이 애매한 지점이라, 활짝 웃지 않고 은은하게 웃는(입을 다물고
+	// 웃는 등) 흔한 사진들까지 "무표정"으로 오판했다 — 진짜 무표정의 노이즈 수준(~0.02)보다
+	// 확실히 높으면서 절반 정도 강도의 미소도 잡아내도록 기준을 낮췄다.
+	if (topScore < 0.06) return { label: "무표정", score: 1 - topScore }
 	return { label, score: topScore }
 }
 
@@ -111,18 +124,22 @@ document.getElementById("uploadedImage").addEventListener("click", function () {
 // 의존 라이브러리도 이미 전부 로드가 끝나 있다.
 document.getElementById("uploadedImageContainer").classList.remove("is-initializing")
 
-// 메인 카드가 공중에 둥둥 떠 있는 듯한 아이들 애니메이션
-if (typeof gsap !== "undefined") {
+// 메인 카드가 공중에 살짝 떠 있는 듯한 아이들 애니메이션.
+// 처음엔 y/회전을 크게 줬더니 버튼을 누르려 할 때 타겟이 계속 움직여서 불편하다는 피드백을
+// 받고, 회전은 아예 빼고 y 이동폭도 크게 줄였다 — 시선 끝에서 아주 은은하게만 느껴지는 정도.
+// script.js를 라이브러리들보다 먼저 실행하도록 순서를 바꿨기 때문에, 이 시점엔 아직 gsap이
+// 로드되지 않았을 수 있다 — window의 load 이벤트(모든 defer 스크립트 실행이 끝난 뒤 발생)까지
+// 기다렸다가 시작한다.
+window.addEventListener("load", function () {
+	if (typeof gsap === "undefined") return
 	gsap.to(".container", {
-		y: -10,
-		rotationZ: 0.6,
-		rotationX: 1.5,
-		duration: 2.6,
+		y: -3,
+		duration: 3.4,
 		repeat: -1,
 		yoyo: true,
 		ease: "sine.inOut",
 	})
-}
+})
 
 // 이미지 업로드 시 처리
 document.getElementById("uploadImage").addEventListener("change", function () {
@@ -186,26 +203,87 @@ async function matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDist
 	})
 }
 
+// 표본 64명 중 실명·사진이 있는 건 14명뿐이고 나머지 50명은 익명이다. "가장 닮은 재벌"을
+// 전체 중에서 고르면 익명 인물이 뽑힐 확률이 훨씬 높은데(50/64), 익명은 보여줄 이름도
+// 사진도 없어서 헤드라인의 이름 문구와 매칭 카드(사진 비교·레이더 차트)가 통째로 사라지는
+// 결과로 이어진다 — 실사용자 테스트에서 육각 그래프가 안 보인 원인. 헤드라인/카드에 쓸
+// 매칭은 항상 "보여줄 수 있는" 실명 인물 중에서만 고른다.
+function pickTopMatch(matches) {
+	const named = matches.filter((m) => m.name)
+	const pool = named.length > 0 ? named : matches
+	return pool.reduce((best, m) => (m.similarity > best.similarity ? m : best))
+}
+
+// 휴대폰 카메라 사진은 보통 EXIF 방향 태그가 붙어 있다 — <img>는 화면에 그릴 때 이 태그를
+// 적용해 똑바로 보여주지만, 일부 브라우저의 라이브러리 내부 디코딩 경로(예: createImageBitmap)는
+// 이 태그를 무시해서 "화면엔 똑바로 보이는데 분석기엔 옆으로 누운 얼굴"이 들어가 얼굴을 못 찾는
+// 경우가 있다. <img>를 캔버스에 한 번 그려서 넘기면 화면에 보이는 것과 완전히 같은(방향 보정된)
+// 픽셀을 분석기에 넘기게 된다. 카메라 원본은 해상도가 매우 커서(4000px+) 적당히 줄여 속도도 안정화.
+// maxDim은 "휴대폰 카메라 원본(보통 3000px+)만 줄이자"가 목표 — 사전계산에 쓰인 큐레이션된
+// 재벌 표본 사진(위키/뉴스 사진, 대체로 2000px 이하)까지 건드리면, 그 인물의 사진을 다시
+// 업로드했을 때 사전계산 시점과 실시간 분석 시점의 입력 해상도가 달라져 랜드마크가 미세하게
+// 어긋나고 "자기 자신인데 100%가 안 나온다"는 오차가 생긴다.
+function toDetectionCanvas(imgEl, maxDim = 2200) {
+	const scale = Math.min(1, maxDim / Math.max(imgEl.naturalWidth, imgEl.naturalHeight))
+	const canvas = document.createElement("canvas")
+	canvas.width = Math.round(imgEl.naturalWidth * scale)
+	canvas.height = Math.round(imgEl.naturalHeight * scale)
+	canvas.getContext("2d").drawImage(imgEl, 0, 0, canvas.width, canvas.height)
+	return canvas
+}
+
 async function processImage(imageSrc) {
 	showLoadingModal()
 
 	try {
-		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile } = await ensureMediapipeModules()
-		const [landmarker] = await Promise.all([ensureFaceLandmarker(), loadAgeModel()])
+		// "사람 얼굴을 포함한 이미지를 선택해주세요"라는 문구 하나로 모든 실패를 뭉뚱그리면,
+		// 실제로 얼굴 사진을 올렸는데 모델 로딩이 실패했거나 인식만 애매했던 경우에도 "얼굴을
+		// 안 넣었다"는 식으로 읽혀서 사용자를 오해하게 만든다는 피드백 — 실패 지점별로 원인이
+		// 구분되는 메시지를 따로 준다.
+		let modules
+		try {
+			modules = await ensureMediapipeModules()
+		} catch (err) {
+			console.error(err)
+			showToast("얼굴 인식 모듈을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
+			return
+		}
+		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile } = modules
 
-		const uploadedImage = document.getElementById("uploadedImage")
-		const detection = landmarker.detect(uploadedImage)
-		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
-
-		if (!landmarks) {
-			alert("사람 얼굴을 포함한 이미지를 선택해주세요.")
+		let landmarker
+		try {
+			;[landmarker] = await Promise.all([ensureFaceLandmarker(), loadAgeModel()])
+		} catch (err) {
+			console.error(err)
+			showToast("얼굴 인식 모델을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
 			return
 		}
 
-		const featureObj = computeFeatures(landmarks, uploadedImage.naturalWidth, uploadedImage.naturalHeight)
+		const uploadedImage = document.getElementById("uploadedImage")
+		const detectionCanvas = toDetectionCanvas(uploadedImage)
+		const detection = landmarker.detect(detectionCanvas)
+		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
+
+		if (!landmarks) {
+			// 실제로는 얼굴이 있어도 각도/조명/거리 때문에 인식만 실패하는 경우가 흔하다.
+			// "얼굴을 포함한 사진을 골라라"는 마치 사용자가 얼굴 없는 사진을 낸 것처럼 들려서
+			// 진짜 얼굴 사진을 냈는데도 이 메시지를 보면 오해한다 — "인식하지 못했다"로 바꾸고
+			// 실제로 도움이 되는 팁(정면/밝기)을 함께 준다.
+			showToast("얼굴을 정확히 인식하지 못했습니다. 정면을 향한 밝은 사진으로 다시 시도해주세요.")
+			return
+		}
+
+		const featureObj = computeFeatures(landmarks, detectionCanvas.width, detectionCanvas.height)
 		const uploadedFeatures = FEATURE_KEYS.map((k) => featureObj[k])
 
-		const embeddingsData = await loadEmbeddings()
+		let embeddingsData
+		try {
+			embeddingsData = await loadEmbeddings()
+		} catch (err) {
+			console.error(err)
+			showToast("표본 데이터를 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
+			return
+		}
 		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
 
 		const blendshapeCategories = detection.faceBlendshapes && detection.faceBlendshapes[0] && detection.faceBlendshapes[0].categories
@@ -213,17 +291,20 @@ async function processImage(imageSrc) {
 
 		let age = null
 		try {
-			const ageDetection = await faceapi.detectSingleFace(uploadedImage, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender()
+			const ageDetection = await faceapi.detectSingleFace(detectionCanvas, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender()
 			if (ageDetection) age = Math.round(ageDetection.age)
 		} catch (err) {
 			console.warn("나이 추정 실패", err)
 		}
 
-		const topMatch = matches.reduce((best, m) => (m.similarity > best.similarity ? m : best))
+		const topMatch = pickTopMatch(matches)
 		const percentiles = (features) => FEATURE_KEYS.map((k, i) => zscoreToPercentile(features[i], embeddingsData.stats.mean[i], embeddingsData.stats.std[i]))
 
 		// 각 특징(이마/눈/코/입/턱/얼굴형)별로, 실명이 있는 인물 중 그 항목이 나와 가장 비슷한 사람을 찾는다.
 		// "재벌 평균과 비교하면"보다 "이 부위는 OOO 회장과 닮았다"는 게 훨씬 흥미롭다는 피드백 반영.
+		// (한때 "몇 % 일치"라는 숫자도 같이 보여줬는데, 62명 중 이 항목 하나가 가장 가까운 사람을
+		// 찾는 거라 값이 거의 항상 높게 나오고, 바로 옆 백분위 막대와는 계산 자체가 달라 두 숫자가
+		// 어긋나 보이는 혼란을 줬다. 지금은 숫자 없이 "가장 닮은 사람이 누구인지"만 알려준다.)
 		const namedPeople = embeddingsData.people.filter((p) => p.name)
 		const nearestByFeature = FEATURE_KEYS.map((_, i) => {
 			if (namedPeople.length === 0) return null
@@ -250,10 +331,11 @@ async function processImage(imageSrc) {
 			nearestByFeature,
 		}
 
-		renderResults(matches, { age, expression }, radar)
+		const archetype = computeArchetype(radar)
+		renderResults(matches, { age, expression }, radar, archetype)
 	} catch (err) {
 		console.error(err)
-		alert("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+		showToast("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 	} finally {
 		await hideLoadingModal()
 	}
@@ -270,10 +352,92 @@ const ICON_PATHS = {
 	shieldCheck:
 		'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
 	squareUser: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>',
+	circleAlert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
 }
 
-function icon(name) {
-	return `<svg class="trait-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]}</svg>`
+function icon(name, className = "trait-icon") {
+	return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]}</svg>`
+}
+
+// alert()/confirm()은 브라우저 기본 UI라 테마가 완전히 깨져서(어두운 점성술 카드 한복판에
+// 흰 배경의 OS 네이티브 팝업이 튀어나옴), 대신 테마에 맞는 토스트로 대체한다.
+let toastTimer = null
+function showToast(message) {
+	const el = document.getElementById("toast")
+	if (!el) return
+	el.innerHTML = `${icon("circleAlert", "toast-icon")}<span>${message}</span>`
+	el.classList.add("show")
+	clearTimeout(toastTimer)
+	if (typeof gsap !== "undefined") {
+		gsap.killTweensOf(el)
+		gsap.fromTo(el, { y: -16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" })
+	} else {
+		el.style.opacity = "1"
+	}
+	toastTimer = setTimeout(hideToast, 4200)
+}
+
+function hideToast() {
+	const el = document.getElementById("toast")
+	if (!el || !el.classList.contains("show")) return
+	clearTimeout(toastTimer)
+	if (typeof gsap !== "undefined") {
+		gsap.killTweensOf(el)
+		gsap.to(el, { y: -16, opacity: 0, duration: 0.25, ease: "power1.in", onComplete: () => el.classList.remove("show") })
+	} else {
+		el.style.opacity = "0"
+		el.classList.remove("show")
+	}
+}
+document.getElementById("toast")?.addEventListener("click", hideToast)
+
+// 마케팅 관점: "87.3%"라는 숫자 하나보다 "당신은 OO형입니다" 같은 정체성 라벨이 훨씬 잘
+// 기억되고 공유된다(MBTI·각종 성향 테스트가 검증한 패턴). 6개 항목 중 재벌 표본 평균(50%)에서
+// 가장 크게 벗어난 항목 하나를 "이 사람을 가장 잘 설명하는 특징"으로 뽑아 유형명을 붙인다.
+// 같은 항목이라도 높은 쪽/낮은 쪽 방향에 따라 서로 다른(둘 다 긍정적인) 유형으로 갈린다.
+const ARCHETYPES = {
+	foreheadRatio: {
+		high: { name: "전략가형", desc: "판단이 빠르고 윗사람의 발탁운이 따르는 타입" },
+		low: { name: "대기만성형", desc: "신중하게 내실을 다지다 늦게 크게 트이는 타입" },
+	},
+	eyeSpacingRatio: {
+		high: { name: "리더형", desc: "마음이 트여있고 인맥이 넓은 타입" },
+		low: { name: "승부사형", desc: "한 우물을 깊게 파는 창업가 타입" },
+	},
+	noseLengthRatio: {
+		high: { name: "재물 축적형", desc: "재물을 차곡차곡 쌓는 타입" },
+		low: { name: "실속형", desc: "규모보다 실속을 먼저 챙기는 타입" },
+	},
+	mouthWidthRatio: {
+		high: { name: "승부사형", desc: "말 한마디로 조직을 움직이는 타입" },
+		low: { name: "신뢰형", desc: "말수는 적지만 한마디에 무게가 실리는 타입" },
+	},
+	jawRatio: {
+		high: { name: "승계자형", desc: "뚝심과 추진력이 강하고 말년의 복이 두터운 타입" },
+		low: { name: "임기응변형", desc: "유연하고 임기응변에 강한 타입" },
+	},
+	faceAspectRatio: {
+		high: { name: "참모·기획형", desc: "섬세하고 전략적으로 움직이는 타입" },
+		low: { name: "오너형", desc: "원만하고 복이 들어오는 인상의 타입" },
+	},
+}
+
+function computeArchetype(radar) {
+	let bestIdx = 0
+	let bestDeviation = -1
+	radar.user.forEach((percentile, i) => {
+		const deviation = Math.abs(percentile - 50)
+		if (deviation > bestDeviation) {
+			bestDeviation = deviation
+			bestIdx = i
+		}
+	})
+	const key = radar.keys[bestIdx]
+	const percentile = radar.user[bestIdx]
+	const tier = percentile >= 50 ? "high" : "low"
+	const archetype = ARCHETYPES[key][tier]
+	const rankText = percentile >= 50 ? `상위 ${Math.max(1, 100 - percentile)}%` : `하위 ${Math.max(1, percentile)}%`
+	return { name: archetype.name, desc: archetype.desc, featureKey: key, featureLabel: radar.labels[bestIdx], rankText }
 }
 
 // 전통 관상학의 오악/궁(宮) 개념을 빌려온 해석 문구.
@@ -338,31 +502,60 @@ function renderFeatureReadings(radar) {
 			const percentile = radar.user[i]
 			const tier = tierForPercentile(percentile)
 			const nearest = radar.nearestByFeature && radar.nearestByFeature[i]
-			// "이 항목은 OOO 회장과 닮았다"는 게 통계적 비교보다 흥미롭다는 피드백 반영 —
-			// 핵심 문구로 승격하고, 백분위는 보조 정보로 남긴다.
-			const compareText = nearest ? `${nearest.name}${nearest.title ? `(${nearest.title})` : ""}과(와) 가장 비슷함` : percentile >= 50 ? `재벌 표본 대비 상위 ${Math.max(1, 100 - percentile)}%` : `재벌 표본 대비 하위 ${Math.max(1, percentile)}%`
+			// 막대(표본 대비 백분위)와 "OOO과 N% 일치" 배지는 서로 다른 계산(전자는 62명 분포
+			// 내 위치, 후자는 가장 가까운 한 명과의 근접도)인데 둘 다 숫자%라 나란히 붙어있으면
+			// 막대는 62% 찼는데 옆 글자는 91%라고 해서 "둘이 왜 다르냐"는 혼란을 줬다 — 각자
+			// 무엇을 재는 숫자인지 눈에 보이는 캡션을 따로 붙이고, 줄도 분리한다.
+			const percentileCaption = percentile >= 50 ? `재벌 표본 대비 상위 ${Math.max(1, 100 - percentile)}%` : `재벌 표본 대비 하위 ${Math.max(1, percentile)}%`
+			const barHtml = `
+				<div class="reading-bar-row">
+					<span class="reading-bar-caption">${percentileCaption}</span>
+					<div class="reading-bar">
+						<div class="reading-bar-fill" style="width:${percentile}%"></div>
+						<div class="reading-bar-marker"></div>
+					</div>
+				</div>
+			`
+			// "이 항목은 OOO 회장과 닮았다"는 게 통계적 비교보다 흥미롭다는 피드백 반영 — 포브스
+			// 순위까지 박아서 임팩트를 주되, 위 막대와는 아예 다른 줄로 분리한다.
+			// closeness(%)는 일부러 안 붙인다 — "62명 중 이 항목이 가장 가까운 한 명"을 찾는
+			// 거라 거의 항상 높게 나오고(특히 표본에 이미 있는 인물의 사진을 올리면 당연히
+			// 모든 항목에서 100%가 나온다), 바로 위 백분위 막대와 다른 계산이라 숫자가 서로
+			// 어긋나 보여 "그래프랑 수치가 따로 논다"는 혼란을 줬다. 막대 하나만 정량적 근거로
+			// 남기고, 매칭 인물 이름은 숫자 없는 순수 코멘트로만 붙인다.
+			const matchHtml = nearest ? `<p class="reading-match">✦ <strong>${nearest.name}</strong>${nearest.rank ? `(포브스 ${nearest.rank}위)` : ""}과 가장 닮은 부위예요</p>` : ""
 			return `
 				<div class="reading-item">
 					<div class="reading-head">
 						<span class="reading-label">${icon(reading.icon)}${reading.label}</span>
-						<span class="reading-compare">${compareText}</span>
 					</div>
+					${barHtml}
+					${matchHtml}
 					<p>${reading[tier]}</p>
 				</div>
 			`
 		})
 		.join("")
 
+	// 항목 하나 안에 서로 다른 두 가지 정보(① 막대: 내 얼굴 부위가 재벌 표본 평균보다 큰지
+	// 작은지 ② ✦ 매칭 인물: 그 부위와 가장 닮은 재벌이 누구인지)가 같이 있는데, 제목이
+	// "재벌 표본과의 비교"처럼 뭉뚱그려져 있으면 "이게 내 얼굴 분석이야, 아니면 누구와
+	// 닮았다는 거야?" 헷갈린다는 피드백 — 소제목에서 이 둘이 서로 다른 것임을 명시적으로
+	// 풀어서 설명한다.
 	return `
 		<div id="readingScroll">
-			<h4>AI 관상 풀이 — 재벌 표본과의 비교</h4>
+			<h4>부위별 상세 분석</h4>
+			<div class="reading-legend">
+				<span class="reading-legend-item"><strong>막대</strong> — 재벌 평균 대비 내 얼굴 크기</span>
+				<span class="reading-legend-item"><strong>✦</strong> — 가장 닮은 재벌</span>
+			</div>
 			${items}
 		</div>
 	`
 }
 
 // 육각 레이더 차트를 인라인 SVG로 그린다. userScores/matchScores는 0~100 퍼센타일.
-function renderRadarChart(labels, userScores, matchScores, matchLabel) {
+function renderRadarChart(labels, userScores, matchScores, matchLabel, tierLabel, tierDesc) {
 	const size = 220
 	const center = size / 2
 	const radius = 78
@@ -408,34 +601,57 @@ function renderRadarChart(labels, userScores, matchScores, matchLabel) {
 	const matchPolygon = matchScores ? `<polygon class="radar-poly" points="${labels.map((_, i) => pointAt(matchScores[i], i).join(",")).join(" ")}" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="1.5" stroke-dasharray="4,3" style="transform-origin:${center}px ${center}px"/>` : ""
 	const userPolygon = `<polygon class="radar-poly" points="${labels.map((_, i) => pointAt(userScores[i], i).join(",")).join(" ")}" fill="rgba(255,90,90,0.28)" stroke="#ff5a5a" stroke-width="1.5" style="transform-origin:${center}px ${center}px"/>`
 
+	// 등급 판정("눈에 띄는 특징" 등)은 예전엔 카드 위쪽에 별도 금색 박스로 떠 있어서 카드 안에
+	// 박스가 또 있는 것처럼 스타일이 어긋나 보였다 — 박스 없는 이 안내문 자리에 자연스럽게
+	// 얹는다. (모양이 삐죽삐죽한 이유를 설명하던 문장은 불필요하다는 피드백으로 제거함 —
+	// 빨간/금색 선의 겹침으로 유사도를 보여주는 건 범례로 충분히 전달된다고 판단.)
+	const shapeNote = matchScores && tierLabel ? `<p id="radarNote"><strong>${tierLabel}</strong> ${tierDesc}</p>` : ""
+
 	return `
 		<div id="radarChart">
 			<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:220px">
 				${rings}${axisLines}${matchPolygon}${userPolygon}${axisLabels}
 			</svg>
 			<div id="radarLegend"><span class="legend-user">● 나</span>${matchScores ? `<span class="legend-match">✦ ${matchLabel}</span>` : ""}</div>
+			${shapeNote}
 		</div>
 	`
 }
 
-function renderTopMatch(match, radar) {
+function renderTopMatch(match, radar, tierLabel, tierDesc) {
 	const badges = []
 	if (match.rank) badges.push(`<span class="badge">포브스 순위 ${match.rank}위</span>`)
 	if (match.netWorth) badges.push(`<span class="badge">자산 ${match.netWorth}</span>`)
 
 	const achievementHtml = match.achievement ? `<p id="topMatchAchievement">${match.achievement}</p>` : ""
 	const creditHtml = match.credit ? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>` : ""
-	const radarHtml = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel) : ""
+	// 등급 판정("눈에 띄는 특징" 등)은 예전엔 이 카드 맨 위에 별도 금색 박스로 떠서, 카드 안에
+	// 박스가 또 있는 것처럼 스타일이 어긋나 보였다는 피드백 — 레이더 차트 아래 박스 없는
+	// 안내문에 자연스럽게 얹는다(renderRadarChart 안에서 처리).
+	const radarHtml = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel, tierLabel, tierDesc) : ""
+
+	// "재벌 얼굴을 텍스트로만 말하지 말고 실제로 보여달라"는 피드백 반영 — 카드 안에 바로
+	// "나 vs 매칭 인물" 사진을 나란히 놓는다(예전엔 저장용 공유 카드에만 있던 구성).
+	const userPhotoSrc = document.getElementById("uploadedImage").src
+	const photosHtml = match.image
+		? `
+			<div id="topMatchPhotos">
+				<div class="topMatch-photo-box"><img src="${userPhotoSrc}" alt="나"><span>나</span></div>
+				<div class="topMatch-vs">≈</div>
+				<div class="topMatch-photo-box"><img src="${match.image}" alt="${match.name}"><span>${match.name}</span></div>
+			</div>
+		`
+		: ""
 
 	return `
 		<div id="topMatch">
 			<div id="topMatchShine"></div>
 			<div id="topMatchHeader">
 				<span id="topMatchName">${match.name}</span>
-				<span id="topMatchHP">일치율 ${match.similarity.toFixed(1)}%</span>
 			</div>
 			${match.title ? `<div id="topMatchTitle">${match.title}</div>` : ""}
 			${badges.length ? `<div id="topMatchBadges">${badges.join("")}</div>` : ""}
+			${photosHtml}
 			${radarHtml}
 			${achievementHtml}
 			${creditHtml}
@@ -443,21 +659,22 @@ function renderTopMatch(match, radar) {
 	`
 }
 
-function renderResults(matches, aiInfo, radar) {
+function renderResults(matches, aiInfo, radar, archetype) {
 	// 메인 지표는 "가장 닮은 인물과의 일치율" 하나로 통일한다.
 	// (예전에는 전체 인물 평균을 헤드라인으로 썼는데, 카드에 뜨는 1위 매칭 %와 숫자가 달라서
 	// 헷갈린다는 지적 반영. 사용자는 "100%에 가까울수록 재벌 같다"는 직관적 관례를 기대하므로
 	// 그 관례에 맞는 단일 숫자만 크게 보여준다.)
-	const topMatch = matches.reduce((best, m) => (m.similarity > best.similarity ? m : best))
+	const topMatch = pickTopMatch(matches)
 	const topSimilarity = topMatch.similarity.toFixed(1)
 
-	const topMatchHtml = topMatch.name ? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar)}</div>` : ""
 	const readingHtml = renderFeatureReadings(radar)
 
+	// AI 추정 나이/표정은 "이 매칭 결과"가 아니라 "업로드한 사진 자체"에 대한 정보라,
+	// 결과 카드 쪽 템플릿이 아니라 사진 바로 아래에 있는 고정 엘리먼트에 직접 채운다.
 	const aiInfoParts = []
 	if (aiInfo && aiInfo.age) aiInfoParts.push(`AI 추정 나이 ${aiInfo.age}세`)
 	if (aiInfo && aiInfo.expression) aiInfoParts.push(`표정 ${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%`)
-	const aiInfoHtml = aiInfoParts.length ? `<p id="aiInfo">${aiInfoParts.join(" · ")}</p>` : ""
+	document.getElementById("aiInfo").textContent = aiInfoParts.join(" · ")
 
 	// 조건에 따른 등급 설정 (topSimilarity 기준: 100%에 가까울수록 "재벌상"이라는
 	// 일반적인 직관에 맞춘 등급). 라벨을 따로 빼두는 건 공유 카드에서도 그대로 재사용하기 위함.
@@ -494,59 +711,67 @@ function renderResults(matches, aiInfo, radar) {
 		tierLabel = "완전히 반대"
 		tierDesc = "재벌과는 거리가 먼 평범한 외모."
 	}
-	const similarityMessage = `<span>${tierLabel}</span> ${tierDesc}`
+	// 등급 문구("눈에 띄는 특징" 등)는 매칭 카드(사진·레이더 차트) 맨 위로 합쳐서 넣는다 —
+	// 예전엔 이 문구가 "OOO과 가장 닮았어요"까지 따로 말하고, 바로 아래 카드에 또 같은
+	// 이름이 나와서 중복이었다는 피드백 반영.
+	const topMatchHtml = topMatch.name ? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar, tierLabel, tierDesc)}</div>` : ""
+	// 매칭 카드가 없는 극단적 예외(실명 인물이 하나도 없는 경우)에만 등급 문구를 대체 표시한다.
+	const tierFallbackHtml = !topMatch.name ? `<p><span>${tierLabel}</span> ${tierDesc}</p>` : ""
+
+	// 마케팅 관점: %는 잊어도 "나는 OO형"이라는 정체성 라벨은 기억하고 공유한다(MBTI류
+	// 성향테스트가 검증한 패턴). 6개 항목 중 재벌 표본 평균에서 가장 크게 벗어난 항목 하나를
+	// "당신을 가장 잘 설명하는 특징"으로 뽑아 유형 배지로 승격한다.
+	const archetypeHtml = archetype
+		? `
+			<div id="archetypeBadge">
+				<span id="archetypeEyebrow">당신의 재벌 유형</span>
+				<span id="archetypeName">${icon(FEATURE_READINGS[archetype.featureKey].icon, "archetype-icon")}${archetype.name}</span>
+				<p id="archetypeDesc">${archetype.featureLabel} 재벌 표본 ${archetype.rankText} — ${archetype.desc}</p>
+			</div>
+		`
+		: ""
 
 	const divider = `<div class="section-divider"><span></span>✦<span></span></div>`
 
-	// 결과 출력 (헤드라인 %는 0에서 카운트업 애니메이션으로 채워짐)
+	// 결과 출력. 헤드라인 %는 예전엔 "나의 관상 분석 결과" 제목 아래 큰 텍스트 블록으로 따로
+	// 떠 있었는데, 숫자가 정작 "무엇에 대한 숫자인지"(업로드한 내 사진)와 시각적으로 떨어져
+	// 있어 어색하다는 피드백 — 텍스트 블록을 걷어내고 업로드된 내 사진 위에 뱃지로 박아서
+	// 사진과 숫자가 한 덩어리로 보이게 한다.
 	document.getElementById("averageResult").innerHTML = `
 		<div id="resultRate">
-			<h3>나의 관상 분석 결과</h3>
-			<span id="richRate" class="bounce">0.0%</span>
-			${aiInfoHtml}
+			${tierFallbackHtml}
+			${archetypeHtml}
 			${topMatchHtml ? divider + topMatchHtml : ""}
 			${readingHtml ? divider + readingHtml : ""}
-			${divider}
-			<p>${similarityMessage}</p>
 		</div>
 	`
 
 	document.getElementById("resultsContainer").style.display = "block"
 
-	const richRateEl = document.getElementById("richRate")
-	const topMatchHPEl = document.getElementById("topMatchHP")
+	// 뱃지에 %만 있으면 "누구와" 닮았다는 건지 뱃지만 봐서는 알 수 없다는 피드백 — 매칭된
+	// 인물 이름을 같이 넣어서 뱃지 하나로 "몇 %가 누구와"까지 바로 읽히게 한다.
+	const matchBadgeEl = document.getElementById("matchBadge")
+	matchBadgeEl.innerHTML = `<span id="matchBadgeValue">0.0%</span><span id="matchBadgeLabel">${topMatch.name || "일치율"}</span>`
+	const matchBadgeValueEl = document.getElementById("matchBadgeValue")
+	matchBadgeEl.classList.add("show")
 	if (typeof gsap !== "undefined") {
+		gsap.fromTo(matchBadgeEl, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(2)", delay: 0.2 })
 		gsap.to(
 			{ v: 0 },
 			{
 				v: parseFloat(topSimilarity),
 				duration: 0.9,
 				ease: "power2.out",
-				delay: 0.15,
+				delay: 0.2,
 				onUpdate: function () {
-					richRateEl.textContent = this.targets()[0].v.toFixed(1) + "%"
+					matchBadgeValueEl.textContent = this.targets()[0].v.toFixed(1) + "%"
 				},
 			},
 		)
-		if (topMatchHPEl) {
-			topMatchHPEl.textContent = "일치율 0.0%"
-			gsap.to(
-				{ v: 0 },
-				{
-					v: topMatch.similarity,
-					duration: 0.9,
-					ease: "power2.out",
-					delay: 0.55,
-					onUpdate: function () {
-						topMatchHPEl.textContent = "일치율 " + this.targets()[0].v.toFixed(1) + "%"
-					},
-				},
-			)
-		}
 		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
 		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
 	} else {
-		richRateEl.textContent = topSimilarity + "%"
+		matchBadgeValueEl.textContent = topSimilarity + "%"
 	}
 
 	const revealEl = document.getElementById("topMatchReveal")
@@ -563,17 +788,20 @@ function renderResults(matches, aiInfo, radar) {
 	const cardEl = document.getElementById("topMatch")
 	if (cardEl) initHoloEffect(cardEl)
 
-	populateShareCard(topMatch, topSimilarity, tierLabel)
+	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity }
+	populateShareCard(topMatch, topSimilarity, tierLabel, archetype)
 }
 
 // 인스타/페이스북/카카오톡에 공유하기 좋은 4:5 비율 카드(화면엔 안 보임, 캡처 전용)에
 // 결과를 채워넣는다. "나 vs 매칭 인물" 사진 비교 포맷이 핵심.
-function populateShareCard(topMatch, topSimilarity, tierLabel) {
+function populateShareCard(topMatch, topSimilarity, tierLabel, archetype) {
 	const userPhotoSrc = document.getElementById("uploadedImage").src
 
 	document.getElementById("shareCardUserPhoto").src = userPhotoSrc
 	document.getElementById("shareCardPercent").textContent = topSimilarity + "%"
-	document.getElementById("shareCardTier").textContent = tierLabel
+	// 캡처되는 카드에도 등급 문구뿐 아니라 유형 라벨을 같이 박아서, 이미지 자체가 "나는 OO형"
+	// 이라는 정체성을 보여주는 공유용 콘텐츠가 되게 한다.
+	document.getElementById("shareCardTier").textContent = archetype ? `${tierLabel} · ${archetype.name}` : tierLabel
 
 	const photosEl = document.querySelector(".share-card-photos")
 	const vsEl = document.querySelector(".share-card-vs")
@@ -653,9 +881,15 @@ function initHoloEffect(cardEl) {
 	cardEl.addEventListener("touchend", resetTilt)
 }
 
+// 새로고침 없이 업로드 전 상태로 되돌린다 — 전체 리로드는 이미 로드된 라이브러리/모델을
+// 버리고 초기화 시퀀스를 처음부터 다시 타게 만들어서 굳이 느려질 이유가 없다.
 document.getElementById("reset").addEventListener("click", function () {
 	playClick()
-	window.location.reload()
+	const uploadedImage = document.getElementById("uploadedImage")
+	uploadedImage.src = "assets/imgs/placeholder.svg"
+	document.getElementById("uploadImage").value = "" // 같은 파일을 다시 선택해도 change가 발생하도록
+	clearResults()
+	document.getElementById("resultsContainer").style.display = "none"
 })
 
 // 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
@@ -663,9 +897,10 @@ document.getElementById("reset").addEventListener("click", function () {
 const MIN_LOADING_MS = 900
 let loadingStartedAt = 0
 
-// 화면 중앙에서 원(iris)이 확 번지며 화면을 덮는 "순간이동 출발" 연출 + 휘익 효과음.
-// (Star Wars식 iris wipe 레퍼런스 — 좌우에서 흐린 패널이 슬라이드하던 예전 방식보다
-// 훨씬 또렷하게 "포탈이 열린다"는 느낌을 줌)
+// 화면이 균일하게 페이드아웃되며 덮이는 "순간이동 출발" 연출 + 휘익 효과음 + 안쪽 골드
+// 빛(#portalFlash)의 짧은 번쩍임. (예전엔 clip-path로 원을 키워서 덮었는데, 원이 다 자라기
+// 전까지 화면 귀퉁이에 배경 물결무늬가 계속 비쳐서 "깜빡인다"는 신고를 반복해서 받았다 —
+// opacity 페이드는 화면 전체가 한 번에 균일하게 바뀌어 그 문제가 구조적으로 없다.)
 // GSAP/Tone이 아직 로드되기 전이거나 로드 실패한 극단적인 경우에도 분석 자체는 막히지 않도록
 // 항상 modal을 보이게 만드는 폴백을 먼저 깔아둔다.
 function showLoadingModal() {
@@ -679,13 +914,13 @@ function showLoadingModal() {
 	gsap
 		.timeline()
 		.fromTo("#uploadedImageContainer", { scale: 1, opacity: 1 }, { scale: 0.5, opacity: 0, duration: 0.22, ease: "power4.in" }, 0)
-		.fromTo(modal, { clipPath: "circle(0px at 50% 50%)" }, { clipPath: "circle(150vmax at 50% 50%)", duration: 0.4, ease: "power3.out" }, 0.05)
-		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.9, duration: 0.12, ease: "power1.out" }, 0.05)
+		.fromTo(modal, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05)
+		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.12, ease: "power1.out" }, 0.05)
 		.to("#portalFlash", { opacity: 0, duration: 0.35, ease: "power2.out" }, 0.17)
 		.to(".modal-content", { opacity: 1, duration: 0.2 }, 0.3)
 }
 
-// 원이 다시 중앙으로 오므라들며 "먼 곳으로 순간이동해서 도착한" 듯 결과를 드러내는 연출 + 효과음.
+// 화면이 다시 균일하게 걷히며 "먼 곳으로 순간이동해서 도착한" 듯 결과를 드러내는 연출 + 효과음.
 // 최소 노출 시간을 채울 때까지 기다린 뒤, 나가는 애니메이션이 끝날 때까지 대기한다.
 async function hideLoadingModal() {
 	const modal = document.getElementById("loadingModal")
@@ -713,9 +948,9 @@ async function hideLoadingModal() {
 				},
 			})
 			.to(".modal-content", { opacity: 0, duration: 0.12 }, 0)
-			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.9, duration: 0.1 }, 0.12)
+			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.1 }, 0.12)
 			.to("#portalFlash", { opacity: 0, duration: 0.3 }, 0.22)
-			.to(modal, { clipPath: "circle(0px at 50% 50%)", duration: 0.35, ease: "power3.in" }, 0.12)
+			.to(modal, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0.15)
 			.fromTo("#uploadedImageContainer", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 0.4)
 	})
 }
@@ -750,6 +985,10 @@ function stopLoadingMessages() {
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
 	document.getElementById("averageResult").textContent = ""
+	document.getElementById("aiInfo").textContent = ""
+	const matchBadgeEl = document.getElementById("matchBadge")
+	matchBadgeEl.classList.remove("show")
+	matchBadgeEl.textContent = ""
 }
 
 /* share function */
@@ -767,8 +1006,24 @@ document.getElementById("saveImgBtn").addEventListener("click", async function (
 	await saveAsImage()
 })
 
-// 모바일 OS 공유 시트(카카오톡/인스타그램/페이스북 앱 등에 실제 결과 이미지를 바로 보낼 수 있는
-// 사실상 유일한 방법). 데스크톱이나 미지원 브라우저에서는 이미지를 저장한 뒤 알림으로 안내한다.
+// 카카오톡/인스타그램/페이스북/X는 위에 전용 버튼이 있으니, 이건 그 목록에 없는 다른 앱
+// (왓츠앱/라인/텔레그램 등)으로 보내고 싶을 때 쓰는 보조 옵션 — OS 공유 시트를 그대로 띄운다.
+// 데스크톱이나 미지원 브라우저에서는 이미지를 저장한 뒤 알림으로 안내한다.
+// 고정 문구("나의 부자 관상 분석 결과!")보다 실제 결과가 들어간 문구가 클릭률이 훨씬
+// 높다 — "나는 이재용과 87% 닮은 전략가형?!"처럼 구체적인 숫자·이름·유형이 들어간 문구가
+// 스스로 자랑거리가 되어 공유를 유도한다.
+function buildShareText() {
+	if (!lastResultSummary) return "나의 부자 관상 분석 결과!"
+	const { topMatchName, archetypeName, topSimilarity } = lastResultSummary
+	if (topMatchName && archetypeName) {
+		return `나는 ${topMatchName}과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 대한민국 재벌들과 내 관상을 비교해봤다.`
+	}
+	if (archetypeName) {
+		return `나는 재벌 표본과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! AI로 확인해봤다.`
+	}
+	return "나의 부자 관상 분석 결과!"
+}
+
 document.getElementById("webShareBtn").addEventListener("click", async function () {
 	playClick()
 	const canvas = await captureShareCard()
@@ -780,7 +1035,7 @@ document.getElementById("webShareBtn").addEventListener("click", async function 
 			await navigator.share({
 				files: [file],
 				title: "인공지능 부자 관상 테스트",
-				text: "나의 부자 관상 분석 결과!",
+				text: buildShareText(),
 			})
 			return
 		} catch (err) {
@@ -794,7 +1049,7 @@ document.getElementById("webShareBtn").addEventListener("click", async function 
 	link.href = canvas.toDataURL("image/png")
 	link.download = "부자관상분석결과.png"
 	link.click()
-	alert("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
+	showToast("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
 })
 
 // 카카오톡/페이스북 공식 공유는 "지금 생성된 카드 이미지"가 아니라 사이트 링크(og:image 고정 이미지)를
@@ -805,14 +1060,52 @@ document.getElementById("fbShareBtn").addEventListener("click", function () {
 	window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=500")
 })
 
+// X(트위터)는 페이스북과 같은 방식 — 웹 인텐트로 "링크+문구"만 공유 가능하고, 방금 만든 카드
+// 이미지 자체는 X도 URL 인텐트로 첨부하는 방법이 없다(og:image가 미리보기로 자동 첨부됨).
+document.getElementById("xShareBtn").addEventListener("click", function () {
+	playClick()
+	const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(buildShareText()) + "&url=" + encodeURIComponent(location.href)
+	window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=500")
+})
+
+// 인스타그램은 카카오톡/페이스북/X와 달리 "이 URL 그대로 피드에 올려줘" 하는 웹 공유 방법이
+// 아예 없다(공식 API 없음). OS 공유 시트가 지원되면(대부분의 모바일) 거기서 인스타그램을
+// 직접 고를 수 있으니 그걸 먼저 시도하고, 안 되면 저장 후 인스타그램 앱에서 직접 올리도록 안내한다.
+document.getElementById("instagramShareBtn").addEventListener("click", async function () {
+	playClick()
+	const canvas = await captureShareCard()
+	const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
+	const file = new File([blob], "부자관상분석결과.png", { type: "image/png" })
+
+	if (navigator.canShare && navigator.canShare({ files: [file] })) {
+		try {
+			await navigator.share({
+				files: [file],
+				title: "인공지능 부자 관상 테스트",
+				text: buildShareText(),
+			})
+			return
+		} catch (err) {
+			if (err.name === "AbortError") return
+			console.warn("공유 실패", err)
+		}
+	}
+
+	const link = document.createElement("a")
+	link.href = canvas.toDataURL("image/png")
+	link.download = "부자관상분석결과.png"
+	link.click()
+	showToast("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
+})
+
 document.getElementById("kakaoShareBtn").addEventListener("click", function () {
 	playClick()
 	if (!KAKAO_JS_KEY) {
-		alert("카카오톡 공유는 아직 설정되지 않았습니다. developers.kakao.com에서 JavaScript 키를 발급받아 js/script.js의 KAKAO_JS_KEY에 붙여넣어주세요.")
+		showToast("카카오톡 공유는 아직 설정되지 않았습니다. developers.kakao.com에서 JavaScript 키를 발급받아 js/script.js의 KAKAO_JS_KEY에 붙여넣어주세요.")
 		return
 	}
 	if (typeof Kakao === "undefined") {
-		alert("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
+		showToast("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
 		return
 	}
 	if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY)
@@ -821,8 +1114,8 @@ document.getElementById("kakaoShareBtn").addEventListener("click", function () {
 		objectType: "feed",
 		content: {
 			title: "인공지능 부자 관상 테스트",
-			description: "대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? AI로 확인해보세요.",
-			imageUrl: "https://saramjh.github.io/richChecker/assets/imgs/male.png",
+			description: buildShareText(),
+			imageUrl: "https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg",
 			link: {
 				mobileWebUrl: location.href,
 				webUrl: location.href,
