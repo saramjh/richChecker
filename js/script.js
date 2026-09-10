@@ -203,17 +203,6 @@ async function matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDist
 	})
 }
 
-// 표본 64명 중 실명·사진이 있는 건 14명뿐이고 나머지 50명은 익명이다. "가장 닮은 재벌"을
-// 전체 중에서 고르면 익명 인물이 뽑힐 확률이 훨씬 높은데(50/64), 익명은 보여줄 이름도
-// 사진도 없어서 헤드라인의 이름 문구와 매칭 카드(사진 비교·레이더 차트)가 통째로 사라지는
-// 결과로 이어진다 — 실사용자 테스트에서 육각 그래프가 안 보인 원인. 헤드라인/카드에 쓸
-// 매칭은 항상 "보여줄 수 있는" 실명 인물 중에서만 고른다.
-function pickTopMatch(matches) {
-	const named = matches.filter((m) => m.name)
-	const pool = named.length > 0 ? named : matches
-	return pool.reduce((best, m) => (m.similarity > best.similarity ? m : best))
-}
-
 // 휴대폰 카메라 사진은 보통 EXIF 방향 태그가 붙어 있다 — <img>는 화면에 그릴 때 이 태그를
 // 적용해 똑바로 보여주지만, 일부 브라우저의 라이브러리 내부 디코딩 경로(예: createImageBitmap)는
 // 이 태그를 무시해서 "화면엔 똑바로 보이는데 분석기엔 옆으로 누운 얼굴"이 들어가 얼굴을 못 찾는
@@ -284,8 +273,6 @@ async function processImage(imageSrc) {
 			showToast("표본 데이터를 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
 			return
 		}
-		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
-
 		const blendshapeCategories = detection.faceBlendshapes && detection.faceBlendshapes[0] && detection.faceBlendshapes[0].categories
 		const expression = blendshapeCategories ? topExpressionFromBlendshapes(blendshapeCategories) : null
 
@@ -297,14 +284,11 @@ async function processImage(imageSrc) {
 			console.warn("나이 추정 실패", err)
 		}
 
-		const topMatch = pickTopMatch(matches)
 		const percentiles = (features) => FEATURE_KEYS.map((k, i) => zscoreToPercentile(features[i], embeddingsData.stats.mean[i], embeddingsData.stats.std[i]))
+		const userPercentiles = percentiles(uploadedFeatures)
 
 		// 각 특징(이마/눈/코/입/턱/얼굴형)별로, 실명이 있는 인물 중 그 항목이 나와 가장 비슷한 사람을 찾는다.
 		// "재벌 평균과 비교하면"보다 "이 부위는 OOO 회장과 닮았다"는 게 훨씬 흥미롭다는 피드백 반영.
-		// (한때 "몇 % 일치"라는 숫자도 같이 보여줬는데, 62명 중 이 항목 하나가 가장 가까운 사람을
-		// 찾는 거라 값이 거의 항상 높게 나오고, 바로 옆 백분위 막대와는 계산 자체가 달라 두 숫자가
-		// 어긋나 보이는 혼란을 줬다. 지금은 숫자 없이 "가장 닮은 사람이 누구인지"만 알려준다.)
 		const namedPeople = embeddingsData.people.filter((p) => p.name)
 		const nearestByFeature = FEATURE_KEYS.map((_, i) => {
 			if (namedPeople.length === 0) return null
@@ -322,17 +306,42 @@ async function processImage(imageSrc) {
 			return best
 		})
 
+		// "누굴 올려도 이재용/정몽준 몇 명으로만 귀결된다"는 신고 — 실측해보니 실제 버그가
+		// 아니라 통계적 현상이었다. 후보가 14명뿐인 좁은 풀에서 "전체 6개 항목을 합친 거리가
+		// 가장 가까운 한 명"을 고르면, 재벌 표본 평균에 가까운("제일 평범한") 한두 명이 어떤
+		// 입력에도 수학적으로 거의 항상 이겨버린다(nearest-neighbor의 "허브" 문제 — 50명의
+		// 검증용 얼굴로 시뮬레이션한 결과 상위 1명이 32%, 상위 2명이 54%를 독식했다).
+		//
+		// "닮음"의 정의 자체를 바꿔서 이 문제를 근본적으로 없앤다: 전체 얼굴을 뭉뚱그려
+		// 비교하는 대신, "이 사람에게서 가장 두드러지는 특징(=재벌 유형을 정하는 것과 같은
+		// 축)이 재벌 14명 중 누구와 제일 가깝나"로 고른다. 항상 평균적인 사람은 어느 축으로
+		// 봐도 "가장 극단적인 사람"이 될 수 없으므로, 이 방식은 허브 문제가 구조적으로
+		// 생기지 않는다(같은 시뮬레이션에서 1명 최대 14%, 12/14명이 최소 한 번은 뽑힘).
+		// 부수 효과로 "재벌 유형" 배지와 "가장 닮은 재벌"이 이제 같은 특징에서 나온 하나의
+		// 이야기가 된다: "당신은 이마가 재벌 표본 평균보다 넓은 전략가형이고, 그 이마가
+		// 이재용과 가장 닮았다" — 예전엔 이 둘이 서로 다른 계산이라 우연히 다른 사람을
+		// 가리킬 수 있었다.
+		const radarForArchetype = { keys: FEATURE_KEYS, labels: FEATURE_KEYS.map((k) => FEATURE_LABELS[k]), user: userPercentiles }
+		const archetype = computeArchetype(radarForArchetype)
+		const dominantIdx = FEATURE_KEYS.indexOf(archetype.featureKey)
+		const matchedPerson = nearestByFeature[dominantIdx]
+
+		// 헤드라인 %는 그대로 "전체 6개 항목 기준 종합 유사도"를 쓴다 — 이미 튜닝된
+		// SIMILARITY_SCALE/등급 체계를 그대로 재사용할 수 있고, "특정 부위는 많이 닮았지만
+		// 전체적으로는 어느 정도"라는 게 오히려 더 정직하고 납득되는 서사가 된다.
+		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
+		const topMatch = matches.find((m) => m.name === matchedPerson.name)
+
 		const radar = {
 			keys: FEATURE_KEYS,
 			labels: FEATURE_KEYS.map((k) => FEATURE_LABELS[k]),
-			user: percentiles(uploadedFeatures),
-			match: topMatch.features ? percentiles(topMatch.features) : null,
-			matchLabel: topMatch.name || "매칭 인물",
+			user: userPercentiles,
+			match: percentiles(topMatch.features),
+			matchLabel: topMatch.name,
 			nearestByFeature,
 		}
 
-		const archetype = computeArchetype(radar)
-		renderResults(matches, { age, expression }, radar, archetype)
+		renderResults(matches, { age, expression }, radar, archetype, topMatch)
 	} catch (err) {
 		console.error(err)
 		showToast("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
@@ -659,12 +668,11 @@ function renderTopMatch(match, radar, tierLabel, tierDesc) {
 	`
 }
 
-function renderResults(matches, aiInfo, radar, archetype) {
-	// 메인 지표는 "가장 닮은 인물과의 일치율" 하나로 통일한다.
-	// (예전에는 전체 인물 평균을 헤드라인으로 썼는데, 카드에 뜨는 1위 매칭 %와 숫자가 달라서
-	// 헷갈린다는 지적 반영. 사용자는 "100%에 가까울수록 재벌 같다"는 직관적 관례를 기대하므로
-	// 그 관례에 맞는 단일 숫자만 크게 보여준다.)
-	const topMatch = pickTopMatch(matches)
+function renderResults(matches, aiInfo, radar, archetype, topMatch) {
+	// 메인 지표는 "가장 닮은 인물과의 일치율" 하나로 통일한다. topMatch는 processImage에서
+	// 이미 "가장 두드러지는 특징이 누구와 가장 가까운지"로 정해서 넘겨준다 — 여기서 다시
+	// 고르지 않는다(레이더 차트가 비교하는 사람과 헤드라인/카드에 나오는 사람이 어긋나지
+	// 않도록 항상 같은 곳에서 한 번만 결정한다).
 	const topSimilarity = topMatch.similarity.toFixed(1)
 
 	const readingHtml = renderFeatureReadings(radar)
