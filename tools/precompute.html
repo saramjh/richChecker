@@ -15,12 +15,11 @@
   <h1>얼굴 특징 사전계산 도구 (MediaPipe)</h1>
   <p>
     이 페이지는 배포되는 서비스가 아니라 <b>개발자가 로컬에서 실행하는 오프라인 도구</b>입니다.<br>
-    <code>data/people.male.json</code> / <code>data/people.female.json</code>에 등록된 이미지들의
-    MediaPipe 얼굴 랜드마크 기반 비율 특징을 계산해 <code>data/embeddings.{gender}.json</code>으로 내려받습니다.<br>
+    <code>data/people.json</code>에 등록된 이미지들의 MediaPipe 얼굴 랜드마크 기반 비율 특징을 계산해
+    <code>data/embeddings.json</code>으로 내려받습니다. 성별 구분 없이 전체 인물을 하나의 표본으로 계산합니다.<br>
     반드시 로컬 정적 서버로 프로젝트 루트를 띄운 뒤 <code>http://localhost:포트/tools/precompute.html</code>로 접속하세요.
   </p>
-  <button id="runMale">남성(maleKR) 계산</button>
-  <button id="runFemale">여성(femaleKR) 계산</button>
+  <button id="run">계산하기</button>
   <div id="log"></div>
 
   <script type="module">
@@ -58,10 +57,10 @@
       })
     }
 
-    async function computeAll(gender) {
+    async function computeAll() {
       const landmarker = await ensureLandmarker()
 
-      const manifestRes = await fetch(`../data/people.${gender}.json`)
+      const manifestRes = await fetch(`../data/people.json`)
       const people = await manifestRes.json()
 
       const results = []
@@ -107,7 +106,7 @@
         return Math.sqrt(variance) || 1
       })
 
-      downloadJSON({ featureKeys: FEATURE_KEYS, stats: { mean, std }, people: results }, `embeddings.${gender}.json`)
+      downloadJSON({ featureKeys: FEATURE_KEYS, stats: { mean, std }, people: results }, `embeddings.json`)
     }
 
     function downloadJSON(data, filename) {
@@ -121,8 +120,7 @@
       log(`→ ${filename} 다운로드됨. data/ 폴더에 옮겨넣으세요.`)
     }
 
-    document.getElementById("runMale").addEventListener("click", () => computeAll("male").catch((e) => log("실패: " + e.message)))
-    document.getElementById("runFemale").addEventListener("click", () => computeAll("female").catch((e) => log("실패: " + e.message)))
+    document.getElementById("run").addEventListener("click", () => computeAll().catch((e) => log("실패: " + e.message)))
   </script>
 </body>
 

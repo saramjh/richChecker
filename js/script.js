@@ -47,7 +47,7 @@ function topExpressionFromBlendshapes(categories) {
 // 페이지 로드 시 기본 이미지 설정
 window.onload = function () {
 	const uploadedImage = document.getElementById("uploadedImage")
-	uploadedImage.src = "assets/imgs/male.png"
+	uploadedImage.src = "assets/imgs/placeholder.svg"
 	uploadedImage.style.display = "block"
 }
 
@@ -72,23 +72,11 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	}
 })
 
-// 성별 변경 시 기본 이미지 변경
-document.querySelectorAll('input[name="gender"]').forEach((element) => {
-	element.addEventListener("change", function () {
-		const uploadedImage = document.getElementById("uploadedImage")
-		if (this.value === "male") {
-			uploadedImage.src = "assets/imgs/male.png"
-		} else if (this.value === "female") {
-			uploadedImage.src = "assets/imgs/female.png"
-		}
-		uploadedImage.style.display = "block"
-	})
-})
-
-// data/embeddings.{gender}.json: tools/precompute.html(MediaPipe 기반)로 미리 계산해둔
+// data/embeddings.json: tools/precompute.html(MediaPipe 기반)로 미리 계산해둔
 // { featureKeys, stats: {mean, std}, people: [{..., features}] } 구조.
-async function loadEmbeddings(gender) {
-	const res = await fetch(`data/embeddings.${gender}.json`)
+// 성별 구분 없이 전체 인물 표본 하나로 통합 (여성 표본이 너무 적어 따로 나누는 의미가 없음).
+async function loadEmbeddings() {
+	const res = await fetch(`data/embeddings.json`)
 	if (!res.ok) throw new Error("비교 데이터를 불러오지 못했습니다.")
 	const data = await res.json()
 	if (!data || !Array.isArray(data.people) || data.people.length === 0) {
@@ -147,9 +135,8 @@ async function processImage(imageSrc) {
 
 		const featureObj = computeFeatures(landmarks, uploadedImage.naturalWidth, uploadedImage.naturalHeight)
 		const uploadedFeatures = FEATURE_KEYS.map((k) => featureObj[k])
-		const gender = document.querySelector('input[name="gender"]:checked').value
 
-		const embeddingsData = await loadEmbeddings(gender)
+		const embeddingsData = await loadEmbeddings()
 		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
 
 		const blendshapeCategories = detection.faceBlendshapes && detection.faceBlendshapes[0] && detection.faceBlendshapes[0].categories
@@ -425,68 +412,6 @@ function renderResults(matches, aiInfo, radar) {
 			${topMatchHtml}
 			${readingHtml}
 			<p>${similarityMessage}</p>
-			<table>
-	<caption>부자 관상 분석 기준 (가장 닮은 인물과의 일치율 기준)</caption>
-	<thead>
-			<tr>
-					<th>분류</th>
-					<th>설명</th>
-					<th>일치 수준</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>완벽한 재벌상</td>
-					<td>타고난 카리스마와 권력의 상징. 재벌 이미지를 그대로 품은 외모.</td>
-					<td>90%~</td>
-			</tr>
-			<tr>
-					<td>거의 재벌상</td>
-					<td>힘과 부를 상징하는 외모, 성공한 사람의 분위기.</td>
-					<td>80%<br>~90%</td>
-			</tr>
-			<tr>
-					<td>확실한 부티</td>
-					<td>권위와 부유함이 강하게 나타남.</td>
-					<td>70%<br>~80%</td>
-			</tr>
-			<tr>
-					<td>튀는 부티</td>
-					<td>리더십과 자신감이 표출되기 시작.</td>
-					<td>60%<br>~70%</td>
-			</tr>
-			<tr>
-					<td>잠재력 있음</td>
-					<td>카리스마나 부유함의 기운이 약간 느껴짐.</td>
-					<td>50%<br>~60%</td>
-			</tr>
-			<tr>
-					<td>중간 단계</td>
-					<td>재벌관상과는 약간의 유사성, 하지만 확실하지 않음.</td>
-					<td>40%<br>~50%</td>
-			</tr>
-			<tr>
-					<td>평범함</td>
-					<td>특별히 눈에 띄지 않는 인상.</td>
-					<td>30%<br>~40%</td>
-			</tr>
-			<tr>
-					<td>부족한 요소</td>
-					<td>자신감이나 권위가 부족한 인상.</td>
-					<td>20%<br>~30%</td>
-			</tr>
-			<tr>
-					<td>근본적 차이</td>
-					<td>재벌 느낌과는 전혀 어울리지 않음.</td>
-					<td>10%<br>~20%</td>
-			</tr>
-			<tr>
-					<td>완전히 반대</td>
-					<td>재벌과는 거리가 먼 평범한 외모.</td>
-					<td>~10%</td>
-			</tr>
-	</tbody>
-</table>
 		</div>
 	`
 
@@ -626,8 +551,8 @@ var wallPattern = {
 					this.context.beginPath()
 					this.context.arc(currentPoint.x, currentPoint.y, k, 0, Math.PI * 2, true)
 					this.context.closePath()
-					this.context.fillStyle = "#ffffff"
-					this.context.strokeStyle = "#c2c2c2"
+					this.context.fillStyle = "#150c28"
+					this.context.strokeStyle = "#3a2a5c"
 					this.context.fill()
 					this.context.stroke()
 				}

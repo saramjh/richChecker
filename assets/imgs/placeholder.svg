@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <rect width="300" height="400" fill="#1a1035"/>
+  <circle cx="150" cy="155" r="70" fill="none" stroke="#d4af37" stroke-width="2" opacity="0.5"/>
+  <circle cx="150" cy="140" r="45" fill="none" stroke="#e8d9a0" stroke-width="3"/>
+  <path d="M 95 230 Q 150 185 205 230 L 205 250 L 95 250 Z" fill="none" stroke="#e8d9a0" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="132" cy="135" r="4" fill="#e8d9a0"/>
+  <circle cx="168" cy="135" r="4" fill="#e8d9a0"/>
+  <path d="M 138 155 Q 150 162 162 155" fill="none" stroke="#e8d9a0" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="150" y="105" font-size="20" fill="#d4af37" text-anchor="middle">✦</text>
+  <rect x="35" y="300" width="230" height="46" rx="8" fill="#241533" stroke="#7c5e1e" stroke-width="1.5"/>
+  <text x="150" y="328" font-size="15" fill="#f3e9c9" text-anchor="middle" font-family="Georgia, serif">여기를 눌러 사진을 입력해주세요</text>
+</svg>
