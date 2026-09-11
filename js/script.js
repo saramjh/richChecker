@@ -2,10 +2,6 @@
 // 가장 먼저(다른 어떤 로직보다도 앞서) 부팅 오버레이부터 걷어낸다.
 document.getElementById("bootOverlay")?.remove()
 
-// 카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 "JavaScript 키"를 여기에 붙여넣으세요.
-// 이 키는 비밀값이 아니라 카카오 콘솔에서 도메인 화이트리스트로 보호되는 공개용 키입니다.
-const KAKAO_JS_KEY = "b9b76fcef8436714dacc3c76d6843731"
-
 // ===== 효과음 (Tone.js로 직접 합성 — 외부 음원 파일 없이 저작권 이슈 없이 재생) =====
 let sfx = null
 async function ensureSfx() {
@@ -1208,58 +1204,10 @@ document.getElementById("webShareBtn").addEventListener("click", async function 
 	await shareCardOrDownload("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
 })
 
-// 카카오톡/페이스북 공식 공유는 "지금 생성된 카드 이미지"가 아니라 사이트 링크(og:image 고정 이미지)를
-// 공유하는 방식이다 — 두 서비스 모두 클라이언트에서 방금 만든 이미지를 즉석 업로드하는 API가 없다.
-document.getElementById("fbShareBtn").addEventListener("click", function () {
-	playClick()
-	const shareUrl = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(location.href)
-	window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=500")
-})
-
-// X(트위터)는 페이스북과 같은 방식 — 웹 인텐트로 "링크+문구"만 공유 가능하고, 방금 만든 카드
-// 이미지 자체는 X도 URL 인텐트로 첨부하는 방법이 없다(og:image가 미리보기로 자동 첨부됨).
-document.getElementById("xShareBtn").addEventListener("click", function () {
-	playClick()
-	const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(buildShareText()) + "&url=" + encodeURIComponent(location.href)
-	window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=500")
-})
-
 // 인스타그램은 카카오톡/페이스북/X와 달리 "이 URL 그대로 피드에 올려줘" 하는 웹 공유 방법이
 // 아예 없다(공식 API 없음). OS 공유 시트가 지원되면(대부분의 모바일) 거기서 인스타그램을
 // 직접 고를 수 있으니 그걸 먼저 시도하고, 안 되면 저장 후 인스타그램 앱에서 직접 올리도록 안내한다.
 document.getElementById("instagramShareBtn").addEventListener("click", async function () {
 	playClick()
 	await shareCardOrDownload("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
-})
-
-document.getElementById("kakaoShareBtn").addEventListener("click", function () {
-	playClick()
-	if (!KAKAO_JS_KEY) {
-		showToast("카카오톡 공유는 아직 설정되지 않았습니다. developers.kakao.com에서 JavaScript 키를 발급받아 js/script.js의 KAKAO_JS_KEY에 붙여넣어주세요.")
-		return
-	}
-	if (typeof Kakao === "undefined") {
-		showToast("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
-		return
-	}
-	if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY)
-
-	Kakao.Share.sendDefault({
-		objectType: "feed",
-		content: {
-			title: "인공지능 부자 관상 테스트",
-			description: buildShareText(),
-			imageUrl: "https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg",
-			link: {
-				mobileWebUrl: location.href,
-				webUrl: location.href,
-			},
-		},
-		buttons: [
-			{
-				title: "나도 테스트하기",
-				link: { mobileWebUrl: location.href, webUrl: location.href },
-			},
-		],
-	})
 })

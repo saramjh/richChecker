@@ -90,7 +90,6 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-  <script defer src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 
@@ -241,12 +240,10 @@
             분석결과 저장하기
           </button>
         </div>
-        <!-- 카카오톡/페이스북/X 공식 공유 API는 서버가 없으면 "방금 만든 개인 결과 이미지"를
-             전달할 방법이 없어서 사이트 링크만 보낼 수 있다(플랫폼 자체의 한계). 반면 공유하기/
-             인스타그램은 OS 공유 시트로 실제 카드 이미지 파일을 첨부해서 보낸다 — 이 둘을 같은
-             줄에 섞어두면 "왜 어떤 건 이미지가 가고 어떤 건 링크만 가지?"라는 혼란이 생기므로,
-             "실제로 뭐가 가는지" 기준으로 두 그룹으로 나누고 라벨을 붙인다. -->
-        <p class="share-group-label">이미지로 공유</p>
+        <!-- 카카오톡/페이스북/X 공식 공유는 서버가 없으면 "방금 만든 개인 결과 이미지"를 전달할
+             방법이 없어 사이트 링크·고정 문구만 보낼 수 있었다(플랫폼 자체의 한계) — 결과 이미지가
+             빠진 공유는 의미가 없다는 피드백으로 제거하고, 실제 카드 이미지 파일을 OS 공유
+             시트로 첨부하는 공유하기/인스타그램만 남긴다. -->
         <div class="share-row">
           <button id="webShareBtn" aria-label="다른 앱으로 공유" title="다른 앱으로 공유">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -264,29 +261,6 @@
               <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
               <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
               <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-            </svg>
-          </button>
-        </div>
-        <p class="share-group-label">링크로 공유</p>
-        <div class="share-row">
-          <button id="kakaoShareBtn" aria-label="카카오톡으로 공유" title="카카오톡">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
-            </svg>
-          </button>
-          <button id="fbShareBtn" aria-label="페이스북으로 공유" title="페이스북">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-            </svg>
-          </button>
-          <button id="xShareBtn" aria-label="X로 공유" title="X">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
             </svg>
           </button>
         </div>
