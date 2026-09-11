@@ -2,6 +2,14 @@
 // 가장 먼저(다른 어떤 로직보다도 앞서) 부팅 오버레이부터 걷어낸다.
 document.getElementById("bootOverlay")?.remove()
 
+// GA4는 기본적으로 page_view/scroll 같은 자동 이벤트만 잡아서, 실제로 업로드→분석→저장/공유까지
+// 끝까지 쓰는 사람이 몇 명인지가 안 보인다는 문제가 있었다 — 채널별(디스콰이엇/루리웹/...)로
+// 글을 올릴 때마다 "어디서 온 사람이 실제로 써보는지"를 구분하려면 퍼널 단계별 커스텀 이벤트가
+// 필요하다. 광고 차단기 등으로 gtag가 아예 안 실려있을 수 있으니 안전하게 no-op한다.
+function trackEvent(name, params) {
+	if (typeof gtag === "function") gtag("event", name, params)
+}
+
 // ===== 효과음 (Tone.js로 직접 합성 — 외부 음원 파일 없이 저작권 이슈 없이 재생) =====
 let sfx = null
 async function ensureSfx() {
@@ -173,6 +181,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 			uploadedImage.src = e.target.result
 			uploadedImage.style.display = "block"
 			clearResults() // 이미지가 업로드될 때마다 결과 초기화
+			trackEvent("upload_started")
 			await processImage(uploadedImage.src)
 		}
 		reader.readAsDataURL(file)
@@ -252,6 +261,7 @@ async function processImage(imageSrc) {
 			modules = await ensureMediapipeModules()
 		} catch (err) {
 			console.error(err)
+			trackEvent("analysis_error", { error_type: "module_load" })
 			showToast("얼굴 인식 모듈을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
 			return
 		}
@@ -262,6 +272,7 @@ async function processImage(imageSrc) {
 			;[landmarker] = await Promise.all([ensureFaceLandmarker(), loadAgeModel()])
 		} catch (err) {
 			console.error(err)
+			trackEvent("analysis_error", { error_type: "model_load" })
 			showToast("얼굴 인식 모델을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
 			return
 		}
@@ -276,6 +287,7 @@ async function processImage(imageSrc) {
 			// "얼굴을 포함한 사진을 골라라"는 마치 사용자가 얼굴 없는 사진을 낸 것처럼 들려서
 			// 진짜 얼굴 사진을 냈는데도 이 메시지를 보면 오해한다 — "인식하지 못했다"로 바꾸고
 			// 실제로 도움이 되는 팁(정면/밝기)을 함께 준다.
+			trackEvent("analysis_error", { error_type: "face_not_detected" })
 			showToast("얼굴을 정확히 인식하지 못했습니다. 정면을 향한 밝은 사진으로 다시 시도해주세요.")
 			return
 		}
@@ -288,6 +300,7 @@ async function processImage(imageSrc) {
 			embeddingsData = await loadEmbeddings()
 		} catch (err) {
 			console.error(err)
+			trackEvent("analysis_error", { error_type: "embeddings_load" })
 			showToast("표본 데이터를 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.")
 			return
 		}
@@ -359,9 +372,15 @@ async function processImage(imageSrc) {
 			nearestByFeature,
 		}
 
+		trackEvent("analysis_complete", {
+			match_name: topMatch.name,
+			archetype_name: archetype.name,
+			similarity: Math.round(topMatch.similarity),
+		})
 		renderResults({ age, expression }, radar, archetype, topMatch)
 	} catch (err) {
 		console.error(err)
+		trackEvent("analysis_error", { error_type: "unknown" })
 		showToast("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 	} finally {
 		await hideLoadingModal()
@@ -1148,6 +1167,7 @@ async function saveAsImage() {
 
 document.getElementById("saveImgBtn").addEventListener("click", async function () {
 	playClick()
+	trackEvent("save_image")
 	await saveAsImage()
 })
 
@@ -1201,6 +1221,7 @@ async function shareCardOrDownload(fallbackMessage) {
 
 document.getElementById("webShareBtn").addEventListener("click", async function () {
 	playClick()
+	trackEvent("share_click", { method: "web_share" })
 	await shareCardOrDownload("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
 })
 
@@ -1209,5 +1230,6 @@ document.getElementById("webShareBtn").addEventListener("click", async function 
 // 직접 고를 수 있으니 그걸 먼저 시도하고, 안 되면 저장 후 인스타그램 앱에서 직접 올리도록 안내한다.
 document.getElementById("instagramShareBtn").addEventListener("click", async function () {
 	playClick()
+	trackEvent("share_click", { method: "instagram" })
 	await shareCardOrDownload("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
 })
