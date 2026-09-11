@@ -57,12 +57,17 @@ export function computeFeatures(landmarks, width, height) {
 	}
 }
 
-// z-score 정규화 후 유클리드 거리 (인구 평균/표준편차 기준)
+// z-score 정규화 후 유클리드 거리 (인구 평균/표준편차 기준). 항목별 z-score를 ±2로
+// 클램프한다(아래 zscoreToPercentile과 같은 기준) — 클램프가 없으면 랜드마크 인식이 살짝
+// 흔들린 항목 하나가(예: 각도·표정 때문에 코 길이가 극단값으로 튐) 나머지 5개 항목이 거의
+// 똑같아도 전체 거리를 혼자 지배해버려 "가장 닮은 재벌"로 뽑힌 사람인데 일치율이 0.0%로
+// 뜨는 모순이 생긴다(실측: 항목 하나만 15표준편차 벗어나도 나머지 5개가 완전히 같은데
+// 일치율이 0%로 나옴 — 클램프 적용 시 76%로 정상화됨).
 export function zscoreDistance(featuresA, featuresB, stats) {
 	let sumSq = 0
 	for (let i = 0; i < featuresA.length; i++) {
-		const za = (featuresA[i] - stats.mean[i]) / stats.std[i]
-		const zb = (featuresB[i] - stats.mean[i]) / stats.std[i]
+		const za = Math.max(-2, Math.min(2, (featuresA[i] - stats.mean[i]) / stats.std[i]))
+		const zb = Math.max(-2, Math.min(2, (featuresB[i] - stats.mean[i]) / stats.std[i]))
 		sumSq += (za - zb) ** 2
 	}
 	return Math.sqrt(sumSq)
