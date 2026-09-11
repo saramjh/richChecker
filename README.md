@@ -89,4 +89,4 @@
 
 ## 문의
 
-프로젝트에 대한 문의 사항은 [devTestudinidae@gmail.com](mailto:devTestudinidae@gmail.com)으로 연락해 주세요.
+프로젝트에 대한 문의 사항은 [saramjh@gmail.com](mailto:saramjh@gmail.com)으로 연락해 주세요.
