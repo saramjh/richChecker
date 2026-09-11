@@ -237,7 +237,15 @@ hr {
 /* 자동광고가 이 폭 고정 카드 레이아웃 안에서 업로드 영역 한복판까지 큰 광고를 끼워넣는
    문제가 있었다 — 위치를 첫 화면(업로드 전)과 결과 화면(공유 버튼 아래) 두 곳으로 고정하고,
    광고 로드 전후로 레이아웃이 튀지 않도록 min-height를 미리 예약해둔다. */
+/* 반응형 광고는 실제로 렌더될 때 컨테이너 전체 폭보다 좁게 나올 수 있다 — .ad-slot이
+   그냥 block이면 그 광고(ins)가 왼쪽으로 붙어버려 나머지 중앙정렬된 페이지와 어긋나 보인다.
+   ins에 직접 margin:auto를 주는 대신 flex 중앙정렬을 쓰는 이유: 애드센스 스크립트가 로드되면
+   ins에 인라인 style(width/height 등)을 직접 써넣는데, 부모의 justify-content는 그 인라인
+   스타일과 무관하게 항상 적용된다. */
 .ad-slot {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	width: 100%;
 	min-height: 100px;
 	margin-top: 14px;
