@@ -214,8 +214,15 @@ function toMatch(person, similarity) {
 // z-score 거리를 0~100 유사도로 변환. SIMILARITY_SCALE은 실측 분포로 보정된 값.
 const SIMILARITY_SCALE = 14
 
+// zscoreDistance는 항목별 z-score를 ±2로 묶어도, 매칭된 사람이 여러 항목에서 동시에
+// 극단값(±2)인 데다 업로드한 얼굴이 반대쪽 극단이면 이론상 거리가 최대치(6항목 모두 4씩
+// 벌어짐, sqrt(6*4^2)≈9.8)까지 나올 수 있어 0%가 완전히 불가능하진 않다. "일치율 0.0%인데
+// 이 사람이 매칭됐다"는 문구 자체가 모순으로 읽히므로, 이름이 있는 매칭에는 항상 0보다
+// 뚜렷하게 큰 최소값을 보장한다(등급표의 최하단 "완전히 반대" 구간 안에 자연스럽게 들어감).
+const MIN_SIMILARITY = 3
+
 function similarityFromDistance(distance) {
-	return Math.max(0, 100 - distance * SIMILARITY_SCALE)
+	return Math.max(MIN_SIMILARITY, 100 - distance * SIMILARITY_SCALE)
 }
 
 // 휴대폰 카메라 사진은 보통 EXIF 방향 태그가 붙어 있다 — <img>는 화면에 그릴 때 이 태그를
