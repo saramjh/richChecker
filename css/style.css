@@ -270,23 +270,30 @@ p {
 	color: var(--text-muted);
 }
 
-/* 주 액션(저장/공유)이 아니라 "다시 하기"라는 보조 동작이므로, 눈에 띄는 박스 버튼
-   대신 밑줄 텍스트 링크에 가깝게 눌러서 시선 우선순위를 확실히 낮춘다. */
+/* 저장(꽉 찬 골드)보다는 확실히 눌러서 주 액션과 안 헷갈리게 하되, 텍스트 링크로는 버튼처럼
+   안 보인다는 피드백 — 테두리·배경이 있는 보조 버튼으로 되돌린다. */
 .reset-link {
 	display: block;
-	width: auto;
+	width: 100%;
 	margin: 14px auto 0;
-	padding: 4px 8px;
-	font-size: 0.72rem;
-	color: var(--text-faint);
-	text-decoration: underline;
-	background: none;
-	border: none;
+	padding: 10px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	background: rgba(0, 0, 0, 0.35);
+	border: 1px solid var(--gold-dim);
+	border-radius: 8px;
 	cursor: pointer;
 }
 
 .reset-link:hover {
-	color: var(--gold-soft);
+	background: rgba(212, 175, 55, 0.15);
+	transition: transform 0.1s ease;
+	transform: scale(0.99);
+}
+
+.reset-link:active {
+	transform: scale(0.95);
 }
 
 /* 저장/공유용 주 액션과 헷갈리지 않도록 작은 필(pill) 토글로 눈에 덜 띄게 두되,
