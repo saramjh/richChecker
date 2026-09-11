@@ -15,12 +15,16 @@
   <h1>얼굴 특징 사전계산 도구 (MediaPipe)</h1>
   <p>
     이 페이지는 배포되는 서비스가 아니라 <b>개발자가 로컬에서 실행하는 오프라인 도구</b>입니다.<br>
-    <code>data/people.json</code>에 등록된 이미지들의 MediaPipe 얼굴 랜드마크 기반 비율 특징을 계산해
+    <code>data/people.json</code>에 등록된 사진들의 MediaPipe 얼굴 랜드마크 기반 비율 특징을 계산해
     <code>data/embeddings.json</code>으로 내려받습니다. 성별 구분 없이 전체 인물을 하나의 표본으로 계산합니다.<br>
     반드시 로컬 정적 서버로 프로젝트 루트를 띄운 뒤 <code>http://localhost:포트/tools/precompute.html</code>로 접속하세요.
   </p>
   <button id="run">계산하기</button>
   <div id="log"></div>
+  <details id="output" hidden>
+    <summary>생성된 JSON 확인</summary>
+    <textarea id="outputJson" aria-label="생성된 embeddings JSON" readonly style="width:100%;height:320px"></textarea>
+  </details>
 
   <script type="module">
     import { FaceLandmarker, FilesetResolver } from "../js/vendor/mediapipe/vision_bundle.mjs"
@@ -88,6 +92,7 @@
             netWorth: person.netWorth,
             achievement: person.achievement,
             credit: person.credit,
+            isIllustration: person.isIllustration,
             features: FEATURE_KEYS.map((k) => features[k]),
           })
         } catch (err) {
@@ -110,7 +115,10 @@
     }
 
     function downloadJSON(data, filename) {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+      const json = JSON.stringify(data, null, 2)
+      document.getElementById("outputJson").value = json
+      document.getElementById("output").hidden = false
+      const blob = new Blob([json], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url

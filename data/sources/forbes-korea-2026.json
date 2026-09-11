@@ -1,0 +1,891 @@
+{
+  "schema_version": "2.1",
+  "exported_at": "2026-09-11T01:46:12.602Z",
+  "article": {
+    "title": "2026 대한민국 50대 부자",
+    "subtitle": "2026 KOREA’S 50 RICHEST 이재용, 글로벌 AI 열풍 수혜로 1위 탈환",
+    "author": "포브스아시아 John Kang, Jane Ho 기자, 포브스코리아 이진원 기자",
+    "publication_info": "수정 2026.04.28 17:06 입력 2026.04.28 14:11",
+    "url": "https://www.forbeskorea.co.kr/news/articleView.html?idxno=401816",
+    "source": "Forbes Korea"
+  },
+  "people": [
+    {
+      "rank": 1,
+      "name": "이재용",
+      "net_worth": "216억 달러(31조9161억원)",
+      "wealth_source": "삼성전자",
+      "rank_change": "↑ 1",
+      "self_made": false,
+      "biography": "삼성전자 회장 · 상속세 완납으로 경영 부담 해소 · 반도체·AI 투자 가속",
+      "images": [
+        {
+          "filename": "401816_33683_3435.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33683_3435.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "name": "김병주",
+      "net_worth": "99억 달러(14조6282억원)",
+      "wealth_source": "MBK파트너스",
+      "rank_change": "↓ 1",
+      "self_made": true,
+      "biography": "MBK파트너스 공동창업 · 아시아 최대 사모펀드 운용 · 홈플러스 인수 후 법정관리",
+      "images": [
+        {
+          "filename": "401816_33709_4540.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33709_4540.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "name": "서정진",
+      "net_worth": "81억 달러(11조9685억원)",
+      "wealth_source": "셀트리온",
+      "rank_change": "↑ 1",
+      "self_made": true,
+      "biography": "셀트리온 공동창업자 · 바이오시밀러 성공 신화 · 회장 복귀 후 M&A 확대",
+      "images": [
+        {
+          "filename": "401816_33708_4540.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33708_4540.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "name": "조정호",
+      "net_worth": "80억 달러(11조8208억원)",
+      "wealth_source": "메리츠금융그룹",
+      "rank_change": "↓ 1",
+      "self_made": false,
+      "biography": "메리츠금융그룹 회장 · 성과주의로 금융 거물 성장 · '조정호 방지법' 촉발 논란",
+      "images": [
+        {
+          "filename": "401816_33707_4540.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33707_4540.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "name": "이부진",
+      "net_worth": "79억 달러(11조6730억원)",
+      "wealth_source": "호텔신라",
+      "rank_change": "↑ 4",
+      "self_made": false,
+      "biography": "호텔신라 사장 겸 CEO · 이건희 회장 딸, 삼성가 분할상속 · 포브스 영향력 여성 100인",
+      "images": [
+        {
+          "filename": "401816_33704_4539.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33704_4539.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "name": "이서현",
+      "net_worth": "75억 달러(11조820억원)",
+      "wealth_source": "삼성",
+      "rank_change": "↑ 5",
+      "self_made": false,
+      "biography": "삼성물산 전략기획담당 사장 · 5~6년 만에 경영 복귀 · 패션사업 15년 이끈 전문가",
+      "images": [
+        {
+          "filename": "401816_33712_484.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33712_484.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "name": "정몽구",
+      "net_worth": "73억 달러(10조7864억원)",
+      "wealth_source": "현대자동차그룹",
+      "rank_change": "↓ 2",
+      "self_made": false,
+      "biography": "현대차그룹 명예회장 · '품질경영'으로 글로벌 빅3 도약 · 현대차·모비스·제철 지분 보유",
+      "images": [
+        {
+          "filename": "401816_33711_4737.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33711_4737.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 8,
+      "name": "홍라희",
+      "net_worth": "71억 달러(10조4909억원)",
+      "wealth_source": "삼성전자",
+      "rank_change": "◀▶",
+      "self_made": false,
+      "biography": "이건희 회장 미망인 · 전 리움미술관장 · 삼성전자 개인 최대주주 2위",
+      "images": [
+        {
+          "filename": "401816_33706_4540.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33706_4540.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "name": "정의선",
+      "net_worth": "63억 달러(9조3088억원)",
+      "wealth_source": "현대자동차그룹",
+      "rank_change": "↑ 1",
+      "self_made": false,
+      "biography": "현대차그룹 회장 · 로보틱스·UAM·자율주행 투자 · 보스턴다이내믹스 인수",
+      "images": [
+        {
+          "filename": "401816_33705_4539.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33705_4539.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "name": "윤대인",
+      "net_worth": "59억 달러(8조7178억원)",
+      "wealth_source": "삼천당제약(SCD)",
+      "rank_change": "★",
+      "self_made": false,
+      "biography": "삼천당제약(SCD) 회장 · 가족자금으로 회사 인수 · 약물전달기술 S-PASS 일본 수출",
+      "images": [
+        {
+          "filename": "401816_33715_4848.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33715_4848.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 11,
+      "name": "곽동신",
+      "net_worth": "57억 달러(8조4223억원)",
+      "wealth_source": "한미반도체",
+      "rank_change": "↑ 11",
+      "self_made": false,
+      "biography": "한미반도체 회장 겸 CEO · TC본더 세계 1위(점유율 71%) · 부자 2세 경영 승계",
+      "images": [
+        {
+          "filename": "401816_33714_4848.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33714_4848.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 12,
+      "name": "박현주",
+      "net_worth": "49억 달러(7조2402억원)",
+      "wealth_source": "미래에셋금융그룹",
+      "rank_change": "↑ 12",
+      "self_made": true,
+      "biography": "미래에셋금융그룹 창업자 · 한국 뮤추얼펀드 산업 개척 · 9개국 19개 법인 운영",
+      "images": [
+        {
+          "filename": "401816_33716_5027.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33716_5027.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 13,
+      "name": "김범수",
+      "net_worth": "38억 달러(5조6148억원)",
+      "wealth_source": "카카오",
+      "rank_change": "↓ 6",
+      "self_made": true,
+      "biography": "카카오 창업자 · 국내 대표 플랫폼 기업 성장 · SM엔터 시세조종 의혹 수사",
+      "images": [
+        {
+          "filename": "401816_33717_5621.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33717_5621.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 14,
+      "name": "김범석",
+      "net_worth": "32억 달러(4조7283억원)",
+      "wealth_source": "쿠팡",
+      "rank_change": "↓ 8",
+      "self_made": true,
+      "biography": "쿠팡 창업자 겸 의장 · 로켓배송으로 유통 혁신 · 개인정보 유출 사고로 실적 급감",
+      "images": [
+        {
+          "filename": "401816_33718_5621.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33718_5621.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 15,
+      "name": "김정민, 김정연",
+      "net_worth": "31억5000만 달러(4조6544억원)",
+      "wealth_source": "NXC",
+      "rank_change": "↓ 3",
+      "self_made": false,
+      "biography": "김정주 넥슨 창업자 장녀·차녀 · NXC 지분 각 17.16% 상속 · 포브스 최연소 억만장자",
+      "images": []
+    },
+    {
+      "rank": 16,
+      "name": "권혁빈",
+      "net_worth": "31억 달러(4조5805억원)",
+      "wealth_source": "스마일게이트",
+      "rank_change": "↓ 3",
+      "self_made": true,
+      "biography": "스마일게이트 창업자 CVO · '크로스파이어'·'로스트아크' 흥행 · 지주사 체제 개편",
+      "images": [
+        {
+          "filename": "401816_33720_5711.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33720_5711.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 17,
+      "name": "조현준",
+      "net_worth": "29억5000만 달러(4조3589억원)",
+      "wealth_source": "효성그룹",
+      "rank_change": "↑ 22",
+      "self_made": false,
+      "biography": "효성그룹 회장 · 스판덱스 세계 1위 수성 · 미국 전력시장 역대 최대 수주",
+      "images": [
+        {
+          "filename": "401816_33722_5711.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33722_5711.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 18,
+      "name": "최태원",
+      "net_worth": "29억 달러(4조2850억원)",
+      "wealth_source": "SK그룹",
+      "rank_change": "↑ 18",
+      "self_made": false,
+      "biography": "SK그룹 회장 · 반도체·배터리·에너지 재편 · 엔비디아·TSMC와 AI 반도체 동맹",
+      "images": [
+        {
+          "filename": "401816_33723_5711.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33723_5711.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 19,
+      "name": "김준기",
+      "net_worth": "28억5000만 달러(4조2111억원)",
+      "wealth_source": "DB그룹",
+      "rank_change": "↓ 2",
+      "self_made": true,
+      "biography": "DB그룹 창업 회장 · 자본금 2500만원으로 자수성가 · 성추행 사건으로 경영 퇴진",
+      "images": [
+        {
+          "filename": "401816_33721_5711.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33721_5711.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 20,
+      "name": "정몽준",
+      "net_worth": "28억 달러(4조1372억원)",
+      "wealth_source": "HD현대",
+      "rank_change": "↑ 6",
+      "self_made": false,
+      "biography": "아산사회복지재단 이사장 · 현대중공업(HD현대) 세계 1위 조선사로 육성 · 7선 국회의원",
+      "images": [
+        {
+          "filename": "401816_33719_5711.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33719_5711.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 21,
+      "name": "김병훈",
+      "net_worth": "27억 달러(3조9895억원)",
+      "wealth_source": "APR",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "APR 공동창업자 겸 CEO · 반지하 창업, 12년 만에 시총 15조 · 헤일리 비버로 글로벌 흥행",
+      "images": [
+        {
+          "filename": "401816_33728_5839.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33728_5839.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 22,
+      "name": "박순재",
+      "net_worth": "26억 달러(3조8417억원)",
+      "wealth_source": "알테오젠",
+      "rank_change": "↓ 8",
+      "self_made": true,
+      "biography": "알테오젠 이사회 의장 · 국내 1호 FDA 승인 신약 개발 참여 · '하이브로자임' 기술 상업화",
+      "images": [
+        {
+          "filename": "401816_33729_5839.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33729_5839.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 23,
+      "name": "유정현",
+      "net_worth": "25억 달러(3조6940억원)",
+      "wealth_source": "NXC",
+      "rank_change": "↓ 8",
+      "self_made": true,
+      "biography": "NXC 이사회 의장 · 넥슨 공동창업자 · 5조3000억원 상속세 조기 완납",
+      "images": []
+    },
+    {
+      "rank": 24,
+      "name": "이동채",
+      "net_worth": "24억 달러(3조5462억원)",
+      "wealth_source": "에코프로",
+      "rank_change": "↑ 23",
+      "self_made": true,
+      "biography": "에코프로그룹 창업주 · 양극재 시장 글로벌 패권 장악 · 내부자거래 유죄 판결",
+      "images": [
+        {
+          "filename": "401816_33725_5838.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33725_5838.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 25,
+      "name": "송치형",
+      "net_worth": "23억 달러(3조3984억원)",
+      "wealth_source": "업비트",
+      "rank_change": "↑ 10",
+      "self_made": true,
+      "biography": "두나무 회장 겸 이사회 의장 · 업비트 국내 1위 안착 · 네이버파이낸셜과 주식교환 추진",
+      "images": [
+        {
+          "filename": "401816_33727_5839.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33727_5839.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 26,
+      "name": "정용지",
+      "net_worth": "22억5000만 달러(3조3246억원)",
+      "wealth_source": "케어젠",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "케어젠 창립자 겸 CEO · 주름개선·모발재생 제품 130개국 수출",
+      "images": [
+        {
+          "filename": "401816_33730_5839.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33730_5839.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 27,
+      "name": "구본능",
+      "net_worth": "22억 달러(3조2507억원)",
+      "wealth_source": "희성그룹",
+      "rank_change": "↑ 11",
+      "self_made": false,
+      "biography": "희성그룹 회장 · 구광모 LG회장 친부 · LG 계열 분리 성장, 전 KBO 총재",
+      "images": [
+        {
+          "filename": "401816_33726_5839.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33726_5839.jpg",
+          "caption": null,
+          "width": 155,
+          "height": 141
+        }
+      ]
+    },
+    {
+      "rank": 28,
+      "name": "정용진",
+      "net_worth": "21억 달러(3조1029억원)",
+      "wealth_source": "신세계",
+      "rank_change": "↑ 1",
+      "self_made": false,
+      "biography": "신세계그룹 회장 · 이건희 회장 손자 · 이마트 실적 반등 주도",
+      "images": [
+        {
+          "filename": "401816_33724_5838.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33724_5838.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 29,
+      "name": "김정수, 전인장",
+      "net_worth": "9억5000만 달러(2조8813억원)",
+      "wealth_source": "삼양식품",
+      "rank_change": "↓ 8",
+      "self_made": false,
+      "biography": "삼양식품 대표이사 부회장 · '불닭볶음면' 개발·해외 확대 · 횡령·배임 유죄 이력",
+      "images": [
+        {
+          "filename": "401816_33699_351.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33699_351.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 30,
+      "name": "구광모",
+      "net_worth": "19억 달러(2조8074억원)",
+      "wealth_source": "LG그룹",
+      "rank_change": "↓ 10",
+      "self_made": false,
+      "biography": "LG그룹 회장 · AI '엑사원' 상업화 주도 · 전장(VS)사업 흑자 전환",
+      "images": [
+        {
+          "filename": "401816_33698_350.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33698_350.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 31,
+      "name": "이채윤",
+      "net_worth": "18억9000만 달러(2조7926억원)",
+      "wealth_source": "리노산업",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "리노산업 창립자 겸 CEO · 반도체 테스트 소켓 세계적 공급 · 엔비디아·삼성 등 1000여 고객사",
+      "images": [
+        {
+          "filename": "401816_33701_352.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33701_352.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 168
+        }
+      ]
+    },
+    {
+      "rank": 32,
+      "name": "김남구",
+      "net_worth": "18억5000만 달러(2조7335억원)",
+      "wealth_source": "한국투자홀딩스",
+      "rank_change": "★",
+      "self_made": false,
+      "biography": "한국투자금융지주 회장 · 국내 최초 금융투자 전업 지주사 · 영업이익 2조원 돌파",
+      "images": [
+        {
+          "filename": "401816_33702_352.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33702_352.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 33,
+      "name": "구본식",
+      "net_worth": "18억 달러(2조6596억원)",
+      "wealth_source": "LT그룹",
+      "rank_change": "↑ 4",
+      "self_made": false,
+      "biography": "LT그룹 회장 · 희성그룹서 계열 분리 독립 · LG 의존도 낮춘 포트폴리오 구축",
+      "images": [
+        {
+          "filename": "401816_33697_350.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33697_350.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 34,
+      "name": "이재현",
+      "net_worth": "17억5000만 달러(2조5858억원)",
+      "wealth_source": "CJ그룹",
+      "rank_change": "↓ 11",
+      "self_made": false,
+      "biography": "CJ그룹 회장 · 이병철 회장 장손 · 드림웍스·슈완스 인수로 글로벌 확장",
+      "images": [
+        {
+          "filename": "401816_33696_350.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33696_350.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 35,
+      "name": "박동석",
+      "net_worth": "17억 달러(2조5119억원)",
+      "wealth_source": "산일전기",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "산일전기 창립자 겸 CEO · 변압기 수출 매출 60% 미국 · IPO 후 역대 최대 실적",
+      "images": [
+        {
+          "filename": "401816_33731_237.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33731_237.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 36,
+      "name": "김상범",
+      "net_worth": "15억 달러(2조2164억원)",
+      "wealth_source": "이수그룹",
+      "rank_change": "★",
+      "self_made": false,
+      "biography": "이수그룹(ISU) 회장 · 2세 경영 승계 · 고다층 PCB로 글로벌 IT 공급망 참여",
+      "images": [
+        {
+          "filename": "401816_33700_351.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33700_351.jpg",
+          "caption": null,
+          "width": 176,
+          "height": 161
+        }
+      ]
+    },
+    {
+      "rank": 37,
+      "name": "서경배",
+      "net_worth": "14억5000만 달러(2조1425억원)",
+      "wealth_source": "아모레퍼시픽",
+      "rank_change": "↓ 9",
+      "self_made": false,
+      "biography": "아모레퍼시픽그룹 회장 · K뷰티 글로벌화 주도 · 코스알엑스 인수로 실적 반등",
+      "images": [
+        {
+          "filename": "401816_33693_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33693_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 38,
+      "name": "이해진",
+      "net_worth": "14억4000만 달러(2조1277억원)",
+      "wealth_source": "네이버",
+      "rank_change": "↓ 19",
+      "self_made": true,
+      "biography": "네이버 창업자 · 국내 1위 포털 성장 · 라인야후 지분 관련 대외 리스크 관리",
+      "images": [
+        {
+          "filename": "401816_33694_350.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33694_350.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 39,
+      "name": "이상훈",
+      "net_worth": "14억 달러(2조686억원)",
+      "wealth_source": "ABL바이오",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "ABL바이오 창립자 겸 CEO·CRO · 이중특이항체 개발 · 일라이 릴리와 26억달러 기술수출",
+      "images": []
+    },
+    {
+      "rank": 40,
+      "name": "김현태",
+      "net_worth": "13억 달러(1조9208억원)",
+      "wealth_source": "보로노이",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "보로노이 CEO · 동생 창업 회사 경영 승계 · 항암 신약 파이프라인 임상 진행",
+      "images": [
+        {
+          "filename": "401816_33691_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33691_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 41,
+      "name": "방시혁",
+      "net_worth": "12억5000만 달러(1조8470억원)",
+      "wealth_source": "하이브",
+      "rank_change": "↓ 25",
+      "self_made": true,
+      "biography": "하이브 이사회 의장 · BTS 세계적 아티스트로 육성 · 완전체 활동 재개로 실적 기대",
+      "images": [
+        {
+          "filename": "401816_33692_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33692_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 42,
+      "name": "최기원",
+      "net_worth": "12억1000만 달러(1조7878억원)",
+      "wealth_source": "SK그룹",
+      "rank_change": "★",
+      "self_made": false,
+      "biography": "SK행복나눔재단 이사장 · 최태원 회장 여동생 · SK㈜ 3대 주주, 사회공헌 전담",
+      "images": [
+        {
+          "filename": "401816_33695_350.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33695_350.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 43,
+      "name": "김형년",
+      "net_worth": "12억 달러(1조7731억원)",
+      "wealth_source": "업비트",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "두나무 공동창업자 겸 부회장 · 업비트 운영 · 네이버파이낸셜 인수로 기업가치 136억달러",
+      "images": [
+        {
+          "filename": "401816_33703_352.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33703_352.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 44,
+      "name": "김택진",
+      "net_worth": "11억8000만 달러(1조7435억원)",
+      "wealth_source": "엔씨",
+      "rank_change": "↓ 13",
+      "self_made": true,
+      "biography": "엔씨 창업자 겸 대표이사 · 200개국 온라인게임 서비스 · NC다이노스 구단주",
+      "images": [
+        {
+          "filename": "401816_33690_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33690_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 45,
+      "name": "이호진",
+      "net_worth": "11억5000만 달러(1조6992억원)",
+      "wealth_source": "태광그룹",
+      "rank_change": "↓ 11",
+      "self_made": false,
+      "biography": "태광그룹 전 회장 · 횡령·배임으로 장기 사법 리스크 · 현재 비상근 고문",
+      "images": [
+        {
+          "filename": "401816_33688_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33688_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 46,
+      "name": "신동주",
+      "net_worth": "11억3000만 달러(1조6696억원)",
+      "wealth_source": "롯데그룹",
+      "rank_change": "↓ 19",
+      "self_made": false,
+      "biography": "SDJ코퍼레이션 회장 · 신격호 명예회장 장남 · 롯데홀딩스 경영권 분쟁 지속",
+      "images": [
+        {
+          "filename": "401816_33686_3458.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33686_3458.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 47,
+      "name": "홍석조",
+      "net_worth": "11억 달러(1조6253억원)",
+      "wealth_source": "BGF리테일",
+      "rank_change": "↓ 14",
+      "self_made": false,
+      "biography": "BGF그룹 회장 · 검사 출신 경영인 · CU 편의점 국내 1위, 하와이 진출",
+      "images": [
+        {
+          "filename": "401816_33685_3458.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33685_3458.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 48,
+      "name": "이수진",
+      "net_worth": "10억5000만 달러(1조5514억원)",
+      "wealth_source": "야놀자",
+      "rank_change": "↓ 30",
+      "self_made": true,
+      "biography": "야놀자 총괄대표 · 모텔 청소부에서 창업 신화 · 연매출 1조원 첫 돌파",
+      "images": [
+        {
+          "filename": "401816_33684_3458.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33684_3458.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 49,
+      "name": "성규동",
+      "net_worth": "10억3000만 달러(1조5219억원)",
+      "wealth_source": "EO테크닉스",
+      "rank_change": "★",
+      "self_made": true,
+      "biography": "EO테크닉스 창립자 겸 CEO · 반도체 레이저 장비 전문 · 산업용 레이저 기술 개척",
+      "images": [
+        {
+          "filename": "401816_33689_3459.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33689_3459.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    },
+    {
+      "rank": 50,
+      "name": "조현범",
+      "net_worth": "10억 달러(1조4776억원)",
+      "wealth_source": "한국앤컴퍼니그룹",
+      "rank_change": "★",
+      "self_made": false,
+      "biography": "한국앤컴퍼니그룹 회장 · 조양래 전 회장 막내아들 · 횡령 혐의 징역 2년 선고",
+      "images": [
+        {
+          "filename": "401816_33687_3458.jpg",
+          "source_url": "https://cdn.forbeskorea.co.kr/news/photo/202604/401816_33687_3458.jpg",
+          "caption": null,
+          "width": 180,
+          "height": 164
+        }
+      ]
+    }
+  ],
+  "download_notes": "The ZIP contains this JSON file and the image files named in people[].images[].filename."
+}

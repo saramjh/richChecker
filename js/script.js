@@ -71,6 +71,32 @@ async function ensureMediapipeModules() {
 // 마케팅 콘텐츠의 기본 원리.
 let lastResultSummary = null
 
+// populateShareCard()가 진행 중인 마지막 Promise — captureShareCard()가 캡처 전에 기다린다
+// (사진 비율 보정을 위한 캔버스 크롭이 비동기라 생긴 경쟁 상태를 막기 위함).
+let shareCardReadyPromise = null
+
+// 저장/공유 시 내 얼굴이 그대로 나가는 게 부담스러울 수 있다는 피드백 — 매칭 카드와 공유용
+// 카드 양쪽의 "나" 사진에 블러를 걸지 여부. 새 결과가 렌더될 때도 이 선택을 유지한다
+// (한 세션 안에서 여러 번 테스트해도 매번 다시 켤 필요가 없도록).
+let faceHidden = false
+
+function applyFaceHiddenState() {
+	const topMatchUserImg = document.querySelector("#topMatchPhotos .topMatch-photo-box:first-child img")
+	const shareCardUserImg = document.getElementById("shareCardUserPhoto")
+	if (topMatchUserImg) topMatchUserImg.classList.toggle("face-hidden", faceHidden)
+	if (shareCardUserImg) shareCardUserImg.classList.toggle("face-hidden", faceHidden)
+	const toggleBtn = document.getElementById("faceHideToggle")
+	if (toggleBtn) toggleBtn.setAttribute("aria-pressed", String(faceHidden))
+	const toggleLabel = document.getElementById("faceHideToggleLabel")
+	if (toggleLabel) toggleLabel.textContent = faceHidden ? "얼굴 가려짐 (다시 보이기)" : "공유 시 내 얼굴 가리기"
+}
+
+document.getElementById("faceHideToggle").addEventListener("click", function () {
+	playClick()
+	faceHidden = !faceHidden
+	applyFaceHiddenState()
+})
+
 let faceLandmarkerInstance = null
 async function ensureFaceLandmarker() {
 	if (faceLandmarkerInstance) return faceLandmarkerInstance
@@ -179,6 +205,7 @@ function toMatch(person, similarity) {
 		netWorth: person.netWorth,
 		achievement: person.achievement,
 		credit: person.credit,
+		isIllustration: person.isIllustration,
 		features: person.features,
 		similarity,
 	}
@@ -189,18 +216,6 @@ const SIMILARITY_SCALE = 14
 
 function similarityFromDistance(distance) {
 	return Math.max(0, 100 - distance * SIMILARITY_SCALE)
-}
-
-// z-score 거리 계산은 순수 연산이라 62명을 비교해도 수십 ms 안에 끝난다 — 항목별로
-// 진행률 %를 업데이트해봐야 브라우저가 리페인트할 틈도 없이 0→100으로 튀어 버벅이는 것처럼
-// 보이므로, 진행률 표시는 (아래 showLoadingModal의) 불확정 애니메이션에 맡기고 여기서는
-// 계산만 한다.
-async function matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance) {
-	const { stats, people } = embeddingsData
-	return people.map((entry) => {
-		const distance = zscoreDistance(uploadedFeatures, entry.features, stats)
-		return toMatch(entry, similarityFromDistance(distance))
-	})
 }
 
 // 휴대폰 카메라 사진은 보통 EXIF 방향 태그가 붙어 있다 — <img>는 화면에 그릴 때 이 태그를
@@ -329,8 +344,8 @@ async function processImage(imageSrc) {
 		// 헤드라인 %는 그대로 "전체 6개 항목 기준 종합 유사도"를 쓴다 — 이미 튜닝된
 		// SIMILARITY_SCALE/등급 체계를 그대로 재사용할 수 있고, "특정 부위는 많이 닮았지만
 		// 전체적으로는 어느 정도"라는 게 오히려 더 정직하고 납득되는 서사가 된다.
-		const matches = await matchAgainstFeatures(uploadedFeatures, embeddingsData, zscoreDistance)
-		const topMatch = matches.find((m) => m.name === matchedPerson.name)
+		const topMatchDistance = zscoreDistance(uploadedFeatures, matchedPerson.features, embeddingsData.stats)
+		const topMatch = toMatch(matchedPerson, similarityFromDistance(topMatchDistance))
 
 		const radar = {
 			keys: FEATURE_KEYS,
@@ -341,7 +356,7 @@ async function processImage(imageSrc) {
 			nearestByFeature,
 		}
 
-		renderResults(matches, { age, expression }, radar, archetype, topMatch)
+		renderResults({ age, expression }, radar, archetype, topMatch)
 	} catch (err) {
 		console.error(err)
 		showToast("분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
@@ -362,6 +377,9 @@ const ICON_PATHS = {
 		'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
 	squareUser: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>',
 	circleAlert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+	info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+	eyeOff:
+		'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
 }
 
 function icon(name, className = "trait-icon") {
@@ -455,6 +473,7 @@ const FEATURE_READINGS = {
 	foreheadRatio: {
 		icon: "brain",
 		label: "이마 · 초년운",
+		tooltip: "헤어라인부터 눈썹까지의 높이를 얼굴 전체 높이와 비교한 비율입니다. 관상학에서는 이 부위를 어린 시절부터 청년기까지의 운, '초년운'으로 봅니다.",
 		high: "재벌 표본 평균보다 이마가 훤칠하게 넓은 편입니다. 어릴 때부터 총명하고 판단이 빠르며, 윗사람의 발탁운이 따르는 재벌상의 이마 비율에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 이마 비율입니다. 무난하고 안정적인 초년운을 타고난 재벌형 이마에 가깝습니다.",
 		low: "재벌 표본 평균보다 이마가 아담한 편입니다. 신중하게 내실을 다지는 상으로, 재벌들 사이에서도 늦게 크게 트이는 대기만성형에 속합니다.",
@@ -462,6 +481,7 @@ const FEATURE_READINGS = {
 	eyeSpacingRatio: {
 		icon: "eye",
 		label: "눈매 간격 · 대인궁",
+		tooltip: "두 눈 사이의 간격을 얼굴 너비와 비교한 비율입니다. 관상학에서 눈가는 사람과의 관계·처세를 보는 '대인궁'에 해당합니다.",
 		high: "재벌 표본 평균보다 눈 사이가 넓은 편입니다. 마음이 트여있고 포용력이 커, 재벌들 특유의 폭넓은 인맥형 눈매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 눈매 간격입니다. 대인관계에서 균형 잡힌 처세를 보이는 재벌형에 가깝습니다.",
 		low: "재벌 표본 평균보다 눈 사이가 좁은 편입니다. 집중력이 뛰어나 한 우물을 깊게 파는 상으로, 창업형 재벌들에게서 종종 보이는 눈매입니다.",
@@ -469,6 +489,7 @@ const FEATURE_READINGS = {
 	noseLengthRatio: {
 		icon: "gem",
 		label: "코 길이 · 재백궁(재물운)",
+		tooltip: "콧대 길이를 얼굴 전체 높이와 비교한 비율입니다. 관상학에서 코는 재물을 담는 그릇, '재백궁'으로 재물운을 상징합니다.",
 		high: "관상학에서 코는 재물을 담는 그릇, '재백궁'이라 했습니다. 재벌 표본 평균보다 콧대가 길게 뻗어 있어 재물을 차곡차곡 쌓는 전형적인 재벌 코에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 코 길이입니다. 크게 넘치지도 모자라지도 않게 재물을 관리하는 재벌형 재물운입니다.",
 		low: "재벌 표본 평균보다 코가 아담한 편입니다. 씀씀이가 시원시원하고 규모보다 실속을 먼저 챙기는 재물운입니다.",
@@ -476,6 +497,7 @@ const FEATURE_READINGS = {
 	mouthWidthRatio: {
 		icon: "smile",
 		label: "입 너비 · 언변궁",
+		tooltip: "입 너비를 얼굴 전체 너비와 비교한 비율입니다. 관상학에서 입은 말과 화술, 즉 '언변궁'을 나타내는 부위입니다.",
 		high: "재벌 표본 평균보다 입이 큼직한 편입니다. 언변이 좋고 배포가 커, 말 한마디로 조직을 움직이는 재벌 특유의 입매에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 입 크기입니다. 신뢰감 있는 화법을 구사하는 재벌형 언변궁입니다.",
 		low: "재벌 표본 평균보다 입이 아담한 편입니다. 말수는 적지만 한마디 한마디에 무게가 실리는 상입니다.",
@@ -483,6 +505,7 @@ const FEATURE_READINGS = {
 	jawRatio: {
 		icon: "shieldCheck",
 		label: "턱선 · 말년운",
+		tooltip: "턱선의 뚜렷한 정도(폭·각짐)를 나타내는 비율입니다. 관상학에서 턱은 노년기의 안정과 결실, '말년운'을 보는 부위입니다.",
 		high: "재벌 표본 평균보다 턱선이 두드러진 편입니다. 뚝심과 추진력이 강해, 관상학에서 말년의 복이 두텁다고 보는 재벌형 턱에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 턱선입니다. 안정적으로 목표를 이뤄가는 재벌형 말년운입니다.",
 		low: "재벌 표본 평균보다 턱선이 갸름한 편입니다. 유연하고 임기응변에 강한 상입니다.",
@@ -490,6 +513,7 @@ const FEATURE_READINGS = {
 	faceAspectRatio: {
 		icon: "squareUser",
 		label: "얼굴형 · 전체 기질",
+		tooltip: "얼굴 세로 길이를 가로 너비와 비교한 비율입니다. 값이 클수록 갸름한 얼굴형, 작을수록 둥근 얼굴형에 가까우며 전체적인 인상·기질을 나타냅니다.",
 		high: "재벌 표본 평균보다 얼굴이 갸름한 편입니다. 섬세하고 전략적으로 움직이는 참모·기획형 재벌 기질에 가깝습니다.",
 		mid: "재벌 표본과 비슷한 얼굴 비율입니다. 균형 잡힌 기질의 재벌형 얼굴형입니다.",
 		low: "재벌 표본 평균보다 얼굴이 둥근 편입니다. 예로부터 원만하고 복이 들어오는 인상이라 전해지는, 오너형 재벌에게서 흔히 보이는 얼굴형입니다.",
@@ -511,7 +535,7 @@ function renderFeatureReadings(radar) {
 			const percentile = radar.user[i]
 			const tier = tierForPercentile(percentile)
 			const nearest = radar.nearestByFeature && radar.nearestByFeature[i]
-			// 막대(표본 대비 백분위)와 "OOO과 N% 일치" 배지는 서로 다른 계산(전자는 62명 분포
+			// 막대(표본 대비 백분위)와 "OOO과 N% 일치" 배지는 서로 다른 계산(전자는 47명 분포
 			// 내 위치, 후자는 가장 가까운 한 명과의 근접도)인데 둘 다 숫자%라 나란히 붙어있으면
 			// 막대는 62% 찼는데 옆 글자는 91%라고 해서 "둘이 왜 다르냐"는 혼란을 줬다 — 각자
 			// 무엇을 재는 숫자인지 눈에 보이는 캡션을 따로 붙이고, 줄도 분리한다.
@@ -527,16 +551,30 @@ function renderFeatureReadings(radar) {
 			`
 			// "이 항목은 OOO 회장과 닮았다"는 게 통계적 비교보다 흥미롭다는 피드백 반영 — 포브스
 			// 순위까지 박아서 임팩트를 주되, 위 막대와는 아예 다른 줄로 분리한다.
-			// closeness(%)는 일부러 안 붙인다 — "62명 중 이 항목이 가장 가까운 한 명"을 찾는
+			// closeness(%)는 일부러 안 붙인다 — "이름이 공개된 47명 중 이 항목이 가장 가까운 한 명"을 찾는
 			// 거라 거의 항상 높게 나오고(특히 표본에 이미 있는 인물의 사진을 올리면 당연히
 			// 모든 항목에서 100%가 나온다), 바로 위 백분위 막대와 다른 계산이라 숫자가 서로
 			// 어긋나 보여 "그래프랑 수치가 따로 논다"는 혼란을 줬다. 막대 하나만 정량적 근거로
-			// 남기고, 매칭 인물 이름은 숫자 없는 순수 코멘트로만 붙인다.
-			const matchHtml = nearest ? `<p class="reading-match">✦ <strong>${nearest.name}</strong>${nearest.rank ? `(포브스 ${nearest.rank}위)` : ""}과 가장 닮은 부위예요</p>` : ""
+			// 남기고, 매칭 인물 이름은 숫자 없는 순수 코멘트로만 붙인다. 이름만으론 누군지 바로
+			// 안 떠오를 수 있어 작은 썸네일을 같이 붙인다.
+			const matchHtml = nearest
+				? `
+					<div class="reading-match">
+						<img class="reading-match-thumb" src="${nearest.image}" alt="${nearest.name}">
+						<p>✦ <strong>${nearest.name}</strong>${nearest.rank ? `(포브스 ${nearest.rank}위)` : ""}과 가장 닮은 부위예요</p>
+					</div>
+				`
+				: ""
+			// 라벨("이마 · 초년운" 등)만 봐서는 정확히 뭘 측정한 비율인지 알기 어렵다는 점 —
+			// 호버(데스크톱)/탭(터치)으로 여는 툴팁에 측정 기준을 설명한다. 버튼 클릭은
+			// document의 위임 리스너(아래 setupReadingTooltips)가 처리한다.
+			const tooltipHtml = reading.tooltip
+				? `<button type="button" class="reading-info-btn" aria-label="${reading.label} 설명 보기">${icon("info", "reading-info-icon")}</button><span class="reading-tooltip">${reading.tooltip}</span>`
+				: ""
 			return `
 				<div class="reading-item">
 					<div class="reading-head">
-						<span class="reading-label">${icon(reading.icon)}${reading.label}</span>
+						<span class="reading-label">${icon(reading.icon)}${reading.label}${tooltipHtml}</span>
 					</div>
 					${barHtml}
 					${matchHtml}
@@ -562,6 +600,20 @@ function renderFeatureReadings(radar) {
 		</div>
 	`
 }
+
+// 항목 설명 버튼(ⓘ)은 결과가 렌더될 때마다 DOM이 통째로 새로 생기므로, 개별 리스너 대신
+// document에 한 번만 위임 리스너를 건다. 데스크톱은 CSS 호버로 열리지만, 터치 환경엔 호버가
+// 없어 이 클릭 토글이 유일한 열기/닫기 수단이다 — 버튼 밖을 클릭하면 열려있던 툴팁을 닫는다.
+document.addEventListener("click", (e) => {
+	const btn = e.target.closest(".reading-info-btn")
+	document.querySelectorAll(".reading-tooltip.show").forEach((el) => {
+		if (!btn || el !== btn.nextElementSibling) el.classList.remove("show")
+	})
+	if (btn) {
+		e.preventDefault()
+		btn.nextElementSibling.classList.toggle("show")
+	}
+})
 
 // 육각 레이더 차트를 인라인 SVG로 그린다. userScores/matchScores는 0~100 퍼센타일.
 function renderRadarChart(labels, userScores, matchScores, matchLabel, tierLabel, tierDesc) {
@@ -633,20 +685,35 @@ function renderTopMatch(match, radar, tierLabel, tierDesc) {
 	if (match.netWorth) badges.push(`<span class="badge">자산 ${match.netWorth}</span>`)
 
 	const achievementHtml = match.achievement ? `<p id="topMatchAchievement">${match.achievement}</p>` : ""
-	const creditHtml = match.credit ? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>` : ""
+	const creditHtml = match.credit
+		? `<p id="topMatchCredit">사진 출처: <a href="${match.credit.source}" target="_blank" rel="noopener">${match.credit.author}</a> (${match.credit.license})</p>`
+		: match.isIllustration
+			? `<p id="topMatchCredit">AI가 상상으로 그린 캐리커쳐입니다 (실제 사진 아님)</p>`
+			: ""
 	// 등급 판정("눈에 띄는 특징" 등)은 예전엔 이 카드 맨 위에 별도 금색 박스로 떠서, 카드 안에
 	// 박스가 또 있는 것처럼 스타일이 어긋나 보였다는 피드백 — 레이더 차트 아래 박스 없는
 	// 안내문에 자연스럽게 얹는다(renderRadarChart 안에서 처리).
 	const radarHtml = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel, tierLabel, tierDesc) : ""
 
 	// "재벌 얼굴을 텍스트로만 말하지 말고 실제로 보여달라"는 피드백 반영 — 카드 안에 바로
-	// "나 vs 매칭 인물" 사진을 나란히 놓는다(예전엔 저장용 공유 카드에만 있던 구성).
+	// "나 vs 매칭 인물" 사진을 나란히 놓는다(예전엔 저장용 공유 카드에만 있던 구성). 일치율
+	// %는 사진 위 뱃지 대신 이 둘 사이 자리에 직접 박아서, "이 사진과 이 사진이 몇 % 닮았다"는
+	// 뜻이 두 사진 사이 공간에서 바로 읽히게 한다(id는 카드 리빌 이후 카운트업 애니메이션 대상).
+	// 얼굴 가리기 토글이 켜져 있으면 흐린 사진만 덩그러니 있는 게 아니라, 반투명 스크림 +
+	// 아이콘으로 "의도적으로 가린 상태"임을 분명히 보여준다(applyFaceHiddenState가 .face-hidden
+	// 클래스를 img에 붙이면 이 오버레이가 CSS로 자동 나타남).
 	const userPhotoSrc = document.getElementById("uploadedImage").src
 	const photosHtml = match.image
 		? `
 			<div id="topMatchPhotos">
-				<div class="topMatch-photo-box"><img src="${userPhotoSrc}" alt="나"><span>나</span></div>
-				<div class="topMatch-vs">≈</div>
+				<div class="topMatch-photo-box">
+					<div class="photo-frame">
+						<img src="${userPhotoSrc}" alt="나">
+						<div class="face-hidden-overlay">${icon("eyeOff", "face-hidden-icon")}<span>비공개</span></div>
+					</div>
+					<span>나</span>
+				</div>
+				<div class="topMatch-percent" id="topMatchPercent">0.0%</div>
 				<div class="topMatch-photo-box"><img src="${match.image}" alt="${match.name}"><span>${match.name}</span></div>
 			</div>
 		`
@@ -668,7 +735,7 @@ function renderTopMatch(match, radar, tierLabel, tierDesc) {
 	`
 }
 
-function renderResults(matches, aiInfo, radar, archetype, topMatch) {
+function renderResults(aiInfo, radar, archetype, topMatch) {
 	// 메인 지표는 "가장 닮은 인물과의 일치율" 하나로 통일한다. topMatch는 processImage에서
 	// 이미 "가장 두드러지는 특징이 누구와 가장 가까운지"로 정해서 넘겨준다 — 여기서 다시
 	// 고르지 않는다(레이더 차트가 비교하는 사람과 헤드라인/카드에 나오는 사람이 어긋나지
@@ -678,11 +745,12 @@ function renderResults(matches, aiInfo, radar, archetype, topMatch) {
 	const readingHtml = renderFeatureReadings(radar)
 
 	// AI 추정 나이/표정은 "이 매칭 결과"가 아니라 "업로드한 사진 자체"에 대한 정보라,
-	// 결과 카드 쪽 템플릿이 아니라 사진 바로 아래에 있는 고정 엘리먼트에 직접 채운다.
-	const aiInfoParts = []
-	if (aiInfo && aiInfo.age) aiInfoParts.push(`AI 추정 나이 ${aiInfo.age}세`)
-	if (aiInfo && aiInfo.expression) aiInfoParts.push(`표정 ${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%`)
-	document.getElementById("aiInfo").textContent = aiInfoParts.join(" · ")
+	// 결과 카드 쪽 템플릿이 아니라 사진 위 뱃지에 직접 채운다. 나이/표정 둘 다 실패할 수
+	// 있어 있는 것만 넣고, 하나도 없으면 빈 채로 둔다(CSS :empty로 뱃지 자체를 숨김).
+	const aiBadgeLines = []
+	if (aiInfo && aiInfo.age) aiBadgeLines.push(`<span class="ai-badge-line">${aiInfo.age}세</span>`)
+	if (aiInfo && aiInfo.expression) aiBadgeLines.push(`<span class="ai-badge-line ai-badge-sub">${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%</span>`)
+	document.getElementById("aiInfoBadge").innerHTML = aiBadgeLines.join("")
 
 	// 조건에 따른 등급 설정 (topSimilarity 기준: 100%에 가까울수록 "재벌상"이라는
 	// 일반적인 직관에 맞춘 등급). 라벨을 따로 빼두는 건 공유 카드에서도 그대로 재사용하기 위함.
@@ -721,10 +789,9 @@ function renderResults(matches, aiInfo, radar, archetype, topMatch) {
 	}
 	// 등급 문구("눈에 띄는 특징" 등)는 매칭 카드(사진·레이더 차트) 맨 위로 합쳐서 넣는다 —
 	// 예전엔 이 문구가 "OOO과 가장 닮았어요"까지 따로 말하고, 바로 아래 카드에 또 같은
-	// 이름이 나와서 중복이었다는 피드백 반영.
-	const topMatchHtml = topMatch.name ? `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar, tierLabel, tierDesc)}</div>` : ""
-	// 매칭 카드가 없는 극단적 예외(실명 인물이 하나도 없는 경우)에만 등급 문구를 대체 표시한다.
-	const tierFallbackHtml = !topMatch.name ? `<p><span>${tierLabel}</span> ${tierDesc}</p>` : ""
+	// 이름이 나와서 중복이었다는 피드백 반영. topMatch는 항상 실명 있는 인물이다(namedPeople이
+	// 비어 있으면 processImage의 matchedPerson.name 참조에서 이미 예외로 걸러진다).
+	const topMatchHtml = `<div id="topMatchReveal" class="pending-reveal">${renderTopMatch(topMatch, radar, tierLabel, tierDesc)}</div>`
 
 	// 마케팅 관점: %는 잊어도 "나는 OO형"이라는 정체성 라벨은 기억하고 공유한다(MBTI류
 	// 성향테스트가 검증한 패턴). 6개 항목 중 재벌 표본 평균에서 가장 크게 벗어난 항목 하나를
@@ -747,39 +814,42 @@ function renderResults(matches, aiInfo, radar, archetype, topMatch) {
 	// 사진과 숫자가 한 덩어리로 보이게 한다.
 	document.getElementById("averageResult").innerHTML = `
 		<div id="resultRate">
-			${tierFallbackHtml}
 			${archetypeHtml}
-			${topMatchHtml ? divider + topMatchHtml : ""}
+			${divider}${topMatchHtml}
 			${readingHtml ? divider + readingHtml : ""}
 		</div>
 	`
 
 	document.getElementById("resultsContainer").style.display = "block"
 
-	// 뱃지에 %만 있으면 "누구와" 닮았다는 건지 뱃지만 봐서는 알 수 없다는 피드백 — 매칭된
-	// 인물 이름을 같이 넣어서 뱃지 하나로 "몇 %가 누구와"까지 바로 읽히게 한다.
-	const matchBadgeEl = document.getElementById("matchBadge")
-	matchBadgeEl.innerHTML = `<span id="matchBadgeValue">0.0%</span><span id="matchBadgeLabel">${topMatch.name || "일치율"}</span>`
-	const matchBadgeValueEl = document.getElementById("matchBadgeValue")
-	matchBadgeEl.classList.add("show")
+	// 소개 블록(태그라인/이용흐름/가치제안)과 업로드 사진 미리보기는 이미 결과를 받은
+	// 사용자에겐 불필요한 반복이라는 피드백 — 결과가 나오면 통째로 숨긴다. 업로드 사진은
+	// 아래 매칭 카드의 "나" 사진으로 대체되므로 정보 손실이 없다. (showLoadingModal에서 이미
+	// 화면 전환용 퇴장 애니메이션을 재생했으므로, 여기선 완전히 레이아웃에서 빼기만 한다.)
+	document.getElementById("introSection").style.display = "none"
+	document.getElementById("uploadedImageContainer").style.display = "none"
+
+	// 일치율 %는 이제 매칭 카드 안 "나 ≈ 매칭인물" 사이(#topMatchPercent)에 있다 — 카드 자체가
+	// 500ms 뒤에야 리빌되므로, 카운트업도 그 타이밍(delay 0.6)에 맞춰야 숨겨진 채로 세는
+	// 어색함이 없다.
+	const topMatchPercentEl = document.getElementById("topMatchPercent")
 	if (typeof gsap !== "undefined") {
-		gsap.fromTo(matchBadgeEl, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(2)", delay: 0.2 })
 		gsap.to(
 			{ v: 0 },
 			{
 				v: parseFloat(topSimilarity),
 				duration: 0.9,
 				ease: "power2.out",
-				delay: 0.2,
+				delay: 0.6,
 				onUpdate: function () {
-					matchBadgeValueEl.textContent = this.targets()[0].v.toFixed(1) + "%"
+					if (topMatchPercentEl) topMatchPercentEl.textContent = this.targets()[0].v.toFixed(1) + "%"
 				},
 			},
 		)
 		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
 		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
-	} else {
-		matchBadgeValueEl.textContent = topSimilarity + "%"
+	} else if (topMatchPercentEl) {
+		topMatchPercentEl.textContent = topSimilarity + "%"
 	}
 
 	const revealEl = document.getElementById("topMatchReveal")
@@ -797,62 +867,107 @@ function renderResults(matches, aiInfo, radar, archetype, topMatch) {
 	if (cardEl) initHoloEffect(cardEl)
 
 	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity }
-	populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar)
+	// populateShareCard가 async(사진 비율 보정을 위한 캔버스 크롭 포함)라, 저장/공유 버튼을
+	// 결과가 뜨자마자 바로 눌러도 안전하도록 그 Promise를 기억해뒀다가 captureShareCard에서
+	// 반드시 기다리게 한다.
+	shareCardReadyPromise = populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar)
+	applyFaceHiddenState()
+}
+
+// html2canvas(1.4.1)는 <img>의 CSS object-fit을 반영하지 않고 원본 이미지를 그냥 박스
+// 크기로 늘려버린다(실측: 옆에 여백을 붙인 테스트 이미지를 캡처해보니 여백이 잘리지 않고
+// 66%나 그대로 늘어나 들어있었다) — "사진 비율이 늘어나 보인다"는 신고가 정확했다.
+// 캡처 전에 목표 비율로 미리 중앙 크롭해두면, html2canvas가 어떻게 그리든 이미 올바른
+// 비율의 픽셀이라 왜곡될 여지가 없어진다.
+function cropImageToRatio(src, targetRatio) {
+	return new Promise((resolve, reject) => {
+		if (!src) {
+			resolve("")
+			return
+		}
+		const img = new Image()
+		img.crossOrigin = "anonymous"
+		img.onload = () => {
+			const srcRatio = img.naturalWidth / img.naturalHeight
+			let sx, sy, sw, sh
+			if (srcRatio > targetRatio) {
+				sh = img.naturalHeight
+				sw = sh * targetRatio
+				sx = (img.naturalWidth - sw) / 2
+				sy = 0
+			} else {
+				sw = img.naturalWidth
+				sh = sw / targetRatio
+				sx = 0
+				sy = (img.naturalHeight - sh) / 2
+			}
+			const canvas = document.createElement("canvas")
+			canvas.width = 480
+			canvas.height = Math.round(480 / targetRatio)
+			canvas.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+			resolve(canvas.toDataURL("image/jpeg", 0.92))
+		}
+		img.onerror = () => resolve(src) // 크롭 실패해도 원본이라도 보이는 편이 낫다
+		img.src = src
+	})
+}
+
+// 부위별 상세 분석 안의 "가장 닮은 부위" 원형 썸네일도 같은 html2canvas 한계에 걸린다 —
+// renderFeatureReadings()가 만든 마크업을 그대로 넣은 뒤, 그 안의 썸네일들만 정사각형으로
+// 다시 크롭해 원 안에 얼굴이 늘어나 보이지 않게 한다.
+async function fixThumbnailAspectRatios(container) {
+	const thumbs = container.querySelectorAll(".reading-match-thumb")
+	await Promise.all(
+		Array.from(thumbs).map(async (thumb) => {
+			thumb.src = await cropImageToRatio(thumb.src, 1)
+		}),
+	)
 }
 
 // 인스타/페이스북/카카오톡에 공유하기 좋은 비율 카드(화면엔 안 보임, 캡처 전용)에 결과를
-// 채워넣는다. "나 vs 매칭 인물" 사진 비교 + 육각 레이더 차트가 핵심.
-function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar) {
+// 채워넣는다. "나 vs 매칭 인물" 사진 비교 + 육각 레이더 차트 + 부위별 상세 분석까지, 온페이지
+// 결과와 같은 내용을 담아야 이미지만 보고도 "나도 해보고 싶다"는 마음이 들 만큼 정보가 된다.
+async function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar) {
 	const userPhotoSrc = document.getElementById("uploadedImage").src
+	// 사진 박스 CSS 비율(128:160)에 맞춰 미리 크롭 — 위 cropImageToRatio 주석 참고.
+	const PHOTO_RATIO = 128 / 160
+	const [userCropped, matchCropped] = await Promise.all([cropImageToRatio(userPhotoSrc, PHOTO_RATIO), cropImageToRatio(topMatch.image, PHOTO_RATIO)])
 
-	document.getElementById("shareCardUserPhoto").src = userPhotoSrc
+	document.getElementById("shareCardUserPhoto").src = userCropped
 	document.getElementById("shareCardPercent").textContent = topSimilarity + "%"
 	// 캡처되는 카드에도 등급 문구뿐 아니라 유형 라벨을 같이 박아서, 이미지 자체가 "나는 OO형"
 	// 이라는 정체성을 보여주는 공유용 콘텐츠가 되게 한다.
 	document.getElementById("shareCardTier").textContent = archetype ? `${tierLabel} · ${archetype.name}` : tierLabel
 
-	const photosEl = document.querySelector(".share-card-photos")
-	const vsEl = document.querySelector(".share-card-vs")
-	const matchBoxEl = document.getElementById("shareCardMatchPhoto").closest(".share-card-photo-box")
-	const matchNameEl = document.getElementById("shareCardMatchName")
-	const matchNameEl2 = document.getElementById("shareCardMatchName2")
-	const matchPhotoEl = document.getElementById("shareCardMatchPhoto")
-	const badgesEl = document.getElementById("shareCardBadges")
-	const radarEl = document.getElementById("shareCardRadar")
+	document.getElementById("shareCardMatchName").textContent = topMatch.name
+	document.getElementById("shareCardMatchName2").textContent = topMatch.name
+	document.getElementById("shareCardMatchPhoto").src = matchCropped
 
-	if (topMatch.name) {
-		matchNameEl.textContent = topMatch.name
-		matchNameEl2.textContent = topMatch.name
-		matchPhotoEl.src = topMatch.image || ""
-		vsEl.style.display = ""
-		matchBoxEl.style.display = ""
-		photosEl.classList.remove("solo")
+	const badges = []
+	if (topMatch.rank) badges.push(`<span class="badge">포브스 ${topMatch.rank}위</span>`)
+	if (topMatch.netWorth) badges.push(`<span class="badge">${topMatch.netWorth}</span>`)
+	document.getElementById("shareCardBadges").innerHTML = badges.join("")
 
-		const badges = []
-		if (topMatch.rank) badges.push(`<span class="badge">포브스 ${topMatch.rank}위</span>`)
-		if (topMatch.netWorth) badges.push(`<span class="badge">${topMatch.netWorth}</span>`)
-		badgesEl.innerHTML = badges.join("")
+	// 저장한 이미지에 육각 레이더 차트가 안 담겨서 아쉽다는 피드백 — 온페이지 카드와 같은
+	// 함수를 재사용한다. tierLabel/tierDesc는 넘기지 않아 등급 문구(#radarNote)는 이
+	// 카드에선 생략(같은 내용이 #shareCardTier에 이미 있어 중복 방지).
+	document.getElementById("shareCardRadar").innerHTML = renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel)
 
-		// 저장한 이미지에 육각 레이더 차트가 안 담겨서 아쉽다는 피드백 — 온페이지 카드와 같은
-		// 함수를 재사용한다. tierLabel/tierDesc는 넘기지 않아 등급 문구(#radarNote)는 이
-		// 카드에선 생략(같은 내용이 #shareCardTier에 이미 있어 중복 방지).
-		radarEl.innerHTML = radar ? renderRadarChart(radar.labels, radar.user, radar.match, radar.matchLabel) : ""
-	} else {
-		// 매칭된 실명 인물이 없으면 "나 vs 회장님" 비교 없이 내 사진만 중앙에 크게 보여준다
-		// (빈 여백이 크게 남지 않도록 사진 박스 자체를 키운다)
-		matchNameEl.textContent = "재벌 표본"
-		vsEl.style.display = "none"
-		matchBoxEl.style.display = "none"
-		photosEl.classList.add("solo")
-		badgesEl.innerHTML = ""
-		radarEl.innerHTML = ""
-	}
+	// "저장 이미지만 봐서는 이게 뭘 보여주는 결과인지 절반만 전달된다"는 피드백 — 온페이지와
+	// 동일한 부위별 상세 분석을 그대로 포함한다(툴팁 버튼은 정적 이미지에선 그냥 장식이 되지만
+	// 해로울 건 없다).
+	const readingsEl = document.getElementById("shareCardReadings")
+	readingsEl.innerHTML = renderFeatureReadings(radar)
+	await fixThumbnailAspectRatios(readingsEl)
 }
 
 // 저장/공유 버튼이 공용으로 사용할 카드 캡처. 폭은 360px로 고정하지만 높이는 레이더 차트
 // 포함 여부에 따라 내용물 기준으로 자연스럽게 늘어난다(el.offsetHeight로 실측) —
 // scale:3으로 캡처하면 실제 폭은 1080px, 세로는 그만큼 비례해서 커진다.
 async function captureShareCard() {
+	// populateShareCard의 사진 크롭(비동기)이 아직 끝나기 전에 캡처가 먼저 실행되면 옛
+	// 사진이나 빈 이미지가 찍힐 수 있다 — 항상 마지막 population이 끝난 뒤에 캡처한다.
+	if (shareCardReadyPromise) await shareCardReadyPromise
 	const el = document.getElementById("shareCard")
 	return html2canvas(el, {
 		width: el.offsetWidth,
@@ -906,6 +1021,14 @@ document.getElementById("reset").addEventListener("click", function () {
 	document.getElementById("uploadImage").value = "" // 같은 파일을 다시 선택해도 change가 발생하도록
 	clearResults()
 	document.getElementById("resultsContainer").style.display = "none"
+
+	// 결과 화면 진입 시 숨겼던 소개 블록/업로드 미리보기를 되돌린다. showLoadingModal에서 건
+	// z/opacity가 인라인 스타일로 남아있을 수 있어 clearProps로 완전히 지운 뒤 다시 보인다.
+	const introEl = document.getElementById("introSection")
+	const uploadEl = document.getElementById("uploadedImageContainer")
+	if (typeof gsap !== "undefined") gsap.set([introEl, uploadEl], { clearProps: "all" })
+	introEl.style.display = ""
+	uploadEl.style.display = ""
 })
 
 // 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
@@ -927,9 +1050,13 @@ function showLoadingModal() {
 
 	if (typeof gsap === "undefined") return
 	playWhoosh("out")
+	// 소개 블록+업로드 사진이 결과 화면에서는 통째로 숨겨지므로(renderResults에서 display:none),
+	// 그 퇴장을 화면 전체 전환과는 별개로 "이 컴포넌트가 시청자 쪽으로 빠르게 다가오며 사라지는"
+	// 느낌으로 연출한다 — animista의 slide-out-fwd-center를 GSAP z(=translateZ)로 재현
+	// (body에 이미 걸려있는 perspective 덕에 z 이동이 확대되어 보인다).
 	gsap
 		.timeline()
-		.fromTo("#uploadedImageContainer", { scale: 1, opacity: 1 }, { scale: 0.5, opacity: 0, duration: 0.22, ease: "power4.in" }, 0)
+		.to(["#introSection", "#uploadedImageContainer"], { z: 500, opacity: 0, duration: 0.4, ease: "power2.in" }, 0)
 		.fromTo(modal, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05)
 		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.12, ease: "power1.out" }, 0.05)
 		.to("#portalFlash", { opacity: 0, duration: 0.35, ease: "power2.out" }, 0.17)
@@ -953,13 +1080,16 @@ async function hideLoadingModal() {
 	}
 
 	playWhoosh("in")
+	// #uploadedImageContainer/#introSection를 다시 드러내는 애니메이션은 없앴다 — renderResults가
+	// 이 시점 이전에 이미 그 둘을 display:none으로 완전히 숨겼으므로(결과 화면에서는 계속
+	// 숨김 상태 유지), 여기서 다시 보이게 하면 방금 숨긴 걸 되살리는 꼴이 된다. 다시 보이는
+	// 시점은 "다른 사진으로 다시 하기" 클릭(초기화 핸들러)뿐이다.
 	await new Promise((resolve) => {
 		gsap
 			.timeline({
 				onComplete: () => {
 					modal.style.display = "none"
 					gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
-					gsap.set("#uploadedImageContainer", { clearProps: "all" })
 					resolve()
 				},
 			})
@@ -967,7 +1097,6 @@ async function hideLoadingModal() {
 			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.1 }, 0.12)
 			.to("#portalFlash", { opacity: 0, duration: 0.3 }, 0.22)
 			.to(modal, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0.15)
-			.fromTo("#uploadedImageContainer", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 0.4)
 	})
 }
 
@@ -1001,10 +1130,7 @@ function stopLoadingMessages() {
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
 	document.getElementById("averageResult").textContent = ""
-	document.getElementById("aiInfo").textContent = ""
-	const matchBadgeEl = document.getElementById("matchBadge")
-	matchBadgeEl.classList.remove("show")
-	matchBadgeEl.textContent = ""
+	document.getElementById("aiInfoBadge").textContent = ""
 }
 
 /* share function */
@@ -1040,8 +1166,10 @@ function buildShareText() {
 	return "나의 부자 관상 분석 결과!"
 }
 
-document.getElementById("webShareBtn").addEventListener("click", async function () {
-	playClick()
+// 결과 카드를 캡처해 OS 공유 시트로 보내고, 미지원 브라우저(대부분의 데스크톱)에서는
+// 대신 이미지를 저장한 뒤 fallbackMessage로 다음 행동을 안내한다. 공유하기/인스타그램
+// 버튼이 "캡처 → 공유 시도 → 실패 시 저장" 흐름을 그대로 공유하고, 안내 문구만 다르다.
+async function shareCardOrDownload(fallbackMessage) {
 	const canvas = await captureShareCard()
 	const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
 	const file = new File([blob], "부자관상분석결과.png", { type: "image/png" })
@@ -1060,12 +1188,17 @@ document.getElementById("webShareBtn").addEventListener("click", async function 
 		}
 	}
 
-	// Web Share API 미지원 (대부분의 데스크톱 브라우저) → 저장으로 대체
+	// Web Share API 미지원 → 저장으로 대체
 	const link = document.createElement("a")
 	link.href = canvas.toDataURL("image/png")
 	link.download = "부자관상분석결과.png"
 	link.click()
-	showToast("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
+	showToast(fallbackMessage)
+}
+
+document.getElementById("webShareBtn").addEventListener("click", async function () {
+	playClick()
+	await shareCardOrDownload("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
 })
 
 // 카카오톡/페이스북 공식 공유는 "지금 생성된 카드 이미지"가 아니라 사이트 링크(og:image 고정 이미지)를
@@ -1089,29 +1222,7 @@ document.getElementById("xShareBtn").addEventListener("click", function () {
 // 직접 고를 수 있으니 그걸 먼저 시도하고, 안 되면 저장 후 인스타그램 앱에서 직접 올리도록 안내한다.
 document.getElementById("instagramShareBtn").addEventListener("click", async function () {
 	playClick()
-	const canvas = await captureShareCard()
-	const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
-	const file = new File([blob], "부자관상분석결과.png", { type: "image/png" })
-
-	if (navigator.canShare && navigator.canShare({ files: [file] })) {
-		try {
-			await navigator.share({
-				files: [file],
-				title: "인공지능 부자 관상 테스트",
-				text: buildShareText(),
-			})
-			return
-		} catch (err) {
-			if (err.name === "AbortError") return
-			console.warn("공유 실패", err)
-		}
-	}
-
-	const link = document.createElement("a")
-	link.href = canvas.toDataURL("image/png")
-	link.download = "부자관상분석결과.png"
-	link.click()
-	showToast("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
+	await shareCardOrDownload("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
 })
 
 document.getElementById("kakaoShareBtn").addEventListener("click", function () {

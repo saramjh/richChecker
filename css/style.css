@@ -224,6 +224,26 @@ hr {
 	margin-top: 4px;
 }
 
+/* 자동광고가 이 폭 고정 카드 레이아웃 안에서 업로드 영역 한복판까지 큰 광고를 끼워넣는
+   문제가 있었다 — 위치를 첫 화면(업로드 전)과 결과 화면(공유 버튼 아래) 두 곳으로 고정하고,
+   광고 로드 전후로 레이아웃이 튀지 않도록 min-height를 미리 예약해둔다. */
+.ad-slot {
+	width: 100%;
+	min-height: 100px;
+	margin-top: 14px;
+	padding-top: 10px;
+	border-top: 1px dashed rgba(212, 175, 55, 0.25);
+}
+
+.ad-label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.58rem;
+	color: var(--text-faint);
+	letter-spacing: 0.05em;
+	text-align: center;
+}
+
 p {
 	margin: 10px auto 0;
 	width: 100%;
@@ -232,25 +252,58 @@ p {
 	color: var(--text-muted);
 }
 
-#reset {
-	color: var(--text-primary);
-	font-weight: 700;
-	width: 300px;
-	padding: 10px;
-	border: 1px solid var(--gold-dim);
-	border-radius: 5px;
-	background: rgba(0, 0, 0, 0.35);
+/* 주 액션(저장/공유)이 아니라 "다시 하기"라는 보조 동작이므로, 눈에 띄는 박스 버튼
+   대신 밑줄 텍스트 링크에 가깝게 눌러서 시선 우선순위를 확실히 낮춘다. */
+.reset-link {
+	display: block;
+	width: auto;
+	margin: 14px auto 0;
+	padding: 4px 8px;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	text-decoration: underline;
+	background: none;
+	border: none;
 	cursor: pointer;
 }
 
-#reset:hover {
-	background: rgba(212, 175, 55, 0.15);
-	transition: transform 0.1s ease;
-	transform: scale(0.99);
+.reset-link:hover {
+	color: var(--gold-soft);
 }
 
-#reset:active {
-	transform: scale(0.95);
+/* 저장/공유용 주 액션과 헷갈리지 않도록 작은 필(pill) 토글로 눈에 덜 띄게 두되,
+   눌렀을 때 상태(가려짐/안 가려짐)가 라벨과 색으로 바로 구분되게 한다. */
+#faceHideToggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: auto;
+	margin: 0 auto 10px;
+	padding: 6px 14px;
+	font-size: 0.68rem;
+	color: var(--text-muted);
+	border: 1px solid var(--gold-dim);
+	border-radius: 20px;
+	background: rgba(0, 0, 0, 0.3);
+	cursor: pointer;
+}
+
+#faceHideToggle .btn-icon {
+	width: 14px;
+	height: 14px;
+}
+
+#faceHideToggle[aria-pressed="true"] {
+	color: var(--gold-light);
+	border-color: var(--gold);
+	background: rgba(212, 175, 55, 0.15);
+}
+
+/* 공유 시 얼굴 가리기 토글이 켜지면 매칭 카드의 "나" 사진과 저장용 카드의 사용자 사진
+   양쪽에 이 클래스를 건다 — 결과·매칭 정보는 그대로 두고 얼굴만 알아볼 수 없게 흐린다. */
+.face-hidden {
+	filter: blur(18px);
 }
 
 #saveImg {
@@ -258,7 +311,11 @@ p {
 	justify-content: center;
 	align-items: center;
 	gap: 5px;
-	width: 300px;
+	width: 100%;
+}
+
+#saveImgBtn {
+	width: 100%;
 }
 
 /* "저장하기"는 확실한 주 액션으로 보이게 꽉 찬 골드 톤으로, 아래 SNS 공유 줄과는 확실히
@@ -391,13 +448,13 @@ p {
 	}
 }
 
-/* 헤드라인 %를 사진과 분리된 텍스트 블록으로 두지 않고, 업로드된 사진 위에 인증 마크처럼
-   박아서 "이 사진이 몇 % 재벌 관상인지"가 사진과 한 덩어리로 보이게 한다. */
-#matchBadge {
-	display: none;
+/* 업로드된 사진 자체에 대한 정보(AI 추정 나이·표정)를 인증 마크처럼 사진 위에 박아서
+   사진과 한 덩어리로 보이게 한다. 나이/표정 둘 다 실패할 수 있어(:empty) 그 경우엔 숨긴다. */
+#aiInfoBadge {
 	position: absolute;
 	top: -14px;
 	right: -14px;
+	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
@@ -412,19 +469,20 @@ p {
 	pointer-events: none;
 }
 
-#matchBadge.show {
-	display: flex;
+#aiInfoBadge:empty {
+	display: none;
 }
 
-#matchBadgeValue {
+.ai-badge-line {
 	font-weight: 700;
-	font-size: 1.05rem;
+	font-size: 0.85rem;
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
-	line-height: 1.1;
+	line-height: 1.25;
 }
 
-#matchBadgeLabel {
+.ai-badge-line.ai-badge-sub {
+	font-weight: 400;
 	font-size: 0.55rem;
 	color: var(--text-muted);
 	letter-spacing: 0.02em;
@@ -751,17 +809,69 @@ p {
 	box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
+/* "얼굴 가리기" 토글의 시각 처리 — 사진에 흐림만 걸면 렌더링 오류처럼 보인다는 피드백.
+   흐림 정도를 줄이는 대신 어두운 스크림 + 아이콘/라벨을 얹어서 "의도적으로 가려진 상태"라는
+   게 한눈에 읽히게 한다. .photo-frame이 사진 실제 렌더 크기(테두리 포함)에 딱 맞으므로
+   오버레이를 inset:0으로 겹치면 사진 위에 정확히 포개진다. */
+.photo-frame {
+	position: relative;
+	display: inline-block;
+	line-height: 0;
+}
+
+/* html2canvas(저장/공유 캡처)가 CSS filter를 안정적으로 렌더링하지 못해, blur만 믿으면
+   "가려짐" 아이콘 밑으로 원본 얼굴이 그대로 캡처되는 사고가 난다(실기기 캡처로 확인) —
+   그래서 흐림은 화면에서 보는 눈요기일 뿐이고, 실제 가림은 완전 불투명 배경이 담당한다. */
+.photo-frame img.face-hidden {
+	filter: blur(9px) saturate(0.7) brightness(0.75);
+}
+
+.face-hidden-overlay {
+	display: none;
+	position: absolute;
+	inset: 0;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	border-radius: 8px;
+	background: linear-gradient(160deg, var(--panel-2) 0%, var(--panel-1) 100%);
+}
+
+.photo-frame img.face-hidden + .face-hidden-overlay {
+	display: flex;
+}
+
+.face-hidden-icon {
+	width: 20px;
+	height: 20px;
+	color: var(--gold-light);
+	filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
+}
+
+.face-hidden-overlay span {
+	font-size: 0.6rem;
+	font-weight: 700;
+	color: var(--gold-light);
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
 .topMatch-photo-box span {
 	font-size: 0.68rem;
 	font-weight: 700;
 	color: var(--text-primary);
 }
 
-.topMatch-vs {
+/* "나 vs 매칭인물" 사진 사이에 일치율 %를 직접 박아서, 뱃지로 따로 떨어져 있던 예전보다
+   "이 둘이 몇 % 닮았다"는 뜻이 사진 사이 공간에서 바로 읽히게 한다. */
+.topMatch-percent {
 	font-family: var(--font-display);
-	font-size: 1.3rem;
+	font-size: 1.2rem;
 	font-weight: 700;
-	color: var(--gold);
+	color: var(--gold-light);
+	text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+	line-height: 1.1;
+	white-space: nowrap;
 	position: relative;
 }
 
@@ -889,6 +999,7 @@ p {
 }
 
 .reading-label {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -904,8 +1015,63 @@ p {
 	flex-shrink: 0;
 }
 
+/* 라벨("이마 · 초년운" 등)만으로는 정확히 뭘 재는 비율인지 알기 어렵다는 피드백 — ⓘ
+   버튼에 호버(데스크톱)/탭(터치, JS로 .show 토글)하면 측정 기준 설명이 뜬다. */
+.reading-info-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	background: none;
+	border: none;
+	color: var(--text-faint);
+	cursor: pointer;
+}
+
+.reading-info-btn:hover,
+.reading-info-btn:focus-visible {
+	color: var(--gold-light);
+}
+
+.reading-info-icon {
+	width: 13px;
+	height: 13px;
+	flex-shrink: 0;
+}
+
+.reading-tooltip {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 5;
+	width: 220px;
+	max-width: 70vw;
+	background: linear-gradient(160deg, var(--panel-1) 0%, var(--panel-2) 100%);
+	border: 1px solid var(--gold);
+	border-radius: 8px;
+	padding: 8px 10px;
+	font-size: 0.65rem;
+	font-weight: 400;
+	line-height: 1.5;
+	color: var(--gold-soft);
+	text-align: left;
+	white-space: normal;
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.15s ease;
+	pointer-events: none;
+}
+
+.reading-info-btn:hover + .reading-tooltip,
+.reading-info-btn:focus-visible + .reading-tooltip,
+.reading-tooltip.show {
+	opacity: 1;
+	visibility: visible;
+}
+
 /* 표본 백분위(막대)와 매칭 인물 근접도(아래 .reading-match)는 계산 자체가 다른 별개의
-   지표다 — 막대는 62명 안에서의 내 위치, .reading-match는 가장 가까운 한 명과의 근접도.
+   지표다 — 막대는 47명 안에서의 내 위치, .reading-match는 가장 가까운 한 명과의 근접도.
    둘 다 %라 옆에 붙여두면 "왜 숫자가 다르냐"는 혼란을 주므로, 막대에는 그 숫자가 뭘
    뜻하는지 보이는 캡션을 붙이고 줄 자체를 분리한다. */
 .reading-bar-row {
@@ -948,7 +1114,9 @@ p {
 /* .reading-item p 규칙보다 확실히 이기도록 클래스 하나를 더 겹쳐 명시도를 올린다
    (소스 순서에 기대지 않기 위함). */
 #resultRate .reading-item .reading-match {
-	display: block;
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	background: transparent;
 	border: none;
 	padding: 0;
@@ -958,8 +1126,24 @@ p {
 	text-align: left;
 }
 
+#resultRate .reading-item .reading-match p {
+	margin: 0;
+	font-size: inherit;
+	line-height: 1.4;
+	color: inherit;
+}
+
 #resultRate .reading-item .reading-match strong {
 	color: var(--gold-light);
+}
+
+.reading-match-thumb {
+	width: 26px;
+	height: 26px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 1.5px solid var(--gold);
 }
 
 #resultRate .reading-item p {
@@ -972,25 +1156,6 @@ p {
 	line-height: 1.4;
 	color: #d9cba0;
 	text-align: left;
-}
-
-/* AI 추정 나이/표정은 업로드한 사진 자체에 대한 정보라 결과 카드가 아니라 사진 바로
-   아래에 둔다. 결과가 없을 땐(:empty) 빈 박스가 뜨지 않도록 숨긴다. */
-#aiInfo {
-	width: 300px;
-	max-width: 100%;
-	margin: 8px auto 0;
-	font-size: 0.75rem;
-	color: var(--gold-soft);
-	background: rgba(0, 0, 0, 0.3);
-	border: 1px solid var(--gold-dim);
-	border-radius: 5px;
-	padding: 6px 10px;
-	text-align: center;
-}
-
-#aiInfo:empty {
-	display: none;
 }
 
 /* "당신은 OO형" 정체성 배지 — 등급 박스(금색 필)와는 다른 톤(어두운 패널 + 얇은 금테)으로
@@ -1125,10 +1290,17 @@ p {
 	box-shadow: 0 0 14px rgba(212, 175, 55, 0.3);
 }
 
-/* 이름 매칭이 없을 때(익명 표본 매칭) "나 vs 회장님" 비교 없이 내 사진만 크게 보여준다 */
-.share-card-photos.solo .share-card-photo-box img {
-	width: 220px;
-	height: 260px;
+.share-card-photo-box .face-hidden-overlay {
+	border-radius: 10px;
+}
+
+.share-card-photo-box .face-hidden-icon {
+	width: 26px;
+	height: 26px;
+}
+
+.share-card-photo-box .face-hidden-overlay span {
+	font-size: 0.72rem;
 }
 
 .share-card-photo-box span {
@@ -1249,12 +1421,6 @@ footer:active {
 	text-align: center;
 }
 
-#saveImg {
-	width: 100%;
-}
-#saveImgBtn {
-	width: 100%;
-}
 @media (max-width: 600px) {
 	.container {
 		padding: 30px 5px 20px;
@@ -1278,12 +1444,5 @@ footer:active {
 
 	footer {
 		width: 95%;
-	}
-
-	#saveImg {
-		width: 100%;
-	}
-	#saveImgBtn {
-		width: 100%;
 	}
 }

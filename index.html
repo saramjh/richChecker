@@ -110,8 +110,12 @@
     <div id="window">
       <h1>인공지능 부자 관상 테스트</h1>
       <hr>
-      <p class="tagline">"대한민국 재벌들과 나의 관상은 얼마 비슷할까요?"</p>
-      <p class="forbes-badge">✦ 포브스(Forbes) 선정 2026 대한민국 부자 순위 기반 ✦</p>
+      <!-- 소개(태그라인/포브스 배지/이용흐름/가치제안)는 "이걸 왜 해야 하는지" 모르는 첫
+           방문자에게 필요한 정보다 — 이미 결과를 받은 사용자에겐 불필요한 반복이라는 피드백
+           반영, 결과가 나오면 이 블록 전체를 접는다(JS에서 처리, 다시 하면 재노출). -->
+      <div id="introSection">
+        <p class="tagline">"대한민국 재벌들과 나의 관상은 얼마 비슷할까요?"</p>
+        <p class="forbes-badge">✦ 포브스(Forbes) 선정 2026 대한민국 부자 순위 기반 ✦</p>
 
       <!-- 이용 흐름: 무엇을 하게 되고, 무엇을 얻는지 미리 보여준다 -->
       <div id="howItWorks">
@@ -158,7 +162,7 @@
                 d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" />
               <path d="M5 21h14" />
             </svg></span>
-          <span class="step-label">재벌 64인과 비교</span>
+          <span class="step-label">재벌 47인과 비교</span>
         </div>
         <span class="step-arrow">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -182,29 +186,52 @@
       <p class="value-prop">가장 닮은 재벌을 찾아 초년·재물·말년운까지 읽어주는 <strong>나만의 관상 카드</strong>를 받아보세요.</p>
       <p class="fine-print">공개된 데이터로 선별했습니다</p>
 
+      <!-- 자동광고가 이 폭 고정 카드형 레이아웃과 안 맞아 업로드 영역 한복판까지 큰 광고를
+           끼워넣는 문제가 있었다 — 자동광고 대신 위치를 고정한 반응형 광고 유닛으로 대체.
+           min-height로 로드 전/후 레이아웃이 튀지 않게 공간을 미리 예약한다. -->
+      <div class="ad-slot">
+        <span class="ad-label">광고</span>
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4410729598083068"
+          data-ad-slot="3433040559" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+      </div>
+
       <!-- 파일 업로드 버튼 (숨김 처리) -->
       <input type="file" id="uploadImage" accept="image/*" style="display: none;">
 
       <!-- 업로드된 이미지 표시. is-initializing 상태에서는 클릭이 안 먹는 게 정상이라는 걸
            시각적으로 보여준다(스피너+반투명) — script.js가 로드를 끝내고 클릭 리스너를 실제로
-           건 다음에만 이 클래스를 제거해서, "눌러도 반응 없는 버튼"이 생기지 않게 한다. -->
+           건 다음에만 이 클래스를 제거해서, "눌러도 반응 없는 버튼"이 생기지 않게 한다.
+           결과가 나오면 이 미리보기 자체도 숨긴다(아래 매칭 카드에 "나" 사진이 이미 나오므로
+           중복) — 다시 하려면 결과 영역의 재시작 버튼으로 돌아온다. -->
       <div id="uploadedImageContainer" class="is-initializing">
         <img id="uploadedImage" src="assets/imgs/placeholder.svg" alt="업로드된 이미지">
         <div id="initSpinner"></div>
-        <!-- 헤드라인 %를 따로 텍스트 블록으로 보여주지 말고, 사진 자체에 뱃지처럼 박아서
-             "이 사진이 몇 % 재벌 관상인지"가 사진과 분리되지 않고 한눈에 보이게 한다. 뱃지
-             안에 % 숫자만 있으면 "누구와" 닮았다는 건지 뱃지만 봐서는 알 수 없다는 피드백 —
-             매칭된 인물 이름을 같이 넣는다(JS에서 채움). -->
-        <div id="matchBadge"></div>
+        <!-- 일치율 %는 매칭 카드 안 "나 ≈ 매칭인물" 사이 자리로 옮겼다(사진과 사진 사이에
+             있어야 "이 둘이 몇 % 닮았다"는 뜻이 더 직접적으로 읽힌다는 판단) — 대신 이 사진
+             자체에 대한 정보(AI 추정 나이·표정)를 뱃지로 붙인다(JS에서 채움). -->
+        <div id="aiInfoBadge"></div>
       </div>
-      <!-- AI 추정 나이/표정은 "이 사진 자체"에 대한 정보라, 매칭 결과 카드 쪽이 아니라
-           내가 올린 사진 바로 아래(가까이)에 둔다. -->
-      <p id="aiInfo"></p>
-      <button id="reset">초기화</button>
 
       <!-- 결과 표시 영역 -->
       <div id="resultsContainer" style="display: none;">
         <p id="averageResult"></p> <!-- 평균 결과 표시 영역 추가 -->
+        <!-- 저장/공유 시 내 얼굴이 그대로 나가는 게 부담스러울 수 있다는 피드백 — 매칭 카드와
+             저장용 카드 양쪽의 "나" 사진을 한 번에 블러 처리하는 토글. 결과·매칭 정보는
+             그대로 유지되고 얼굴만 가려진다(JS: toggleFaceHidden). -->
+        <button id="faceHideToggle" type="button" aria-pressed="false">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+            <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+            <path
+              d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+            <path d="m2 2 20 20" />
+          </svg>
+          <span id="faceHideToggleLabel">공유 시 내 얼굴 가리기</span>
+        </button>
         <div id="saveImg">
           <button id="saveImgBtn">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -265,6 +292,17 @@
             </svg>
           </button>
         </div>
+        <!-- 초기화는 업로드 전 화면에선 되돌릴 대상이 없어 불필요하다는 피드백 — 결과 영역
+             안으로 옮겨서 결과가 있을 때만(#resultsContainer 표시 여부에 자연히 종속) 나타나게
+             하고, 주 액션(저장/공유)과 헷갈리지 않도록 텍스트 링크에 가깝게 눌러둔다. -->
+        <button id="reset" class="reset-link">다른 사진으로 다시 하기</button>
+
+        <div class="ad-slot">
+          <span class="ad-label">광고</span>
+          <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4410729598083068"
+            data-ad-slot="3433040559" data-ad-format="auto" data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
       </div>
       <!-- "개인정보를 절대 수집하지 않습니다"는 부정확했다 — 사진 자체는 서버로 안 가고 기기
            안에서만 분석되는 게 맞지만, 구글 애널리틱스/애드센스가 쿠키를 쓰는 건 사실이라 그
@@ -284,7 +322,21 @@
     </div>
     <div class="share-card-photos">
       <div class="share-card-photo-box">
-        <img id="shareCardUserPhoto" alt="나">
+        <div class="photo-frame">
+          <img id="shareCardUserPhoto" alt="나">
+          <div class="face-hidden-overlay">
+            <svg class="face-hidden-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+              <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+              <path
+                d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+              <path d="m2 2 20 20" />
+            </svg>
+            <span>비공개</span>
+          </div>
+        </div>
         <span>나</span>
       </div>
       <div class="share-card-vs">≈</div>
@@ -297,6 +349,10 @@
     <div id="shareCardTier"></div>
     <!-- 저장한 이미지에도 "나 vs 매칭 인물"의 육각 레이더 차트가 담기도록 추가 -->
     <div id="shareCardRadar"></div>
+    <!-- 부위별 상세 분석(이마·눈매·코 등)이 이미지 안에 빠져있으면 저장 이미지만 보고는
+         "이게 뭘 보여주는 결과인지" 절반만 전달된다는 피드백 — 이 콘텐츠가 이 서비스를
+         궁금하게 만드는 핵심이므로 온페이지 카드와 동일한 내용을 그대로 포함한다. -->
+    <div id="shareCardReadings"></div>
     <!-- 주소만 덜렁 있으면 "이게 뭐하는 사이트인지" 몰라서 긴 URL을 직접 쳐서 들어가 볼
          동기가 안 생긴다는 피드백 — 한 줄 소개를 주소 위에 붙인다. -->
     <div class="share-card-cta">

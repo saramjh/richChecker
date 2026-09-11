@@ -2,3 +2,8 @@
 node_modules/
 TODO.local.md
 MARKETING.local.md
+
+# 포브스 코리아 기사에서 스크랩한 실제 인물 사진(저작권 문제로 사이트에 사용하지 않음,
+# 커밋하지 않음). 화면 표시용 AI 캐리커쳐는 assets/people/caricature/에 있다.
+assets/people/faces/
+assets/2026_대한민국_50대_부자_export/

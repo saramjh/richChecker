@@ -9,20 +9,20 @@
   ],
   "stats": {
     "mean": [
-      0.3259765473720453,
-      0.24520655816879872,
-      0.21051224304886235,
-      0.37407449979024177,
-      0.2846242189190852,
-      1.1858488969690124
+      0.3197275412799741,
+      0.24182716196511433,
+      0.20812326634483846,
+      0.3760669958109763,
+      0.2899990684095186,
+      1.1577717694804852
     ],
     "std": [
-      0.017591366382567947,
-      0.014194539277684005,
-      0.013780206997099882,
-      0.03748734711859611,
-      0.020711874697416317,
-      0.07200995261796637
+      0.01319118290619015,
+      0.012917400162425832,
+      0.01426240042352767,
+      0.03824093777471953,
+      0.021031777389202193,
+      0.07504488021010432
     ]
   },
   "people": [
@@ -30,1008 +30,846 @@
       "id": "lee-jae-yong",
       "name": "이재용",
       "title": "삼성전자 회장",
-      "image": "assets/richKR/male/lee-jae-yong.jpg",
+      "image": "assets/people/caricature/lee-jae-yong.jpg",
       "rank": 1,
       "netWorth": "$21.6B",
       "achievement": "삼성전자 회장 · 반도체·스마트폰 글로벌 1위 이끎",
-      "credit": {
-        "author": "KBS",
-        "license": "CC BY 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Lee_Jae-yong_in_2016.jpg"
-      },
+      "isIllustration": true,
       "features": [
-        0.3251718719858433,
-        0.24377477082170892,
-        0.20321958730289985,
-        0.3238925440115438,
-        0.2565463482674868,
-        1.183445036681471
+        0.31924901040174386,
+        0.2443283100897064,
+        0.20133570895184594,
+        0.4097073311449972,
+        0.3109551049581491,
+        1.1516309184772477
       ]
     },
     {
-      "id": "chung-eui-sun",
-      "name": "정의선",
-      "title": "현대자동차그룹 회장",
-      "image": "assets/richKR/male/chung-eui-sun.jpg",
-      "rank": 9,
-      "netWorth": "$6.3B",
-      "achievement": "현대차그룹 회장 · 전기차·로보틱스 미래사업 확장",
-      "credit": {
-        "author": "The White House",
-        "license": "Public domain",
-        "source": "https://commons.wikimedia.org/wiki/File:Chung_Eui-sun_(2025)_cropped_1.jpg"
-      },
+      "id": "kim-byung-ju",
+      "name": "김병주",
+      "title": "MBK파트너스 회장",
+      "image": "assets/people/caricature/kim-byung-ju.jpg",
+      "rank": 2,
+      "netWorth": "$9.9B",
+      "achievement": "MBK파트너스 공동창업 · 아시아 최대 사모펀드 운용",
+      "isIllustration": true,
       "features": [
-        0.3154600141769714,
-        0.20889788789964628,
-        0.2388417902633907,
-        0.2730178531391962,
-        0.23159986390077328,
-        1.486562045606545
+        0.3265847287159583,
+        0.24328152938379102,
+        0.2046879097325587,
+        0.3528755381685865,
+        0.27879989047015613,
+        1.1412931577489256
       ]
     },
     {
-      "id": "chey-tae-won",
-      "name": "최태원",
-      "title": "SK그룹 회장",
-      "image": "assets/richKR/male/chey-tae-won.jpg",
-      "rank": 18,
-      "netWorth": "$2.9B",
-      "achievement": "SK그룹 회장 · SK하이닉스 반도체 신화 주도",
-      "credit": {
-        "author": "대한민국 정부(Republic of Korea)",
-        "license": "CC BY-SA 2.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Korea_Portuguese_Business_Forum_01_(cropped).jpg"
-      },
+      "id": "seo-jung-jin",
+      "name": "서정진",
+      "title": "셀트리온 회장",
+      "image": "assets/people/caricature/seo-jung-jin.jpg",
+      "rank": 3,
+      "netWorth": "$8.1B",
+      "achievement": "셀트리온 공동창업 · 바이오시밀러 성공 신화",
+      "isIllustration": true,
       "features": [
-        0.3221044694850194,
-        0.22374776508979896,
-        0.21723710212925632,
-        0.3083315478017875,
-        0.2504958905676176,
-        1.430099202714878
+        0.3037230986220785,
+        0.23241397142633313,
+        0.17990857903349455,
+        0.3940030885794314,
+        0.3282585710450895,
+        1.1641372868106
       ]
     },
     {
-      "id": "bang-si-hyuk",
-      "name": "방시혁",
-      "title": "하이브 의장",
-      "image": "assets/richKR/male/bang-si-hyuk.png",
-      "rank": 41,
-      "netWorth": "$1.25B",
-      "achievement": "하이브 의장 · BTS 등 K팝 세계화 이끈 프로듀서",
-      "credit": {
-        "author": "티비텐 TV10",
-        "license": "CC BY 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Bang_Si-hyuk_on_15_September_2025_01.png"
-      },
+      "id": "jo-jeong-ho",
+      "name": "조정호",
+      "title": "메리츠금융그룹 회장",
+      "image": "assets/people/caricature/jo-jeong-ho.jpg",
+      "rank": 4,
+      "netWorth": "$8B",
+      "achievement": "메리츠금융그룹 회장 · 성과주의 경영으로 금융 거물 성장",
+      "isIllustration": true,
       "features": [
-        0.30986186364879387,
-        0.21570470962320032,
-        0.21438058101380683,
-        0.33805004400186545,
-        0.27469012998550185,
-        1.2858564617169066
-      ]
-    },
-    {
-      "id": "chung-yong-jin",
-      "name": "정용진",
-      "title": "신세계그룹 회장",
-      "image": "assets/richKR/male/chung-yong-jin.jpg",
-      "rank": 28,
-      "netWorth": "$2.1B",
-      "achievement": "신세계그룹 회장 · 이마트·스타필드 유통 혁신",
-      "credit": {
-        "author": "SSG BLOG",
-        "license": "CC BY 4.0",
-        "source": "https://commons.wikimedia.org/wiki/File:%EC%A0%95%EC%9A%A9%EC%A7%84-%EC%8B%A0%EC%84%B8%EA%B3%84%EA%B7%B8%EB%A3%B9-%EB%B6%80%ED%9A%8C%EC%9E%A5_Chung_Yong-jin.jpg"
-      },
-      "features": [
-        0.30798090024351416,
-        0.24249098294170146,
-        0.17828029809213228,
-        0.40278570189937646,
-        0.3165453650759997,
-        1.2436493141273404
-      ]
-    },
-    {
-      "id": "chung-mong-koo",
-      "name": "정몽구",
-      "title": "현대자동차그룹 명예회장",
-      "image": "assets/richKR/male/chung-mong-koo.jpg",
-      "rank": 7,
-      "netWorth": "$7.3B",
-      "achievement": "현대차그룹 명예회장 · 글로벌 톱5 완성차로 성장시킴",
-      "credit": {
-        "author": "Hyundai Motor Company",
-        "license": "CC BY 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Chung_Mong-koo_2005-04-01_001.jpg"
-      },
-      "features": [
-        0.30003111248548625,
-        0.21561308306979698,
-        0.2056785928357049,
-        0.3384814897631811,
-        0.30359337982650964,
-        1.1582087537978931
-      ]
-    },
-    {
-      "id": "cho-hyun-joon",
-      "name": "조현준",
-      "title": "효성그룹 회장",
-      "image": "assets/richKR/male/cho-hyun-joon.jpg",
-      "rank": 17,
-      "netWorth": "$2.95B",
-      "achievement": "효성그룹 회장 · 섬유·중공업 사업 다각화",
-      "credit": {
-        "author": "Cho Hyun-joon",
-        "license": "CC BY-SA 2.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Cho_Hyun-joon.jpg"
-      },
-      "features": [
-        0.3004984543523773,
-        0.26485174512520243,
-        0.20063067457001887,
-        0.3496288684233553,
-        0.2769919752547283,
-        1.102055170429272
-      ]
-    },
-    {
-      "id": "kim-taek-jin",
-      "name": "김택진",
-      "title": "엔씨소프트 창업자",
-      "image": "assets/richKR/male/kim-taek-jin.jpg",
-      "rank": 44,
-      "netWorth": "$1.18B",
-      "achievement": "엔씨소프트 창업자 · 리니지 시리즈로 게임산업 개척",
-      "credit": {
-        "author": "acrofan.com",
-        "license": "CC BY-SA 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:T.J._Kim_(the_CEO_of_NC_Soft)_from_acrofan.jpg"
-      },
-      "features": [
-        0.30368626904677515,
-        0.25228637499070483,
-        0.19236500518240798,
-        0.38740557615920584,
-        0.29858826601438154,
-        1.179531087679159
-      ]
-    },
-    {
-      "id": "bom-kim",
-      "name": "김범석",
-      "title": "쿠팡 창업자",
-      "image": "assets/richKR/male/bom-kim.jpg",
-      "rank": 14,
-      "netWorth": "$3.2B",
-      "achievement": "쿠팡 창업자 · 로켓배송으로 이커머스 판도 변화",
-      "credit": {
-        "author": "桃園市政府(타오위안시 정부)",
-        "license": "Attribution",
-        "source": "https://commons.wikimedia.org/wiki/File:20231102%E9%87%91%E7%AF%84%E9%8C%AB.jpg"
-      },
-      "features": [
-        0.3145809854497833,
-        0.23229511623037455,
-        0.21881969010353314,
-        0.41216584773197307,
-        0.3027838663663606,
-        1.1472242633437244
-      ]
-    },
-    {
-      "id": "chung-mong-joon",
-      "name": "정몽준",
-      "title": "HD현대 최대주주",
-      "image": "assets/richKR/male/chung-mong-joon.jpg",
-      "rank": 20,
-      "netWorth": "$2.8B",
-      "achievement": "HD현대 최대주주 · 조선업 세계 1위 성장 견인",
-      "credit": {
-        "author": "Kinocine (Wikimedia Commons)",
-        "license": "CC BY-SA 4.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Chung_Mong-joon_(3x4_cropped).jpg"
-      },
-      "features": [
-        0.3244972067933947,
-        0.24880239340830201,
-        0.2082057637086285,
-        0.40048791610658463,
-        0.285589976612566,
-        1.2053922120414022
-      ]
-    },
-    {
-      "id": "2LAp8CxoD3pTIsMttiFdMdk2",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/2LAp8CxoD3pTIsMttiFdMdk2xFW8leNJOCUpaG_eeXnuQmesQPFR5cZH-GR7WdxES3cYrwTMtcZBE9n9I8Sbr1XrQo85OvMkbOmSQiyhEmqpVYzr84jxwzyg2BnDOAQtw6ACloqZF26XuThs3fai0Q.webp",
-      "features": [
-        0.3057395044903495,
-        0.25422881558917015,
-        0.22901493236167914,
-        0.4462880457189785,
-        0.3418831854593193,
-        1.1792319515449452
-      ]
-    },
-    {
-      "id": "3GK-DtkmjRwE3b8z3Ut-BN5d",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/3GK-DtkmjRwE3b8z3Ut-BN5dyd3-ukR5PyzxtdLVDY2q7NrfGRZyWiNpks74fMAqo_RJJIgbyORNslkBP1JavxbnhnyldBBsXS8iGi-1Wr-KEe5mISrUDnfmzLcF3b5SXjdt6fo8CNacrqBiPkF1iQ.webp",
-      "features": [
-        0.3170116651112375,
-        0.23463768893909356,
-        0.20078222499220236,
-        0.4723769702152543,
-        0.33170679201276215,
-        1.268920912908437
-      ]
-    },
-    {
-      "id": "3n7y5otAxHtbLNt1ktj9MvN4",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/3n7y5otAxHtbLNt1ktj9MvN41410vOcngd40TbRmILAhtwUASPTfwwZCGyO_GamWjMrsCjOEPt_ROvYLjkd1uo0Gl8r7sI0mlme7wUs1Unm_XoWVkyO-8ZpLTtxm1YOfFJ36yJTYmUCMX79b2Wa3Ng.webp",
-      "features": [
-        0.32935666347359804,
-        0.25618004498550845,
-        0.2089282254289306,
-        0.36065498252698247,
-        0.2825606316340216,
-        1.1379742463926847
-      ]
-    },
-    {
-      "id": "4WT5ZVzp1SJzgxd9ZR19fq9N",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/4WT5ZVzp1SJzgxd9ZR19fq9NmoEW5Xkl4CiZhPiYVR-zTKDCogdDuUFXFOh7OFIUUqlGT8fn05sIvb57JaFHWTkciNt8AsUHCfGNYy0PpvZiMtKElielHvYnmKvGd0kd-hHQXRVXT0z7ZZsb0xPi5g.webp",
-      "features": [
-        0.32926912078165205,
-        0.24628574831461536,
-        0.21127763550026604,
-        0.3415588795322861,
-        0.27286051978867704,
-        1.181563968662805
-      ]
-    },
-    {
-      "id": "6evxzuJ3QJbx3o3rcQgF2BzW",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/6evxzuJ3QJbx3o3rcQgF2BzWexT3uzCa_wkE_pbZSBreSyFqXVZaeP-mhJ3OKYU9MCKbb3H02W1pCEUibWbrsr1MM8dbOMH5MK-eDlJ3YkGH3E0oLQEPRKRK-rczfOsua8jbnrFEBl0-hVebX6BjMA.webp",
-      "features": [
-        0.2884679887641668,
-        0.2479593559865985,
-        0.19806977751299884,
-        0.3662540480490893,
-        0.28186810355599995,
-        1.133335267253508
-      ]
-    },
-    {
-      "id": "FQRof2nbq8UcIPsmFhtar1or",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/FQRof2nbq8UcIPsmFhtar1or33at2yHg6ufI_tNYeHmgcoouklx31DRBDbKbe7rQKkWdPCoWM4bdTqGdLH3-nGHdUWI46nqLjmC6fZsn_Y4quWV_QXP3AvSY1bNal_7_Ic_rm57URC48rZWQejsm5w.webp",
-      "features": [
-        0.34432743836359353,
-        0.2341025299262108,
-        0.212764400396222,
-        0.37808450420904777,
-        0.27714932323904484,
-        1.1565313954224226
-      ]
-    },
-    {
-      "id": "GGeRgbfBPv1BB44tcwGAG_YM",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/GGeRgbfBPv1BB44tcwGAG_YMVplluFjrkOHRoyzisYW0yqRnd8yZtY_lV-99DX6fZPQMy6VkrfsMmYyVAM7jujKf9hTuwH85R3Dxby2RA5TuefZRVdrdQokXm0xxoix62noCiVNxw32ZlGTEy-bQgA.webp",
-      "features": [
-        0.3363458214973973,
-        0.23860827265340562,
-        0.21830361679626178,
-        0.3842472549528861,
-        0.2747700265852312,
-        1.1455108655089927
-      ]
-    },
-    {
-      "id": "HHb4Lao9elKZ85wgAPo3r8dG",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/HHb4Lao9elKZ85wgAPo3r8dGhy-negIzTACu1OQnypVyTdEqdzPsppv5Wck89qgurklJkZZpnEgHf8Ajaj_-IWdhnQqfDZziycZHFkQ17Q1wmuZQho40A9_7-n25I55eq2aXRZ8t-aDP8Y2f2SUfTQ.webp",
-      "features": [
-        0.26648677523878805,
-        0.2620825514852267,
-        0.17962264756976118,
-        0.3585602571756435,
-        0.3020973295715221,
-        1.0563112807708606
-      ]
-    },
-    {
-      "id": "IBBZ6fICkDcyoBuwOm9DpHUs",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/IBBZ6fICkDcyoBuwOm9DpHUsc51EZGiRk4fybvKkBQeAgoxv9uqwLFni8KgSv14qZiESkKSZADjJDSEGeFg6kNlQcCHT5TrF8-5NK9ggAzMoZyTTp5-wiZdHwpx555W8SJ6_I-e9j7MW0dueOUxpFg.webp",
-      "features": [
-        0.307434276110877,
-        0.2401370455473892,
-        0.23563000483169855,
-        0.4377163107961717,
-        0.29900828112523237,
-        1.1454889840558289
-      ]
-    },
-    {
-      "id": "Ikoy67HmwECWtGuyyQIoG_NO",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/Ikoy67HmwECWtGuyyQIoG_NOVa4i38CpO0zg-xADHDP3RsqMPp6B6VpMRInynm3DtF2FUDjtQPEAoiFDgIhEXbJr3Rxozs2YBlRRnksiJ0ObKfZHWjuXmEd84ZbMzfZ7lVbXh5YnO_rk0tf5PX3alg.webp",
-      "features": [
-        0.3349322362211165,
-        0.22330097087173317,
-        0.22690815312561072,
-        0.37602775827237667,
-        0.27495759572072764,
-        1.1051875023294877
-      ]
-    },
-    {
-      "id": "LUGZdI95NNixuecErMKsqdtY",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/LUGZdI95NNixuecErMKsqdtY3jXSiH22paatCrNuyzw3qj9M74_zyBlsn2rb9snZSGFu6t2jlz_MCp2XdbaNr-2xxQ9AM0n8eNFUZPA9ikU9Y-s26OJnFLQfn1C_joILxIysYt2cootGD-5699dHRQ.webp",
-      "features": [
-        0.33180792626353534,
-        0.22843782763598833,
-        0.2198424157846116,
-        0.4110156185608153,
-        0.2794174932221343,
-        1.1505747247756029
-      ]
-    },
-    {
-      "id": "LgqbxQFrYVgqjEebfbPtbRdw",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/LgqbxQFrYVgqjEebfbPtbRdw1ot-iCry-eycUUrx1z79RTnQXadb4S_U92WNAulf94MB38J7mrz2IEMs0NWnIf02eFbfb2rpMKCb40qWG5nYFYYdz5TCFFkGRDIN-69NcvJWYH9LHwa1LJnH1HyOdw.webp",
-      "features": [
-        0.3112860371818761,
-        0.2322449323757522,
-        0.20978585453116508,
-        0.3377222627294506,
-        0.2937179031099934,
-        1.3202439733138207
-      ]
-    },
-    {
-      "id": "RRElEWw1OmyUalDofOwHvcF7",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/RRElEWw1OmyUalDofOwHvcF7b_lYehun_csQpc7ftq9HQeMyZt_EIAZRUhWhN6zmosv8IUlUEoRllYDTDf2ji9SCSXsLTOCgr8QnxbDlBgCx6j8-YVvxbKJU2Ur8k_5RSNjFURUfKyQU00tFKKLiOA.webp",
-      "features": [
-        0.32503910519857704,
-        0.23767322410147054,
-        0.20657871381865703,
-        0.3719520877715929,
-        0.282818531253925,
-        1.2542682992465135
-      ]
-    },
-    {
-      "id": "TYFSKJxFSm0ioUlG8JuTH26i",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/TYFSKJxFSm0ioUlG8JuTH26ihiR7makI3_3k7F5ZETVV4-4fiXgJkiCdCpTCt1FMj7rc1CCfI0Egt4LKLvHsroWcQQYBnxt34QZtxu1mFlwqNG4zfdppmf-ouAVxUtBxoQOKxBXXJDDA027fUVymzg.webp",
-      "features": [
-        0.3440008148506072,
-        0.22611839776433346,
-        0.21492343305470682,
-        0.34630015935058933,
-        0.26699454950288565,
-        1.1488394270728732
-      ]
-    },
-    {
-      "id": "XA8qqCsrfqeu7bD2Ux_5oe8X",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/XA8qqCsrfqeu7bD2Ux_5oe8X0V3FEEzToOZfANAEmloFqHT9apO0jO-GcxGLOxuOX7OiNK4pdlrsnmzQ2a2-E-aZGtRRwhFHehV89fNTD4Tctbb8T0S-4dlFg4n-aOCVzq9m8LqQoGMuS2hZ_Sa0zg.webp",
-      "features": [
-        0.34110188356466503,
-        0.23616576492757674,
-        0.2276478651497319,
-        0.34927601011765286,
-        0.25080642559058375,
-        1.2062597775321966
-      ]
-    },
-    {
-      "id": "XULkzgrTIDp8U1sTlPhYaT5m",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/XULkzgrTIDp8U1sTlPhYaT5mk1Uxthx4pkFh4XkLkhxDUsJ-c658mxBLB1N6D5P69jAPmgZVQ3VEcnOMCdzDsg_-_lI_uFCHDmPYkoFS5f4dMwqfgSk10SMbDjsGFMMIOlIyjw8b-c1SIXB9bvG2IA.webp",
-      "features": [
-        0.291266990945344,
-        0.2315023798403771,
-        0.20076595056380847,
-        0.3849352658278407,
-        0.2964481312559971,
-        1.2399091246657925
-      ]
-    },
-    {
-      "id": "XoE5k29pC0a-h6O1jePn--TA",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/XoE5k29pC0a-h6O1jePn--TAAl_IEsNZxTewvqW2SByUll1iJgEHuoaWCrQHP4vm87ya1i9xcDywfgdYUZWtxuk94BYKRhP8vf12hMKSCjMFObLmy2Q1e3ocyNzLXD2ZBiDdUhsBKpV4L_By2pdQnQ.webp",
-      "features": [
-        0.33543459470087844,
-        0.27229694573278185,
-        0.22534651849932363,
-        0.405440952431143,
-        0.29828084402757354,
-        1.062510022010235
-      ]
-    },
-    {
-      "id": "Y2a0J1zTE1yzz-IZoT8d7wbs",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/Y2a0J1zTE1yzz-IZoT8d7wbs7pLFESInRgK5C1-Ts3qKFbNo3FQf1q9PrgQiQ2cAzXb-alx8tAXUhp8dUCXgd843nLaOx-tUukfXqplG9LOO-b-1P1EKJOdtkWI7NXhmVYwDTQ4MR0s0l2pWqaKjqA.webp",
-      "features": [
-        0.33522594493890845,
-        0.25389613630263225,
-        0.22452290713884115,
-        0.3698733349737856,
-        0.29365733965731833,
-        1.1965840906688183
-      ]
-    },
-    {
-      "id": "ZTY4LjfWfVheqJj1ipuUjw0p",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/ZTY4LjfWfVheqJj1ipuUjw0pzEhuSxU4rQCnLm5W1HS1ted_RSVr3seg4YCzvByLydJVx6sV8796eY_Jk6lIMKEW1VUPd4M27liM_RDkgtqG7O-oyBHBoZqfD9KGin4BCE2ldmO9cQg3RfK6cpBdGg.webp",
-      "features": [
-        0.33620897355619017,
-        0.2223538815116155,
-        0.20703128245009694,
-        0.3842593306455757,
-        0.2900776199176016,
-        1.1223031875595404
-      ]
-    },
-    {
-      "id": "diYaDKwbXK7G-v4dlUkFuFng",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/diYaDKwbXK7G-v4dlUkFuFngaLG6b16wCsFIeHageCF2GxMt_thEjqeg3R2UDiTtxLTB9Ihy0SF86fpoV3ejoiUprvnv0tFwTI5ylmJiLiwZK1QwXVl0fOnM0UGbT8kThJUlkyKd24KQo38XTYv-Dw.webp",
-      "features": [
-        0.3354713853643315,
-        0.2313964440599186,
-        0.22107415475360548,
-        0.44222381523677273,
-        0.3313221706992396,
-        1.1223372313983235
-      ]
-    },
-    {
-      "id": "gv__WVMkdXyOiCyWh4BYw24D",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/gv__WVMkdXyOiCyWh4BYw24DavFS0F0c3ob5d_Xu1fH5u9JFY1vnin2H-XWEXHqvZtaRv2TFL1Z-YVTmJDG1cdcGRYXKP0A5XUB_SEfWSptpEu7yfWRi90UVWu30CfuFxSWHuMoYvtkajVkCJ4mZ5Q.webp",
-      "features": [
-        0.3304743306841438,
-        0.24937865968354708,
-        0.2160333311307794,
-        0.3352643319042031,
-        0.2563345552174347,
-        1.066946292228049
-      ]
-    },
-    {
-      "id": "nl6IpEnM1rTpvAoW15cvPpjT",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/nl6IpEnM1rTpvAoW15cvPpjTKgniULH1S9OyeCrPhWCrcTQa-bIlmGmyg2-v4nyk8eeW0Pb1P8NMxfhpUIq4OtyOhV24BJo_skm1qzjEBsliKGejQbSYgdeLwStYGbZcynkwrVX_Z4fDqFDFEKundQ.webp",
-      "features": [
-        0.32896218675940053,
-        0.24348299804350163,
-        0.20765744656226573,
-        0.35307187239574606,
-        0.27882759162549,
-        1.2043881313078453
-      ]
-    },
-    {
-      "id": "u-Fbx7fABPavF-9Hx74hoqQd",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/u-Fbx7fABPavF-9Hx74hoqQdd2QH6Yzi4dlugcya45PVQ7mDa0Wb72N_5X3Rxcj-6KIzkZ2eVA7sngXYrZTkVNiEXQyPmof671RZBDYQkcTVXjYoL-dKpT9rcmRDhY3iUK4NSg9-yFpf8nTpaFZCQA.webp",
-      "features": [
-        0.327777408662516,
-        0.2550213630804242,
-        0.19569808593554228,
-        0.362946765902077,
-        0.28289061427971024,
-        1.1423716989174888
-      ]
-    },
-    {
-      "id": "ujq_GL1yzkrCLpjbNWw544xe",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/ujq_GL1yzkrCLpjbNWw544xejsYj82Z7GOOW8AErlfl4OfnGlHtSTAbRO2zo9lrD1k75U17TUHkXowlYNkZFxOSQocFwP5ksQeKK-StzPYLhrQEZJYSVkjo_RylrGOCtEpOS-s5OLnkP-WvNr0yDrQ.webp",
-      "features": [
-        0.3297131690175947,
-        0.24276813413500586,
-        0.21805934865215967,
-        0.36738088271662195,
-        0.2653058433963313,
-        1.2081675104959946
-      ]
-    },
-    {
-      "id": "vcdLxb_MDHBBDJIKlJoiL3su",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/vcdLxb_MDHBBDJIKlJoiL3suz3c5VIuGdYlguWD8Pexumr_4OBu4w41LDdKlPdAM_UK1pwT3pOJrzTMyubckFhFkzrKBVB6O3-rW3HBKOBRU3GjLUdnxMtIOMtznM3cZScLyJb2nz2mvb83njnTUOw.webp",
-      "features": [
-        0.31245477141287886,
-        0.2449373663064835,
-        0.21790731462124968,
-        0.37790553854973,
-        0.28610247212402273,
-        1.18188543789804
-      ]
-    },
-    {
-      "id": "wh6zG6dgMKTAv0jUpaeruIHf",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/wh6zG6dgMKTAv0jUpaeruIHfX2_Q5e5Ljal4emMPk_pfiK6rpXUWSz4IHt7CMrWDzBv-htZXUwaeqUxiEEBfDReZjiDXPaMsAgVEwMCW2WF5hqoHz81C-LHuwRLvknsCamO-w4IB2WrNHJo1SG_8EQ.webp",
-      "features": [
-        0.32232195679598064,
-        0.23811854114842837,
-        0.21080449034255958,
-        0.36718775007401344,
-        0.26875670308817823,
-        1.1562533826921695
-      ]
-    },
-    {
-      "id": "xfT596HJeElTXG_ATTDlQLbh",
-      "name": null,
-      "title": null,
-      "image": "assets/maleKR/xfT596HJeElTXG_ATTDlQLbhh-5-C8ZYDFvqp-7dw_ZqHDMoVj6FqmNTsS1xsfh6b4BerSbj84oOyo-K1Wy4tx7mBVlHztcqcGPp2yU9V8_eQiHtCo0o_cABf4_IUTyqbZPi0gdQOXFMQgGeOgV-nQ.webp",
-      "features": [
-        0.3170959209912336,
-        0.243155671849651,
-        0.19691207855834797,
-        0.32801599427444106,
-        0.2702220210367276,
-        1.2062098388389408
+        0.3413932484609704,
+        0.23009268240874275,
+        0.2238501790584591,
+        0.343977684243007,
+        0.2554656845065618,
+        1.145449508311231
       ]
     },
     {
       "id": "lee-boo-jin",
       "name": "이부진",
       "title": "호텔신라 사장",
-      "image": "assets/richKR/female/lee-boo-jin.jpg",
+      "image": "assets/people/caricature/lee-boo-jin.jpg",
       "rank": 5,
       "netWorth": "$7.9B",
       "achievement": "호텔신라 사장 · 호텔·면세점 사업 이끄는 경영인",
-      "credit": {
-        "author": "대한민국 정부(Republic of Korea)",
-        "license": "CC BY-SA 2.0",
-        "source": "https://commons.wikimedia.org/wiki/File:2024_Korea_Grand_Sale_01_(cropped).jpg"
-      },
+      "isIllustration": true,
       "features": [
-        0.32012010735969315,
-        0.24430793659224184,
-        0.18284863277425936,
-        0.32895568160793326,
-        0.2799807431847591,
-        1.2095915606842325
+        0.31734521263122306,
+        0.2527926219638986,
+        0.18156702747390566,
+        0.3790815815920081,
+        0.30442947828923717,
+        1.2024213232587133
+      ]
+    },
+    {
+      "id": "lee-seo-hyun",
+      "name": "이서현",
+      "title": "삼성물산 사장",
+      "image": "assets/people/caricature/lee-seo-hyun.jpg",
+      "rank": 6,
+      "netWorth": "$7.5B",
+      "achievement": "삼성물산 전략기획담당 사장 · 패션사업 15년 이끈 전문가",
+      "isIllustration": true,
+      "features": [
+        0.33554236932898435,
+        0.23845475902963054,
+        0.19722005372713788,
+        0.33998469895476136,
+        0.27004322016890653,
+        1.1544272964000488
+      ]
+    },
+    {
+      "id": "chung-mong-koo",
+      "name": "정몽구",
+      "title": "현대자동차그룹 명예회장",
+      "image": "assets/people/caricature/chung-mong-koo.jpg",
+      "rank": 7,
+      "netWorth": "$7.3B",
+      "achievement": "현대차그룹 명예회장 · 글로벌 톱5 완성차로 성장시킴",
+      "isIllustration": true,
+      "features": [
+        0.31456100336561116,
+        0.23664068783740888,
+        0.20306698742340692,
+        0.3546473543252188,
+        0.28822306610730625,
+        1.263506990625446
       ]
     },
     {
       "id": "hong-ra-hee",
       "name": "홍라희",
       "title": "전 리움미술관장",
-      "image": "assets/richKR/female/hong-ra-hee.png",
+      "image": "assets/people/caricature/hong-ra-hee.jpg",
       "rank": 8,
       "netWorth": "$7.1B",
       "achievement": "전 리움미술관장 · 삼성문화재단 미술관 사업 주도",
-      "credit": {
-        "author": "이데일리TV (@Edaily_TV)",
-        "license": "CC BY 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Hong_Ra-hee%2C_Edaily_TV%2C_2021-09-27.png"
-      },
+      "isIllustration": true,
       "features": [
-        0.32847864536084953,
-        0.25803764200255513,
-        0.20966670287302006,
-        0.39885342208671226,
-        0.3072809780871162,
-        1.1953449992234244
+        0.32549592570293323,
+        0.24101822513381121,
+        0.19163598757036177,
+        0.35527987678189515,
+        0.3001039250945797,
+        1.1633681433043759
       ]
     },
     {
-      "id": "107748_106566_930",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/107748_106566_930.jpg",
+      "id": "chung-eui-sun",
+      "name": "정의선",
+      "title": "현대자동차그룹 회장",
+      "image": "assets/people/caricature/chung-eui-sun.jpg",
+      "rank": 9,
+      "netWorth": "$6.3B",
+      "achievement": "현대차그룹 회장 · 전기차·로보틱스 미래사업 확장",
+      "isIllustration": true,
       "features": [
-        0.34123214611108765,
-        0.25540759586750356,
-        0.22059949968277673,
-        0.36950958064513345,
-        0.2662436040508594,
-        1.2017656349185282
+        0.30897642306357137,
+        0.247540521360101,
+        0.20006157398239582,
+        0.37782747921617943,
+        0.2913740394010794,
+        1.1463323052108072
       ]
     },
     {
-      "id": "1642099816533",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/1642099816533.jpeg",
+      "id": "yoon-dae-in",
+      "name": "윤대인",
+      "title": "삼천당제약 회장",
+      "image": "assets/people/caricature/yoon-dae-in.jpg",
+      "rank": 10,
+      "netWorth": "$5.9B",
+      "achievement": "삼천당제약 회장 · 약물전달기술 S-PASS 일본 수출",
+      "isIllustration": true,
       "features": [
-        0.3438887304346136,
-        0.2779200908612009,
-        0.20893919070658004,
-        0.37093047443318583,
-        0.28763222103759906,
-        1.120469801280179
+        0.34160866296855025,
+        0.2273014649863573,
+        0.2207748095556087,
+        0.3784386526945969,
+        0.28479746635821757,
+        1.1184456611858304
       ]
     },
     {
-      "id": "2022111700193_0",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/2022111700193_0.jpg",
+      "id": "kwak-dong-sin",
+      "name": "곽동신",
+      "title": "한미반도체 회장",
+      "image": "assets/people/caricature/kwak-dong-sin.jpg",
+      "rank": 11,
+      "netWorth": "$5.7B",
+      "achievement": "한미반도체 회장 겸 CEO · TC본더 세계 1위 점유율",
+      "isIllustration": true,
       "features": [
-        0.35346143519012413,
-        0.256858850001157,
-        0.208214023675376,
-        0.41579539764248524,
-        0.28000946436677193,
-        1.21071014744812
+        0.3217382998004384,
+        0.24572754379763784,
+        0.22184187720418963,
+        0.3427786123193244,
+        0.2637107769545943,
+        1.0717763866883792
       ]
     },
     {
-      "id": "2211241059480190_119_tc",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/2211241059480190_119_tc.jpg",
+      "id": "park-hyun-ju",
+      "name": "박현주",
+      "title": "미래에셋금융그룹 회장",
+      "image": "assets/people/caricature/park-hyun-ju.jpg",
+      "rank": 12,
+      "netWorth": "$4.9B",
+      "achievement": "미래에셋금융그룹 창업자 · 9개국 19개 법인 글로벌 운영",
+      "isIllustration": true,
       "features": [
-        0.31994939318699744,
-        0.25750743700282874,
-        0.2054157510899469,
-        0.33301514110724134,
-        0.2649979916815114,
-        1.1594219405679058
-      ]
-    },
-    {
-      "id": "229008_130396_511",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/229008_130396_511.jpg",
-      "features": [
-        0.34828164763815034,
-        0.2361097134648017,
-        0.22899811151803098,
-        0.3764781759809134,
-        0.2673835577183365,
-        1.1924749661290035
-      ]
-    },
-    {
-      "id": "40963_78843",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/40963_78843.jpeg",
-      "features": [
-        0.3283656566701077,
-        0.2575399783568589,
-        0.22043783970391748,
-        0.370947345934795,
-        0.2794608465045705,
-        1.1181893663641829
-      ]
-    },
-    {
-      "id": "5053_5563_233",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/5053_5563_233.jpg",
-      "features": [
-        0.33830126172545383,
-        0.27042653355937274,
-        0.20093417827493792,
-        0.42311215620061954,
-        0.29363629094989974,
-        1.2199182897585534
-      ]
-    },
-    {
-      "id": "672109_2064_5143",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/672109_2064_5143.jpg",
-      "features": [
-        0.35455834077981724,
-        0.26080122349190604,
-        0.22036362173632362,
-        0.4028223153253686,
-        0.27776401455281235,
-        1.2300950338487442
-      ]
-    },
-    {
-      "id": "CX0xZvQraxY0tKM5Qdy8Mfp3",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/CX0xZvQraxY0tKM5Qdy8Mfp3BiyjkLUSvOz6f0Xg42eD299eoOTxP4BEvdBT0YV4Md4YN-khdxZbj6BDGM94ABNy0cZklt1Qvzuhf02J6feA6F-Iq1XdD_AqEjsGJaPpLISm56sl_Jr8VAVPJerizw.webp",
-      "features": [
-        0.32176897278951955,
-        0.23254017893321324,
-        0.22505577722110104,
-        0.4143661816495232,
-        0.3091933600899454,
-        1.1809205161747802
-      ]
-    },
-    {
-      "id": "JH0jd7jiuMEMStIrFgh-E048",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/JH0jd7jiuMEMStIrFgh-E048ki_rBcFY4cCW6zsTxnXu6XvCffbKvjPaU_HlgkCfTx8Se-TRS0YjZdg_8R1ze5GvixL9sBLNq_9piOnXCGLKBzmAMTn_BuimnKXluKO8chWIo1AuFKSRCuSRw2upFQ.webp",
-      "features": [
-        0.3352180439958938,
-        0.2541653705264158,
-        0.20282402672423624,
-        0.38195846768468816,
-        0.2883711552772774,
-        1.1898781007974883
-      ]
-    },
-    {
-      "id": "K3a6TxMxdt-nLv9JXAZBvNL5",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/K3a6TxMxdt-nLv9JXAZBvNL55_Sh-XEz6TAiveH8kwdJdaeJfrpOnBdXGPA1h4yMuplUgSVf4GQQg80FxOrxJA.webp",
-      "features": [
-        0.34714144750125503,
-        0.2451337268374877,
-        0.19676208884269641,
-        0.3290928794599825,
-        0.2481066176498741,
-        1.2293255064531847
-      ]
-    },
-    {
-      "id": "PP10081600034",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/PP10081600034.jpeg",
-      "features": [
-        0.32283333218824634,
-        0.2299845678784287,
-        0.179410423925542,
-        0.3234144001637181,
-        0.27445076579787503,
-        1.2463523098709826
-      ]
-    },
-    {
-      "id": "SSI_20140817180729_O2",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/SSI_20140817180729_O2.jpg",
-      "features": [
-        0.3181816758862577,
-        0.24369115792831406,
-        0.21854447828282283,
-        0.3301114653886553,
-        0.2586357717444376,
-        1.1100040126817061
-      ]
-    },
-    {
-      "id": "V1dimmqQ51ymFT6TLC4dWHxr",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/V1dimmqQ51ymFT6TLC4dWHxr7PPaym48-kofQpdK6SZwSmcccJgPN71r7kDpjMHhA7c9zajWIv5-FPkmWVhzFg.webp",
-      "features": [
-        0.34354061776658484,
-        0.25741413984952977,
-        0.220850490776561,
-        0.3877874341104688,
-        0.2919953878761369,
-        1.203764558699242
-      ]
-    },
-    {
-      "id": "a-CyZb40jxEj6w3smXKgDPi5",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/a-CyZb40jxEj6w3smXKgDPi5TASEsEjAyvZ43dLCNohFfvxj9YCOaCabR7h1fvt_g8n2TnUd-XK_Uh769FkqtbcreP-Blu5UhOyFm92URxGMBwIlj5AMrXfPPIFYE8Z6UdWEwfLndvrV2Ojw5kK-hQ.webp",
-      "features": [
-        0.33119115406711536,
-        0.2556862982964502,
-        0.20185554320400828,
-        0.3768225368430254,
-        0.2997659213649387,
-        1.1736613971059562
-      ]
-    },
-    {
-      "id": "image-6c18e1fa-ebbc-477b",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/image-6c18e1fa-ebbc-477b-8128-6a623505c790.jpeg",
-      "features": [
-        0.3459464078709163,
-        0.2685133216032627,
-        0.21351170749457338,
-        0.37883478833433415,
-        0.28396222883509936,
-        1.1461806948100477
-      ]
-    },
-    {
-      "id": "image_readtop_2016_78658",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/image_readtop_2016_786587_1478839394.jpg",
-      "features": [
-        0.3356782031977167,
-        0.25353514240876707,
-        0.20453539208816884,
-        0.32781446324355173,
-        0.28057352266408553,
-        1.2561280551062508
-      ]
-    },
-    {
-      "id": "images",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/images.jpeg",
-      "features": [
-        0.3436557533222964,
-        0.24746421684102288,
-        0.22600474543421964,
-        0.3538287412722475,
-        0.263130415414944,
-        1.1693610613931156
-      ]
-    },
-    {
-      "id": "isp20230112000217.466x55",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/isp20230112000217.466x551.0.jpeg",
-      "features": [
-        0.33360213339586126,
-        0.25156697541018996,
-        0.21031462140043433,
-        0.4170249274684261,
-        0.3018763324390346,
-        1.1943560490989074
-      ]
-    },
-    {
-      "id": "isp20230112000218.409x61",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/isp20230112000218.409x614.0.jpg",
-      "features": [
-        0.28897575447970975,
-        0.26306942609343537,
-        0.19766049863445498,
-        0.4347826877717285,
-        0.33428197471848725,
-        1.1334724776617942
-      ]
-    },
-    {
-      "id": "news_1718088311_1370607_",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/news_1718088311_1370607_m_1.jpeg",
-      "features": [
-        0.3708638040748026,
-        0.254904226283433,
-        0.22787859852105044,
-        0.4075202207454458,
-        0.2777086766719087,
-        1.2229602270083095
-      ]
-    },
-    {
-      "id": "rg_VWdoKbINZ1kN1DvchSuKz",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/rg_VWdoKbINZ1kN1DvchSuKznzkDO6qs_80D8TAmmclzKxKmUJNwqOJLQZFlQlJqcTdRDnYRcS24hP_FxzflvXPnm3utrDfV54Icfw2GxKC1X9bUIWMi-jITRe2jHyCY6crfvyFI0QY5Z5Fal33h3Q.webp",
-      "features": [
-        0.3233409023936787,
-        0.24271209014892894,
-        0.19281231215671252,
-        0.38690257831259056,
-        0.29444473270639676,
-        1.195171820122553
-      ]
-    },
-    {
-      "id": "tjalswjd191025",
-      "name": null,
-      "title": null,
-      "image": "assets/femaleKR/tjalswjd191025.jpg",
-      "features": [
-        0.32658690595684753,
-        0.25376685661554227,
-        0.20319753594767412,
-        0.35570786623856254,
-        0.28881850745743104,
-        1.19916912601997
+        0.3338037544150776,
+        0.2515515024349117,
+        0.2246032082051209,
+        0.4223271635318392,
+        0.3069033405511683,
+        1.1536540894928504
       ]
     },
     {
       "id": "kim-beom-su",
       "name": "김범수",
       "title": "카카오 창업자",
-      "image": "assets/richKR/male/kim-beom-su.jpg",
+      "image": "assets/people/caricature/kim-beom-su.jpg",
       "rank": 13,
       "netWorth": "$3.8B",
       "achievement": "카카오 창업자 · 국민 메신저 '카카오톡'으로 모바일 플랫폼 시대 이끎",
-      "credit": {
-        "author": "ACROFAN",
-        "license": "CC BY-SA 3.0",
-        "source": "https://commons.wikimedia.org/wiki/File:Kim_Bum-soo,_Chairman_of_board,_Kakao_Inc.jpg"
-      },
+      "isIllustration": true,
       "features": [
-        0.3328427686572397,
-        0.24497005791742318,
-        0.18809422576682816,
-        0.3566361050751797,
-        0.289904888123967,
-        1.0774340437914591
+        0.3351450985431177,
+        0.24755586354591622,
+        0.22151387071478196,
+        0.36075680602837445,
+        0.2752177610551911,
+        1.1173220681792904
+      ]
+    },
+    {
+      "id": "bom-kim",
+      "name": "김범석",
+      "title": "쿠팡 창업자",
+      "image": "assets/people/caricature/bom-kim.jpg",
+      "rank": 14,
+      "netWorth": "$3.2B",
+      "achievement": "쿠팡 창업자 · 로켓배송으로 이커머스 판도 변화",
+      "isIllustration": true,
+      "features": [
+        0.3279691888444079,
+        0.24062833157338423,
+        0.22590865947539926,
+        0.42867030754665103,
+        0.3178492163563743,
+        1.1609983774462016
+      ]
+    },
+    {
+      "id": "kwon-hyuk-bin",
+      "name": "권혁빈",
+      "title": "스마일게이트 창업자",
+      "image": "assets/people/caricature/kwon-hyuk-bin.jpg",
+      "rank": 16,
+      "netWorth": "$3.1B",
+      "achievement": "스마일게이트 창업자 · '크로스파이어'·'로스트아크' 흥행",
+      "isIllustration": true,
+      "features": [
+        0.32178037007338856,
+        0.25635615125000727,
+        0.1988432928688362,
+        0.36995363342723436,
+        0.2694111620476973,
+        1.055353149041685
+      ]
+    },
+    {
+      "id": "cho-hyun-joon",
+      "name": "조현준",
+      "title": "효성그룹 회장",
+      "image": "assets/people/caricature/cho-hyun-joon.jpg",
+      "rank": 17,
+      "netWorth": "$2.95B",
+      "achievement": "효성그룹 회장 · 섬유·중공업 사업 다각화",
+      "isIllustration": true,
+      "features": [
+        0.31262835724359594,
+        0.25980935620253226,
+        0.19732115531770095,
+        0.357371131150976,
+        0.2843835497974094,
+        1.1384454664489612
+      ]
+    },
+    {
+      "id": "chey-tae-won",
+      "name": "최태원",
+      "title": "SK그룹 회장",
+      "image": "assets/people/caricature/chey-tae-won.jpg",
+      "rank": 18,
+      "netWorth": "$2.9B",
+      "achievement": "SK그룹 회장 · SK하이닉스 반도체 신화 주도",
+      "isIllustration": true,
+      "features": [
+        0.32364448834800486,
+        0.19739648072206278,
+        0.2377714129868347,
+        0.2810152825351785,
+        0.24265032068930792,
+        1.5445366834279772
+      ]
+    },
+    {
+      "id": "kim-jun-ki",
+      "name": "김준기",
+      "title": "DB그룹 회장",
+      "image": "assets/people/caricature/kim-jun-ki.jpg",
+      "rank": 19,
+      "netWorth": "$2.85B",
+      "achievement": "DB그룹 창업 회장 · 자본금 2500만원으로 자수성가",
+      "isIllustration": true,
+      "features": [
+        0.3388011543374402,
+        0.2346418906561292,
+        0.21146209131360647,
+        0.3507306233906699,
+        0.26696910714981215,
+        1.1050454157722365
+      ]
+    },
+    {
+      "id": "chung-mong-joon",
+      "name": "정몽준",
+      "title": "HD현대 최대주주",
+      "image": "assets/people/caricature/chung-mong-joon.jpg",
+      "rank": 20,
+      "netWorth": "$2.8B",
+      "achievement": "HD현대 최대주주 · 조선업 세계 1위 성장 견인",
+      "isIllustration": true,
+      "features": [
+        0.3174544915562534,
+        0.23327614049036713,
+        0.20455882231502148,
+        0.32929147804429504,
+        0.2767901170442873,
+        1.2178651610331495
+      ]
+    },
+    {
+      "id": "kim-byung-hoon",
+      "name": "김병훈",
+      "title": "APR CEO",
+      "image": "assets/people/caricature/kim-byung-hoon.jpg",
+      "rank": 21,
+      "netWorth": "$2.7B",
+      "achievement": "APR 공동창업자 겸 CEO · 반지하 창업 12년 만에 시총 15조",
+      "isIllustration": true,
+      "features": [
+        0.31795327215737856,
+        0.2604210805364949,
+        0.20795977451929748,
+        0.3826163468434039,
+        0.30050029411909923,
+        1.1068760973987402
+      ]
+    },
+    {
+      "id": "park-soon-jae",
+      "name": "박순재",
+      "title": "알테오젠 의장",
+      "image": "assets/people/caricature/park-soon-jae.jpg",
+      "rank": 22,
+      "netWorth": "$2.6B",
+      "achievement": "알테오젠 이사회 의장 · 국내 1호 FDA 승인 신약 개발 참여",
+      "isIllustration": true,
+      "features": [
+        0.3217770606576931,
+        0.22891164032393332,
+        0.21209391270697325,
+        0.35140347037870306,
+        0.29296291152238624,
+        1.1559675024198939
+      ]
+    },
+    {
+      "id": "lee-dong-chae",
+      "name": "이동채",
+      "title": "에코프로그룹 회장",
+      "image": "assets/people/caricature/lee-dong-chae.jpg",
+      "rank": 24,
+      "netWorth": "$2.4B",
+      "achievement": "에코프로그룹 창업주 · 양극재 시장 글로벌 패권 장악",
+      "isIllustration": true,
+      "features": [
+        0.32723481301821244,
+        0.2305721507604344,
+        0.21221700651102307,
+        0.40346832464471766,
+        0.30523622316963467,
+        1.1178147919480963
+      ]
+    },
+    {
+      "id": "song-chi-hyung",
+      "name": "송치형",
+      "title": "두나무 회장",
+      "image": "assets/people/caricature/song-chi-hyung.jpg",
+      "rank": 25,
+      "netWorth": "$2.3B",
+      "achievement": "두나무 회장 겸 이사회 의장 · 업비트 국내 1위 안착",
+      "isIllustration": true,
+      "features": [
+        0.30336957824606336,
+        0.2411622177315474,
+        0.20198122384648004,
+        0.3445545844765437,
+        0.2940965403950939,
+        1.1283767924810946
+      ]
+    },
+    {
+      "id": "jung-yong-ji",
+      "name": "정용지",
+      "title": "케어젠 대표",
+      "image": "assets/people/caricature/jung-yong-ji.jpg",
+      "rank": 26,
+      "netWorth": "$2.25B",
+      "achievement": "케어젠 창립자 겸 CEO · 주름개선·모발재생 제품 130개국 수출",
+      "isIllustration": true,
+      "features": [
+        0.335451517461866,
+        0.247192171367973,
+        0.21438935193961434,
+        0.3662553191706189,
+        0.28909705564935356,
+        1.0900780600038842
+      ]
+    },
+    {
+      "id": "koo-bon-neung",
+      "name": "구본능",
+      "title": "희성그룹 회장",
+      "image": "assets/people/caricature/koo-bon-neung.jpg",
+      "rank": 27,
+      "netWorth": "$2.2B",
+      "achievement": "희성그룹 회장 · LG 계열 분리 후 독자 성장",
+      "isIllustration": true,
+      "features": [
+        0.33136932698045574,
+        0.241560086471894,
+        0.2232680611430722,
+        0.35597921419169204,
+        0.27377077760144614,
+        1.163330543028748
+      ]
+    },
+    {
+      "id": "chung-yong-jin",
+      "name": "정용진",
+      "title": "신세계그룹 회장",
+      "image": "assets/people/caricature/chung-yong-jin.jpg",
+      "rank": 28,
+      "netWorth": "$2.1B",
+      "achievement": "신세계그룹 회장 · 이마트·스타필드 유통 혁신",
+      "isIllustration": true,
+      "features": [
+        0.30739498882096533,
+        0.24207894277230863,
+        0.19642822608117988,
+        0.45622946571356493,
+        0.33518113651124776,
+        1.2144543363501246
+      ]
+    },
+    {
+      "id": "kim-jung-soo-jun-in-jang",
+      "name": "김정수·전인장",
+      "title": "삼양식품 부회장",
+      "image": "assets/people/caricature/kim-jung-soo-jun-in-jang.jpg",
+      "rank": 29,
+      "netWorth": "$1.95B",
+      "achievement": "삼양식품 대표이사 부회장 · '불닭볶음면' 개발·해외 확대",
+      "isIllustration": true,
+      "features": [
+        0.3139756429215723,
+        0.2507175848555815,
+        0.20123207420456635,
+        0.36108096801494804,
+        0.27644253392035445,
+        1.2050489437476781
+      ]
+    },
+    {
+      "id": "koo-kwang-mo",
+      "name": "구광모",
+      "title": "LG그룹 회장",
+      "image": "assets/people/caricature/koo-kwang-mo.jpg",
+      "rank": 30,
+      "netWorth": "$1.9B",
+      "achievement": "LG그룹 회장 · AI '엑사원' 상업화 주도",
+      "isIllustration": true,
+      "features": [
+        0.34306987523815313,
+        0.24777769492476973,
+        0.23167920569293246,
+        0.3582360905778424,
+        0.26139954326142895,
+        1.1882944478798605
+      ]
+    },
+    {
+      "id": "lee-chae-yoon",
+      "name": "이채윤",
+      "title": "리노산업 대표",
+      "image": "assets/people/caricature/lee-chae-yoon.jpg",
+      "rank": 31,
+      "netWorth": "$1.89B",
+      "achievement": "리노산업 창립자 겸 CEO · 엔비디아·삼성 등 1000여 고객사 확보",
+      "isIllustration": true,
+      "features": [
+        0.2947733727502832,
+        0.2509755487637181,
+        0.18449567349429133,
+        0.35643718001592506,
+        0.3027036627510821,
+        1.1320561083991303
+      ]
+    },
+    {
+      "id": "kim-nam-koo",
+      "name": "김남구",
+      "title": "한국투자금융지주 회장",
+      "image": "assets/people/caricature/kim-nam-koo.jpg",
+      "rank": 32,
+      "netWorth": "$1.85B",
+      "achievement": "한국투자금융지주 회장 · 국내 최초 금융투자 전업 지주사",
+      "isIllustration": true,
+      "features": [
+        0.3282754922083219,
+        0.2268117061167485,
+        0.21066344226525183,
+        0.40394071002579357,
+        0.28549807164869234,
+        1.0680225974066038
+      ]
+    },
+    {
+      "id": "koo-bon-sik",
+      "name": "구본식",
+      "title": "LT그룹 회장",
+      "image": "assets/people/caricature/koo-bon-sik.jpg",
+      "rank": 33,
+      "netWorth": "$1.8B",
+      "achievement": "LT그룹 회장 · 희성그룹서 계열 분리 독립",
+      "isIllustration": true,
+      "features": [
+        0.3175747800850628,
+        0.2296176948520087,
+        0.2097301486507023,
+        0.33884749704959377,
+        0.2619334811385328,
+        1.2123107328523783
+      ]
+    },
+    {
+      "id": "lee-jae-hyun",
+      "name": "이재현",
+      "title": "CJ그룹 회장",
+      "image": "assets/people/caricature/lee-jae-hyun.jpg",
+      "rank": 34,
+      "netWorth": "$1.75B",
+      "achievement": "CJ그룹 회장 · 드림웍스·슈완스 인수로 글로벌 확장",
+      "isIllustration": true,
+      "features": [
+        0.28879033566117196,
+        0.26772926046402706,
+        0.1857086018702534,
+        0.4028387152831144,
+        0.3092200573324967,
+        1.2260398029369521
+      ]
+    },
+    {
+      "id": "park-dong-seok",
+      "name": "박동석",
+      "title": "산일전기 대표",
+      "image": "assets/people/caricature/park-dong-seok.jpg",
+      "rank": 35,
+      "netWorth": "$1.7B",
+      "achievement": "산일전기 창립자 겸 CEO · 변압기 미국 수출 매출 비중 60%",
+      "isIllustration": true,
+      "features": [
+        0.3179288260421498,
+        0.22798987778575994,
+        0.20778314423757693,
+        0.38325025697462645,
+        0.29654091407719857,
+        1.1444090251787806
+      ]
+    },
+    {
+      "id": "kim-sang-bum",
+      "name": "김상범",
+      "title": "이수그룹 회장",
+      "image": "assets/people/caricature/kim-sang-bum.jpg",
+      "rank": 36,
+      "netWorth": "$1.5B",
+      "achievement": "이수그룹 회장 · 고다층 PCB로 글로벌 IT 공급망 참여",
+      "isIllustration": true,
+      "features": [
+        0.31980404077231533,
+        0.254709531485351,
+        0.2137764978411694,
+        0.4464593410397204,
+        0.3099351614712917,
+        1.0729831026109617
+      ]
+    },
+    {
+      "id": "seo-kyung-bae",
+      "name": "서경배",
+      "title": "아모레퍼시픽그룹 회장",
+      "image": "assets/people/caricature/seo-kyung-bae.jpg",
+      "rank": 37,
+      "netWorth": "$1.45B",
+      "achievement": "아모레퍼시픽그룹 회장 · K뷰티 글로벌화 주도",
+      "isIllustration": true,
+      "features": [
+        0.3035444190209835,
+        0.23849630732124874,
+        0.1885128652949816,
+        0.3276822462148852,
+        0.28439552468597146,
+        1.0378529112874457
       ]
     },
     {
       "id": "lee-hae-jin",
       "name": "이해진",
       "title": "네이버 창업자",
-      "image": "assets/richKR/male/lee-hae-jin.jpg",
+      "image": "assets/people/caricature/lee-hae-jin.jpg",
       "rank": 38,
       "netWorth": "$1.44B",
       "achievement": "네이버 창업자 · 한국 대표 포털·글로벌 IT 기업으로 성장시킴",
-      "credit": {
-        "author": "Spyderkmoto",
-        "license": "CC0 1.0 (Public Domain)",
-        "source": "https://commons.wikimedia.org/wiki/File:이해진(네이버).jpg"
-      },
+      "isIllustration": true,
       "features": [
-        0.3256057512006687,
-        0.24424844603197107,
-        0.23750164140607452,
-        0.4369541779001254,
-        0.2980723802857657,
-        1.1860756353873727
+        0.31205194681218407,
+        0.23116613337396805,
+        0.22139720948356476,
+        0.44065347654755294,
+        0.33568919377665263,
+        1.2194889630788848
+      ]
+    },
+    {
+      "id": "kim-hyun-tae",
+      "name": "김현태",
+      "title": "보로노이 대표",
+      "image": "assets/people/caricature/kim-hyun-tae.jpg",
+      "rank": 40,
+      "netWorth": "$1.3B",
+      "achievement": "보로노이 대표 · 항암 신약 파이프라인 임상 진행",
+      "isIllustration": true,
+      "features": [
+        0.3130652745025907,
+        0.27121852841594835,
+        0.22638028125170065,
+        0.42438762220002546,
+        0.30515920456402057,
+        1.1627906747579564
+      ]
+    },
+    {
+      "id": "bang-si-hyuk",
+      "name": "방시혁",
+      "title": "하이브 의장",
+      "image": "assets/people/caricature/bang-si-hyuk.jpg",
+      "rank": 41,
+      "netWorth": "$1.25B",
+      "achievement": "하이브 의장 · BTS 등 K팝 세계화 이끈 프로듀서",
+      "isIllustration": true,
+      "features": [
+        0.29765364518119103,
+        0.22139513920552983,
+        0.18808936499461268,
+        0.322847065945397,
+        0.2933175524902276,
+        1.1728528127024511
+      ]
+    },
+    {
+      "id": "choi-ki-won",
+      "name": "최기원",
+      "title": "SK행복나눔재단 이사장",
+      "image": "assets/people/caricature/choi-ki-won.jpg",
+      "rank": 42,
+      "netWorth": "$1.21B",
+      "achievement": "SK행복나눔재단 이사장 · SK㈜ 3대 주주로 사회공헌 전담",
+      "isIllustration": true,
+      "features": [
+        0.3219000636201443,
+        0.23406172559767532,
+        0.20797563482502668,
+        0.4383610698687537,
+        0.30600174388173673,
+        1.11099328955084
+      ]
+    },
+    {
+      "id": "kim-hyung-nyun",
+      "name": "김형년",
+      "title": "두나무 부회장",
+      "image": "assets/people/caricature/kim-hyung-nyun.jpg",
+      "rank": 43,
+      "netWorth": "$1.2B",
+      "achievement": "두나무 공동창업자 겸 부회장 · 업비트 운영 총괄",
+      "isIllustration": true,
+      "features": [
+        0.327483999248608,
+        0.25239628235057426,
+        0.21413447746674028,
+        0.4278267913548959,
+        0.31201373778852215,
+        1.1365345578903108
+      ]
+    },
+    {
+      "id": "kim-taek-jin",
+      "name": "김택진",
+      "title": "엔씨소프트 창업자",
+      "image": "assets/people/caricature/kim-taek-jin.jpg",
+      "rank": 44,
+      "netWorth": "$1.18B",
+      "achievement": "엔씨소프트 창업자 · 리니지 시리즈로 게임산업 개척",
+      "isIllustration": true,
+      "features": [
+        0.3052495668678707,
+        0.23951491357099933,
+        0.19797829772827,
+        0.34741606925695157,
+        0.27174880398081475,
+        1.2202194729576286
+      ]
+    },
+    {
+      "id": "lee-ho-jin",
+      "name": "이호진",
+      "title": "태광그룹 전 회장",
+      "image": "assets/people/caricature/lee-ho-jin.jpg",
+      "rank": 45,
+      "netWorth": "$1.15B",
+      "achievement": "태광그룹 전 회장 · 현재 비상근 고문으로 활동",
+      "isIllustration": true,
+      "features": [
+        0.33456459202264505,
+        0.24205395722166564,
+        0.21542818053422147,
+        0.36652135596209956,
+        0.2804144526496218,
+        1.1258938201432296
+      ]
+    },
+    {
+      "id": "shin-dong-joo",
+      "name": "신동주",
+      "title": "SDJ코퍼레이션 회장",
+      "image": "assets/people/caricature/shin-dong-joo.jpg",
+      "rank": 46,
+      "netWorth": "$1.13B",
+      "achievement": "SDJ코퍼레이션 회장 · 롯데홀딩스 경영권 확보 시도",
+      "isIllustration": true,
+      "features": [
+        0.3374815855633231,
+        0.22808023709695088,
+        0.21474920332299832,
+        0.3839811121810978,
+        0.26649342763659123,
+        1.1035440281672328
+      ]
+    },
+    {
+      "id": "hong-suk-jo",
+      "name": "홍석조",
+      "title": "BGF그룹 회장",
+      "image": "assets/people/caricature/hong-suk-jo.jpg",
+      "rank": 47,
+      "netWorth": "$1.1B",
+      "achievement": "BGF그룹 회장 · CU 편의점 국내 1위, 하와이 진출",
+      "isIllustration": true,
+      "features": [
+        0.2955083448766216,
+        0.2573794513024888,
+        0.18067361723807418,
+        0.45232789089737235,
+        0.3138342668494965,
+        1.1329220122697492
+      ]
+    },
+    {
+      "id": "lee-su-jin",
+      "name": "이수진",
+      "title": "야놀자 총괄대표",
+      "image": "assets/people/caricature/lee-su-jin.jpg",
+      "rank": 48,
+      "netWorth": "$1.05B",
+      "achievement": "야놀자 총괄대표 · 연매출 1조원 첫 돌파",
+      "isIllustration": true,
+      "features": [
+        0.308206746862937,
+        0.2486127019097524,
+        0.2250141648463648,
+        0.3636540043367907,
+        0.2974035287379675,
+        1.181424506592116
+      ]
+    },
+    {
+      "id": "sung-kyu-dong",
+      "name": "성규동",
+      "title": "EO테크닉스 대표",
+      "image": "assets/people/caricature/sung-kyu-dong.jpg",
+      "rank": 49,
+      "netWorth": "$1.03B",
+      "achievement": "EO테크닉스 창립자 겸 CEO · 산업용 레이저 기술 개척",
+      "isIllustration": true,
+      "features": [
+        0.3220944306924201,
+        0.2408114242050843,
+        0.22290938840206995,
+        0.3413348363962911,
+        0.25480636944125457,
+        1.1519137409221532
+      ]
+    },
+    {
+      "id": "jo-hyun-bum",
+      "name": "조현범",
+      "title": "한국앤컴퍼니그룹 회장",
+      "image": "assets/people/caricature/jo-hyun-bum.jpg",
+      "rank": 50,
+      "netWorth": "$1B",
+      "achievement": "한국앤컴퍼니그룹 회장 · 타이어부터 배터리까지 사업 다각화",
+      "isIllustration": true,
+      "features": [
+        0.3122020154422488,
+        0.2516545872832049,
+        0.21721128090373504,
+        0.39783945387773856,
+        0.2978242461500349,
+        1.216770101755902
       ]
     }
   ]
