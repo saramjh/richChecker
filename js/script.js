@@ -1112,6 +1112,12 @@ async function hideLoadingModal() {
 				onComplete: () => {
 					modal.style.display = "none"
 					gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
+					// 분석이 실패해서 renderResults()가 호출되지 않은 경우, showLoadingModal()이 걸어둔
+					// opacity/z만 되돌린다(display는 안 건드림) — 성공 시엔 renderResults()가 이미
+					// display:none으로 영구히 숨겨놨는데 여기서 clearProps:"all"을 그대로 쓰면 그 display도
+					// 같이 지워져 결과 화면 위에 소개 영역이 다시 나타나는 회귀가 생긴다. 반대로 이 복구
+					// 자체가 없으면 실패 시 소개 영역이 opacity:0로 남아 텅 빈 카드만 보이는 버그가 된다.
+					gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "opacity,z" })
 					resolve()
 				},
 			})
