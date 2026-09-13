@@ -844,6 +844,20 @@ function renderResults(aiInfo, radar, archetype, topMatch) {
 
 	document.getElementById("resultsContainer").style.display = "block"
 
+	// #resultsContainer는 페이지 로드 시 display:none이라, body 끝에서 한 번만 push()하는
+	// 스크립트가 실행될 때 이 안의 광고 유닛은 폭 0/숨김 상태로 처리된다 — 애드센스는 이때
+	// 렌더를 포기하고 나중에 컨테이너가 보여져도 알아서 재시도하지 않는다(그래서 하단 광고가
+	// 계속 안 보였다). 컨테이너를 보여준 지금 이 시점에 그 광고만 다시 push한다.
+	if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
+		document
+			.querySelectorAll("#resultsContainer .adsbygoogle")
+			.forEach((ins) => {
+				if (!ins.dataset.adsbygoogleStatus) {
+					;(window.adsbygoogle = window.adsbygoogle || []).push({})
+				}
+			})
+	}
+
 	// 소개 블록(태그라인/이용흐름/가치제안)과 업로드 사진 미리보기는 이미 결과를 받은
 	// 사용자에겐 불필요한 반복이라는 피드백 — 결과가 나오면 통째로 숨긴다. 업로드 사진은
 	// 아래 매칭 카드의 "나" 사진으로 대체되므로 정보 손실이 없다. (showLoadingModal에서 이미
