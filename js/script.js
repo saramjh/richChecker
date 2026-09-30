@@ -44,6 +44,24 @@ document.querySelectorAll("[data-edition-link]").forEach((link) => {
 
 let analysisAttemptCounter = 0
 
+const MOTION = Object.freeze({
+	resultOpacity: 0.24,
+	resultTransform: 0.46,
+	detailEnter: 0.28,
+	radarEnter: 0.36,
+	resetEnter: 0.34,
+	loaderContentEnter: 0.28,
+	loaderContentExit: 0.16,
+	loaderSurfaceExit: 0.22,
+	stagger: 0.035,
+	easeOut: "power3.out",
+	easeIn: "power2.in",
+})
+
+function prefersReducedMotion() {
+	return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+}
+
 // ===== 효과음 (Tone.js로 직접 합성 — 외부 음원 파일 없이 저작권 이슈 없이 재생) =====
 let sfx = null
 async function ensureSfx() {
@@ -52,35 +70,14 @@ async function ensureSfx() {
 	await Tone.start()
 	sfx = {
 		click: new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 2, volume: -18 }).toDestination(),
-		whooshNoise: new Tone.Noise("white").start(),
-		whooshFilter: new Tone.Filter({ frequency: 200, type: "bandpass", Q: 1.2 }).toDestination(),
 		chime: new Tone.PolySynth(Tone.FMSynth, { volume: -10 }).toDestination(),
 	}
-	sfx.whooshNoise.connect(sfx.whooshFilter)
-	sfx.whooshNoise.volume.value = -Infinity
 	return sfx
 }
 
 function playClick() {
 	if (!sfx) return
 	sfx.click.triggerAttackRelease("C2", "32n")
-}
-
-function playWhoosh(direction) {
-	if (!sfx) return
-	const now = Tone.now()
-	sfx.whooshNoise.volume.cancelScheduledValues(now)
-	sfx.whooshNoise.volume.setValueAtTime(-Infinity, now)
-	sfx.whooshNoise.volume.linearRampToValueAtTime(-14, now + 0.05)
-	sfx.whooshNoise.volume.linearRampToValueAtTime(-Infinity, now + 0.4)
-	sfx.whooshFilter.frequency.cancelScheduledValues(now)
-	if (direction === "out") {
-		sfx.whooshFilter.frequency.setValueAtTime(200, now)
-		sfx.whooshFilter.frequency.exponentialRampToValueAtTime(4000, now + 0.4)
-	} else {
-		sfx.whooshFilter.frequency.setValueAtTime(4000, now)
-		sfx.whooshFilter.frequency.exponentialRampToValueAtTime(200, now + 0.4)
-	}
 }
 
 function playChime() {
@@ -112,9 +109,7 @@ async function ensureMediapipeModules() {
 	return mediapipeModulesPromise
 }
 
-// 카카오톡/X 공유 문구를 "나의 부자 관상 분석 결과!" 같은 뻔한 고정 문구 대신 실제 결과로
-// 채우기 위해 가장 최근 결과를 기억해둔다 — 개인화된 문구가 공유율이 훨씬 높다는 건
-// 마케팅 콘텐츠의 기본 원리.
+// 공유 카드와 네이티브 공유 문구에 현재 결과를 넣기 위해 마지막 결과의 최소 요약만 유지한다.
 let lastResultSummary = null
 
 // populateShareCard()가 진행 중인 마지막 Promise — captureShareCard()가 캡처 전에 기다린다
@@ -252,23 +247,6 @@ document.getElementById("uploadedImage").addEventListener("keydown", (event) => 
 // script.js를 맨 마지막에 두었기 때문에, 이 줄이 실행되는 시점엔 GSAP/Tone 등
 // 의존 라이브러리도 이미 전부 로드가 끝나 있다.
 document.getElementById("uploadedImageContainer").classList.remove("is-initializing")
-
-// 메인 카드가 공중에 살짝 떠 있는 듯한 아이들 애니메이션.
-// 처음엔 y/회전을 크게 줬더니 버튼을 누르려 할 때 타겟이 계속 움직여서 불편하다는 피드백을
-// 받고, 회전은 아예 빼고 y 이동폭도 크게 줄였다 — 시선 끝에서 아주 은은하게만 느껴지는 정도.
-// script.js를 라이브러리들보다 먼저 실행하도록 순서를 바꿨기 때문에, 이 시점엔 아직 gsap이
-// 로드되지 않았을 수 있다 — window의 load 이벤트(모든 defer 스크립트 실행이 끝난 뒤 발생)까지
-// 기다렸다가 시작한다.
-window.addEventListener("load", function () {
-	if (typeof gsap === "undefined") return
-	gsap.to(".container", {
-		y: -3,
-		duration: 3.4,
-		repeat: -1,
-		yoyo: true,
-		ease: "sine.inOut",
-	})
-})
 
 // 이미지가 실제 픽셀 크기까지 준비되기 전에 MediaPipe를 시작하면 느린 모바일에서
 // naturalWidth/Height가 0인 캔버스가 만들어질 수 있다. src 설정 후 decode/load 완료를 보장한다.
@@ -1087,7 +1065,7 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	const resultsEl = document.getElementById("resultsContainer")
 	resultsEl.style.display = "block"
 	resultsEl.style.opacity = "0"
-	resultsEl.style.transform = "translateY(12px)"
+	resultsEl.style.transform = "translateY(10px) scale(0.995)"
 	document.body.classList.add("result-mode")
 	document.getElementById("introSection").style.display = "none"
 	document.getElementById("uploadedImageContainer").style.display = "none"
@@ -1106,10 +1084,9 @@ function revealRenderedResults() {
 	const resultsEl = document.getElementById("resultsContainer")
 	if (!resultsEl || resultsEl.style.display === "none") return
 	const revealEl = document.getElementById("topMatchReveal")
-	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 	if (revealEl) revealEl.classList.add("revealed")
-	if (reducedMotion || typeof gsap === "undefined") {
+	if (prefersReducedMotion() || typeof gsap === "undefined") {
 		resultsEl.style.opacity = "1"
 		resultsEl.style.transform = "none"
 		armShareArtifactPreparation()
@@ -1117,16 +1094,27 @@ function revealRenderedResults() {
 	}
 
 	gsap.killTweensOf([resultsEl, ".reading-item", ".radar-poly"])
-	gsap.to(resultsEl, {
-		opacity: 1,
-		y: 0,
-		duration: 0.42,
-		ease: "power2.out",
+	const timeline = gsap.timeline({
 		onComplete: () => gsap.set(resultsEl, { clearProps: "opacity,transform" }),
 	})
-	gsap.from(".reading-item", { opacity: 0, y: 8, duration: 0.3, stagger: 0.045, ease: "power2.out", delay: 0.12 })
-	gsap.fromTo(".radar-poly", { scale: 0.96, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.38, ease: "power2.out", stagger: 0.06, delay: 0.16 })
-	window.setTimeout(playChime, 180)
+	// Motion-style value-specific timing: opacity resolves quickly while position/scale settles more softly.
+	timeline.to(resultsEl, { opacity: 1, duration: MOTION.resultOpacity, ease: "power1.out" }, 0)
+	timeline.to(resultsEl, { y: 0, scale: 1, duration: MOTION.resultTransform, ease: MOTION.easeOut }, 0)
+	timeline.from(".reading-item", {
+		opacity: 0,
+		y: 6,
+		duration: MOTION.detailEnter,
+		stagger: MOTION.stagger,
+		ease: MOTION.easeOut,
+	}, 0.10)
+	timeline.fromTo(".radar-poly", { scale: 0.98, opacity: 0 }, {
+		scale: 1,
+		opacity: 1,
+		duration: MOTION.radarEnter,
+		stagger: 0.05,
+		ease: MOTION.easeOut,
+	}, 0.14)
+	window.setTimeout(playChime, 170)
 	armShareArtifactPreparation()
 }
 
@@ -1259,38 +1247,67 @@ async function prepareShareArtifact() {
 }
 
 let sharePreparationObserver = null
-function cancelShareArtifactPreparation() {
+let sharePreparationArmTimer = null
+let sharePreparationTimer = null
+let sharePreparationIdleId = null
+
+function disconnectSharePreparationObserver() {
 	if (sharePreparationObserver) sharePreparationObserver.disconnect()
 	sharePreparationObserver = null
 }
 
-function scheduleShareArtifactPreparation() {
-	const prepare = () => prepareShareArtifact().catch((err) => console.warn("Share card preparation failed:", err))
-	if ("requestIdleCallback" in window) window.requestIdleCallback(prepare, { timeout: 1000 })
-	else window.setTimeout(prepare, 80)
+function cancelShareArtifactPreparation() {
+	disconnectSharePreparationObserver()
+	if (sharePreparationArmTimer) clearTimeout(sharePreparationArmTimer)
+	if (sharePreparationTimer) clearTimeout(sharePreparationTimer)
+	if (sharePreparationIdleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(sharePreparationIdleId)
+	sharePreparationArmTimer = null
+	sharePreparationTimer = null
+	sharePreparationIdleId = null
+}
+
+function scheduleShareArtifactPreparation(delayMs = 420) {
+	if (preparedShareBlob || shareArtifactPromise) return
+	if (sharePreparationTimer) clearTimeout(sharePreparationTimer)
+	sharePreparationTimer = window.setTimeout(() => {
+		sharePreparationTimer = null
+		if (document.getElementById("resultsContainer").style.display === "none") return
+		const prepare = () => {
+			sharePreparationIdleId = null
+			prepareShareArtifact().catch((err) => console.warn("Share card preparation failed:", err))
+		}
+		if ("requestIdleCallback" in window) {
+			sharePreparationIdleId = window.requestIdleCallback(prepare, { timeout: 700 })
+		} else {
+			sharePreparationTimer = window.setTimeout(prepare, 60)
+		}
+	}, delayMs)
 }
 
 function armShareArtifactPreparation() {
 	cancelShareArtifactPreparation()
 	const target = document.querySelector(".result-actions")
 	if (!target) return
-	window.setTimeout(() => {
+	// Proximity only arms a cancellable delay. Fast scroll-to-reset never starts html2canvas,
+	// while ordinary reading gives the share card enough lead time before the controls are tapped.
+	sharePreparationArmTimer = window.setTimeout(() => {
+		sharePreparationArmTimer = null
 		if (document.getElementById("resultsContainer").style.display === "none") return
 		if (!("IntersectionObserver" in window)) {
-			scheduleShareArtifactPreparation()
+			scheduleShareArtifactPreparation(900)
 			return
 		}
 		sharePreparationObserver = new IntersectionObserver((entries) => {
 			if (!entries.some((entry) => entry.isIntersecting)) return
-			cancelShareArtifactPreparation()
-			scheduleShareArtifactPreparation()
-		}, { rootMargin: "320px 0px" })
+			disconnectSharePreparationObserver()
+			scheduleShareArtifactPreparation(420)
+		}, { rootMargin: "560px 0px" })
 		sharePreparationObserver.observe(target)
-	}, 650)
+	}, 260)
 }
-
 // 마우스/터치 위치에 따라 카드가 기울어지고 무지개 시광이 움직이는 홀로그래픽 효과
 function initHoloEffect(cardEl) {
+	if (prefersReducedMotion()) return
 	const shine = document.getElementById("topMatchShine")
 	if (!shine) return
 
@@ -1323,17 +1340,14 @@ function initHoloEffect(cardEl) {
 	cardEl.addEventListener("touchend", resetTilt)
 }
 
-// 새로고침 없이 업로드 전 상태로 되돌린다 — 전체 리로드는 이미 로드된 라이브러리/모델을
-// 버리고 초기화 시퀀스를 처음부터 다시 타게 만들어서 굳이 느려질 이유가 없다.
-document.getElementById("reset").addEventListener("click", function () {
-	playClick()
+// Reset owns every result -> intro state mutation. Keeping this in one commit function prevents
+// layout, scroll, share-cache and animation cleanup from drifting apart over time.
+function commitIntroState() {
 	const uploadedImage = document.getElementById("uploadedImage")
 	const uploadContainer = document.getElementById("uploadedImageContainer")
 	const introEl = document.getElementById("introSection")
 	const resultsEl = document.getElementById("resultsContainer")
-	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-	if (typeof gsap !== "undefined") gsap.killTweensOf([resultsEl, introEl, ".reading-item", ".radar-poly"])
 	resultsEl.style.display = "none"
 	resultsEl.style.opacity = ""
 	resultsEl.style.transform = ""
@@ -1344,12 +1358,46 @@ document.getElementById("reset").addEventListener("click", function () {
 	clearResults()
 	introEl.style.display = ""
 	uploadContainer.style.display = ""
-	if (typeof gsap !== "undefined") gsap.set([introEl, uploadContainer], { clearProps: "all" })
+	if (typeof gsap !== "undefined") gsap.set([introEl, uploadContainer, resultsEl], { clearProps: "opacity,transform" })
 	window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+}
 
-	if (!reducedMotion && typeof gsap !== "undefined") {
-		gsap.fromTo(introEl, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.36, ease: "power2.out", clearProps: "opacity,transform" })
-	}
+let resetTransitionPromise = null
+function resetToIntro() {
+	if (resetTransitionPromise) return resetTransitionPromise
+	const introEl = document.getElementById("introSection")
+	const resultsEl = document.getElementById("resultsContainer")
+	const reducedMotion = prefersReducedMotion()
+
+	// State commits immediately. Animation explains the new state but never gates navigation or layout.
+	// This mirrors Motion's interruption-friendly model and avoids waiting on a long offscreen result tree.
+	cancelShareArtifactPreparation()
+	if (typeof gsap !== "undefined") gsap.killTweensOf([resultsEl, introEl, ".reading-item", ".radar-poly"])
+	commitIntroState()
+
+	if (reducedMotion || typeof gsap === "undefined") return Promise.resolve()
+	resetTransitionPromise = new Promise((resolve) => {
+		gsap.fromTo(introEl,
+			{ opacity: 0, y: 8, scale: 0.995 },
+			{
+				opacity: 1,
+				y: 0,
+				scale: 1,
+				duration: MOTION.resetEnter,
+				ease: MOTION.easeOut,
+				clearProps: "opacity,transform",
+				onComplete: resolve,
+			},
+		)
+	}).finally(() => {
+		resetTransitionPromise = null
+	})
+	return resetTransitionPromise
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+	playClick()
+	resetToIntro()
 })
 
 // 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
@@ -1392,7 +1440,7 @@ function showLoadingModal() {
 	const modal = document.getElementById("loadingModal")
 	const content = modal.querySelector(".modal-content")
 	const progress = document.getElementById("progressBarInner")
-	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+	const reducedMotion = prefersReducedMotion()
 
 	document.documentElement.classList.add("analysis-active")
 	document.body.classList.add("analysis-active")
@@ -1413,19 +1461,23 @@ function showLoadingModal() {
 		return runId
 	}
 
-	// The full-screen surface becomes visible immediately. Only its inner status card eases in.
-	// This removes the short ambiguous gap where the selected photo seems to do nothing.
+	// The surface is immediate so feedback never disappears. The card itself settles with a short,
+	// zero-bounce Motion-style transform while remaining visible throughout.
 	modal.style.opacity = "1"
 	content.style.opacity = "1"
 	content.style.transform = "translate(-50%, -50%)"
-	gsap.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.14, duration: 0.1, yoyo: true, repeat: 1, ease: "sine.inOut" })
+	gsap.fromTo(content,
+		{ opacity: 0.72, y: 6, scale: 0.99 },
+		{ opacity: 1, y: 0, scale: 1, duration: MOTION.loaderContentEnter, ease: MOTION.easeOut, clearProps: "y,scale" },
+	)
+	gsap.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.12, duration: 0.10, yoyo: true, repeat: 1, ease: "sine.inOut" })
 	return runId
 }
 
 async function hideLoadingModal(runId = loadingRunId) {
 	const modal = document.getElementById("loadingModal")
 	const content = modal.querySelector(".modal-content")
-	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+	const reducedMotion = prefersReducedMotion()
 	const elapsed = performance.now() - loadingStartedAt
 	if (elapsed < MIN_LOADING_MS) await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
 	if (runId !== loadingRunId) return
@@ -1459,9 +1511,9 @@ async function hideLoadingModal(runId = loadingRunId) {
 			resolve()
 		}
 		timeline = gsap.timeline({ onComplete: finish })
-			.to(content, { opacity: 0, y: -6, duration: 0.16, ease: "power2.in" }, 0)
-			.to(modal, { opacity: 0, duration: 0.24, ease: "power2.inOut" }, 0.08)
-		setTimeout(finish, 420)
+			.to(content, { opacity: 0, y: -4, scale: 0.995, duration: MOTION.loaderContentExit, ease: MOTION.easeIn }, 0)
+			.to(modal, { opacity: 0, duration: MOTION.loaderSurfaceExit, ease: "power1.inOut" }, 0.04)
+		setTimeout(finish, 380)
 	})
 }
 

@@ -45,6 +45,9 @@ jobs:
       - name: Run design contract
         run: node tools/design_contract.mjs
 
+      - name: Run ownership contract
+        run: node tools/ownership_contract.mjs
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest

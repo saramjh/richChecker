@@ -129,3 +129,9 @@
 - 2026-09-30 transition contract: selecting a file must show the full-viewport processing state before FileReader/decode work begins; every analysis keeps that state perceptible for at least 900 ms; long results switch the page to top-aligned `result-mode`; reset collapses result DOM and restores scroll/initial geometry before revealing the intro; result motion starts only after the processing overlay exits.
 
 - 2026-09-30 transition follow-up: the processing overlay gets a paint opportunity before decode/detection; the offscreen share card is `display:none` except during capture so it cannot inflate document height; expensive html2canvas preparation is armed only when the result actions approach the viewport, never during the initial result reveal.
+
+- 2026-09-30 cleanup/ownership contract: base CSS selectors have a single owner; tail patch rules and known dead JS are forbidden by `tools/ownership_contract.mjs`; tracked people assets must match current `data/people.json`; CI runs the ownership contract before deploy. Motion follows a single `MOTION` policy with short opacity tweens, longer zero-bounce transform settling, interruption-safe reset ownership, and `prefers-reduced-motion` handling.
+
+- Share-card pre-rendering is cancellation-aware: entering the action area only schedules a delayed idle capture; reset/clear cancels the observer, delay and idle callback before html2canvas starts, so export work cannot own or stall navigation transitions.
+
+- Reset follows state-first motion: result DOM, scroll and caches commit to the intro state synchronously; the intro settle animation is decorative and cannot delay geometry restoration.

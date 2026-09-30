@@ -63,6 +63,11 @@ summary:focus-visible,
 	--space-3: 12px;
 	--space-4: 16px;
 	--space-5: 24px;
+	--motion-fast: 160ms;
+	--motion-base: 320ms;
+	--motion-slow: 460ms;
+	--motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--motion-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* 신비로운 점성술/관상학 테마.
@@ -121,7 +126,6 @@ body.analysis-active {
 	/* preserve-3d는 제거함 — 아이들 float 애니메이션은 y 이동뿐이라 자식의 3D 위치를 보존할
 	   필요가 없고, 이 3D 렌더링 컨텍스트가 안쪽의 #topMatchShine(mix-blend-mode) 요소와
 	   맞물려 일부 안드로이드 GPU에서 카드가 새까맣게 렌더링되는 버그의 요인이 될 수 있다. */
-	will-change: transform;
 	position: relative;
 }
 
@@ -165,6 +169,10 @@ body.analysis-active {
 /* #window의 flex 중앙정렬은 "직접 자식"에만 적용된다 — 소개 콘텐츠를 #introSection으로
    한 번 더 감싸면서 그 안의 업로드 사진 박스(300px 고정 폭)가 부모(플레인 div, 기본
    display:block)를 기준으로 왼쪽 정렬돼버리는 문제가 있어, 같은 flex 중앙정렬을 그대로 물려준다. */
+#uploadImage {
+	display: none;
+}
+
 #introSection {
 	display: flex;
 	flex-direction: column;
@@ -211,7 +219,7 @@ h2 {
 	letter-spacing: var(--tracking-body);
 	color: var(--text-faint);
 	text-decoration: none;
-	transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+	transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
 a.edition-switch__item:hover {
@@ -278,11 +286,16 @@ hr {
     cursor: pointer;
 }
 
-#choosePhotoBtn:hover { filter: brightness(1.06); transform: scale(0.99); }
-#choosePhotoBtn:active { transform: scale(0.97); }
+#choosePhotoBtn:hover {
+	filter: brightness(1.06);
+	transform: scale(0.99);
+}
 
-.method-note,
-.culture-note {
+#choosePhotoBtn:active {
+	transform: scale(0.97);
+}
+
+.method-note {
     width: 100%;
     margin-top: 8px;
     padding: 9px 11px;
@@ -290,8 +303,7 @@ hr {
     text-align: left;
 }
 
-.method-note summary,
-.culture-note summary {
+.method-note summary {
     display: flex;
     align-items: center;
     min-height: 40px;
@@ -302,8 +314,7 @@ hr {
     cursor: pointer;
 }
 
-.method-note p,
-.culture-note p {
+.method-note p {
     width: auto;
     margin-top: 7px;
     font-size: var(--type-caption);
@@ -830,8 +841,7 @@ p {
 	background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
 }
 
-#averageResult,
-#resultRate {
+#averageResult {
 	width: 100%;
 }
 
@@ -839,6 +849,7 @@ p {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
+	width: 100%;
 }
 
 #resultRate > * {
@@ -888,8 +899,17 @@ p {
     color: var(--text-faint);
 }
 
-.runner-ups { width: 100%; margin: 0; }
-.runner-ups-heading { margin-bottom: 6px; font-size: var(--type-micro); font-weight: var(--weight-bold); color: var(--gold-soft); text-align: left; }
+.runner-ups {
+	width: 100%;
+	margin: 0;
+}
+.runner-ups-heading {
+	margin-bottom: 6px;
+	font-size: var(--type-micro);
+	font-weight: var(--weight-bold);
+	color: var(--gold-soft);
+	text-align: left;
+}
 
 .runner-up-row {
     display: grid;
@@ -899,16 +919,60 @@ p {
     padding: 7px 8px;
     border-top: 1px solid rgba(212, 175, 55, 0.18);
 }
-.runner-up-row:first-of-type { border-top: 0; }
-.runner-up-position { font-family: var(--font-display); font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--gold); }
-.runner-up-row img { width: 42px; height: 50px; object-fit: cover; border: 1px solid var(--gold-dim); border-radius: 6px; }
-.runner-up-copy { min-width: 0; text-align: left; }
-.runner-up-name { display: block; font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--text-primary); }
-.runner-up-title { display: block; margin-top: 2px; font-size: var(--type-micro); line-height: 1.35; color: var(--text-faint); }
-.runner-up-similarity { font-family: var(--font-display); font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--gold-light); white-space: nowrap; }
-.runner-ups-note { margin-top: 4px; font-size: var(--type-micro); color: var(--text-faint); text-align: left; }
-.standout-match { display: block; margin-top: 5px; color: var(--gold-soft); }
-.standout-match strong { color: var(--gold-light); }
+.runner-up-row:first-of-type {
+	border-top: 0;
+}
+.runner-up-position {
+	font-family: var(--font-display);
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
+	color: var(--gold);
+}
+.runner-up-row img {
+	width: 42px;
+	height: 50px;
+	object-fit: cover;
+	border: 1px solid var(--gold-dim);
+	border-radius: 6px;
+}
+.runner-up-copy {
+	min-width: 0;
+	text-align: left;
+}
+.runner-up-name {
+	display: block;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
+	color: var(--text-primary);
+}
+.runner-up-title {
+	display: block;
+	margin-top: 2px;
+	font-size: var(--type-micro);
+	line-height: 1.35;
+	color: var(--text-faint);
+}
+.runner-up-similarity {
+	font-family: var(--font-display);
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
+	color: var(--gold-light);
+	white-space: nowrap;
+}
+.runner-ups-note {
+	margin-top: 4px;
+	font-size: var(--type-micro);
+	color: var(--text-faint);
+	text-align: left;
+}
+.standout-match {
+	display: block;
+	margin-top: 5px;
+	color: var(--gold-soft);
+}
+.standout-match strong {
+	color: var(--gold-light);
+}
 
 #topMatch {
 	position: relative;
@@ -1191,6 +1255,7 @@ p {
 
 .reading-legend-item {
 	font-size: var(--type-micro);
+	line-height: var(--leading-body);
 	color: var(--text-faint);
 	white-space: normal;
 }
@@ -1280,7 +1345,7 @@ p {
 	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 	opacity: 0;
 	visibility: hidden;
-	transition: opacity 0.15s ease;
+	transition: opacity var(--motion-fast) ease;
 	pointer-events: none;
 }
 
@@ -1337,6 +1402,7 @@ p {
 #resultRate .reading-item .reading-match {
 	display: flex;
 	align-items: center;
+	flex-wrap: nowrap;
 	gap: 6px;
 	background: transparent;
 	border: none;
@@ -1348,6 +1414,7 @@ p {
 }
 
 #resultRate .reading-item .reading-match p {
+	min-width: 0;
 	margin: 0;
 	font-size: inherit;
 	line-height: var(--leading-tight);
@@ -1434,7 +1501,7 @@ p {
 .pending-reveal {
 	opacity: 0;
 	transform: translateY(8px) scale(0.99);
-	transition: opacity 0.36s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+	transition: opacity var(--motion-base) ease, transform var(--motion-slow) var(--motion-ease-out);
 }
 
 .pending-reveal.revealed {
@@ -1443,6 +1510,7 @@ p {
 }
 
 #resultsContainer {
+	display: none;
 	/* 투명이면 공유 이미지 캡처 시(html2canvas) 배경이 흰색으로 떨어져 반투명 박스들이
 	   깨져 보이므로, 항상 불투명한 테마 배경을 명시한다 */
 	background: linear-gradient(165deg, var(--panel-1) 0%, var(--panel-2) 55%, var(--panel-1) 100%);
@@ -1453,7 +1521,7 @@ p {
 /* 저장/공유 전용 카드. 화면엔 절대 안 보이고 캡처될 때만 쓰인다(고정 픽셀 폭 + 화면 밖
    위치라야 html2canvas가 항상 같은 결과물을 뽑는다). 예전엔 인스타그램 피드(4:5) 비율에
    맞춰 높이도 고정(450px)이었는데, 저장한 이미지에 육각 레이더 차트도 담아달라는 피드백으로
-   내용물 기준으로 높이가 자연스럽게 늘어나게 바꿨다(scale:3 캡처 시 실제 폭 1080px). */
+   내용물 기준으로 높이가 자연스럽게 늘어나며 캡처는 2.5배(실제 폭 900px)로 생성한다. */
 #shareCard {
 	position: fixed;
 	left: -9999px;
@@ -1592,6 +1660,21 @@ p {
 	margin-top: 8px;
 }
 
+#shareCard .reading-match {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 6px 0;
+	text-align: left;
+}
+
+#shareCard .reading-match p {
+	min-width: 0;
+	margin: 0;
+	font-size: var(--type-micro);
+	line-height: var(--leading-body);
+}
+
 footer {
 	color: var(--text-faint);
 	position: fixed;
@@ -1668,15 +1751,10 @@ footer:active {
 	}
 }
 
-[hidden] { display: none !important; }
-.share-disclaimer { font-size: var(--type-micro); line-height: var(--leading-body); color: var(--text-muted); text-align: center; margin: 10px 8px; }
-.step-label { white-space: normal; }
-.reading-legend-item { white-space: normal; line-height: var(--leading-body); }
-.reading-match { flex-wrap: nowrap; align-items: center; text-align: left; }
-.reading-match p { min-width: 0; }
-#shareCard .reading-match { display: flex; gap: 6px; margin: 6px 0; }
-#shareCard .reading-match p { margin: 0; font-size: var(--type-micro); line-height: var(--leading-body); }
-
+/* === Utilities & accessibility overrides === */
+[hidden] {
+	display: none !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
 	.progress-bar-inner { animation-duration: 1.6s; }

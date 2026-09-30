@@ -73,13 +73,13 @@
 
   <link rel="preload" href="models/mediapipe/face_landmarker.task" as="fetch">
   <link rel="preload" href="js/vendor/mediapipe/wasm/vision_wasm_internal.wasm" as="fetch">
-  <link rel="stylesheet" href="css/style.css?v=20260930-transition4">
+  <link rel="stylesheet" href="css/style.css?v=20260930-cleanup-motion5">
   <!-- 전부 defer로 로드한다(파싱을 막지 않기 위해). script.js는 맨 먼저 둔다 — defer 스크립트는
        "문서 순서대로 실행"되므로, script.js를 라이브러리들 뒤에 두면 그 라이브러리들의 실행이
        전부 끝날 때까지 업로드/초기화 버튼 리스너가 안 붙는 채로 남는다. script.js 안에서 외부
        라이브러리(gsap/Tone 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
        최상단에서 즉시 실행되는 건 없으므로, 순서를 앞으로 당겨도 안전하다. -->
-  <script defer src="js/script.js?v=20260930-transition4"></script>
+  <script defer src="js/script.js?v=20260930-cleanup-motion5"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -108,7 +108,7 @@
         <p class="tagline">내 얼굴 비율은 한국 부자 47인 중 누구와 가장 가까울까?</p>
         <p class="value-prop">사진 한 장으로 6가지 얼굴 비율을 비교해 <strong>가장 가까운 Top 3</strong>와 내 두드러진 특징을 확인합니다.</p>
         <p class="intro-proof">Top 3 · 6가지 얼굴 비율 · 저장/공유 결과 카드</p>
-        <input type="file" id="uploadImage" accept="image/*" style="display: none;">
+        <input type="file" id="uploadImage" accept="image/*">
         <button id="choosePhotoBtn" type="button">사진 선택하고 테스트 시작</button>
         <div id="uploadedImageContainer" class="is-initializing">
           <img id="uploadedImage" role="button" tabindex="0" aria-label="사진 선택하기" src="assets/imgs/placeholder.svg" alt="사진을 선택해 부자 얼굴 매치를 시작하세요">
@@ -130,7 +130,7 @@
 
 
       <!-- 결과 표시 영역 -->
-      <div id="resultsContainer" style="display: none;">
+      <div id="resultsContainer">
         <div id="averageResult"></div>
         <!-- 저장/공유 시 내 얼굴이 그대로 나가는 게 부담스러울 수 있다는 피드백 — 매칭 카드와
              저장용 카드 양쪽의 "나" 사진을 한 번에 블러 처리하는 토글. 결과·매칭 정보는
@@ -269,7 +269,7 @@
     <div id="portalFlash"></div>
     <div class="modal-content">
       <h2 id="processTitle">관상 분석 중</h2>
-      <p id="loadingStatus">먼 곳의 재벌들과 관상을 비교하는 중입니다...</p><br>
+      <p id="loadingStatus">먼 곳의 재벌들과 관상을 비교하는 중입니다...</p>
       <div class="progress-bar">
         <div id="progressBarInner" class="progress-bar-inner"></div>
       </div>

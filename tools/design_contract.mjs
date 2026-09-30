@@ -9,7 +9,8 @@ for(const x of[
 "--gold: #d4af37;","--text-muted: #c9b6e4;","--text-faint: #a599c2;","--panel-2: #2d1b4e;",
 "--weight-regular: 400;","--weight-medium: 600;","--weight-bold: 700;",
 "--tracking-body: 0.02em;","--tracking-emphasis: 0.04em;","--tracking-label: 0.05em;",
-"--space-1: 4px;","--space-2: 8px;","--space-3: 12px;","--space-4: 16px;","--space-5: 24px;"
+"--space-1: 4px;","--space-2: 8px;","--space-3: 12px;","--space-4: 16px;","--space-5: 24px;",
+"--motion-fast: 160ms;","--motion-base: 320ms;","--motion-slow: 460ms;","--motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);"
 ])need(x)
 const sizes=[...css.matchAll(/font-size\s*:\s*([^;]+);/g)].map(m=>m[1].trim())
 const bad=sizes.filter(v=>!(v.startsWith("var(--type-")||v==="inherit"||v==="16px"))
