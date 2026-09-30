@@ -25,7 +25,7 @@
   <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="사진 한 장으로 얼굴의 6개 비율을 비교해 포브스 2026 한국 부자 47인 중 가장 닮은 3명을 찾아보는 무료 AI 부자 관상 테스트입니다. 사진은 기기에서 분석됩니다.">
+  <meta name="description" content="사진 한 장으로 6개 얼굴 비율을 비교해 포브스 2026 한국 부자 47인 중 Top 3를 찾는 무료 AI 부자 관상·재벌 닮은꼴 테스트입니다. 사진은 기기에서 분석됩니다.">
   <meta name="theme-color" content="#1a1035">
   <title>부자 관상 테스트 | AI로 나와 닮은 한국 부자 찾기</title>
   <link rel="canonical" href="https://saramjh.github.io/richChecker/">
@@ -57,6 +57,7 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "부자 관상 테스트",
+    "alternateName": ["AI 부자상 테스트", "재벌 닮은꼴 테스트"],
     "url": "https://saramjh.github.io/richChecker/",
     "description": "사진 한 장의 6가지 얼굴 비율을 포브스 2026 한국 부자 47인 표본과 비교해 가장 가까운 Top 3와 두드러진 특징을 보여주는 무료 엔터테인먼트 웹앱입니다.",
     "applicationCategory": "EntertainmentApplication",
@@ -73,13 +74,13 @@
 
   <link rel="preload" href="models/mediapipe/face_landmarker.task" as="fetch">
   <link rel="preload" href="js/vendor/mediapipe/wasm/vision_wasm_internal.wasm" as="fetch">
-  <link rel="stylesheet" href="css/style.css?v=20260930-cleanup-motion5">
+  <link rel="stylesheet" href="css/style.css?v=20260930-growth6">
   <!-- 전부 defer로 로드한다(파싱을 막지 않기 위해). script.js는 맨 먼저 둔다 — defer 스크립트는
        "문서 순서대로 실행"되므로, script.js를 라이브러리들 뒤에 두면 그 라이브러리들의 실행이
        전부 끝날 때까지 업로드/초기화 버튼 리스너가 안 붙는 채로 남는다. script.js 안에서 외부
        라이브러리(gsap/Tone 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
        최상단에서 즉시 실행되는 건 없으므로, 순서를 앞으로 당겨도 안전하다. -->
-  <script defer src="js/script.js?v=20260930-cleanup-motion5"></script>
+  <script defer src="js/script.js?v=20260930-growth6"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -108,6 +109,10 @@
         <p class="tagline">내 얼굴 비율은 한국 부자 47인 중 누구와 가장 가까울까?</p>
         <p class="value-prop">사진 한 장으로 6가지 얼굴 비율을 비교해 <strong>가장 가까운 Top 3</strong>와 내 두드러진 특징을 확인합니다.</p>
         <p class="intro-proof">Top 3 · 6가지 얼굴 비율 · 저장/공유 결과 카드</p>
+        <aside id="challengeEntry" class="challenge-entry" hidden aria-live="polite">
+          <span class="challenge-entry__eyebrow">친구가 보낸 결과</span>
+          <p><strong id="challengeMatchName"></strong>과 <strong id="challengeMatchScore"></strong>% 매치. <span>내 결과는?</span></p>
+        </aside>
         <input type="file" id="uploadImage" accept="image/*">
         <button id="choosePhotoBtn" type="button">사진 선택하고 테스트 시작</button>
         <div id="uploadedImageContainer" class="is-initializing">
@@ -123,7 +128,7 @@
 
         <details class="method-note">
           <summary>어떻게 비교하나요?</summary>
-          <p>얼굴 랜드마크에서 이마 높이, 눈 사이 거리, 코 길이, 입 너비, 턱 길이, 얼굴 종횡비를 계산해 47명 표본과 비교합니다.</p>
+          <p>얼굴 랜드마크에서 이마 높이, 눈 사이 거리, 코 길이, 입 너비, 턱 길이, 얼굴 종횡비를 계산해 47명 표본과 비교합니다. 일반 연예인 전체가 아니라 한국 부자 표본에 초점을 둔 AI 얼굴 닮은꼴·부자상 테스트입니다.</p>
           <p>결과는 오락용 얼굴 비율 비교이며 부, 성격, 성공 가능성을 예측하지 않습니다.</p>
         </details>
       </div>
@@ -161,6 +166,7 @@
                방법이 없어 사이트 링크·고정 문구만 보낼 수 있었다(플랫폼 자체의 한계) — 결과 이미지가
                빠진 공유는 의미가 없다는 피드백으로 제거하고, 실제 카드 이미지 파일을 OS 공유
                시트로 첨부하는 공유하기/인스타그램만 남긴다. -->
+          <p class="share-prompt">친구에게 결과를 보내고 서로 누구와 매치됐는지 비교해보세요.</p>
           <div class="share-row">
             <button id="webShareBtn" aria-label="다른 앱으로 공유" title="다른 앱으로 공유">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

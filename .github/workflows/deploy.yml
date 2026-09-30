@@ -48,6 +48,9 @@ jobs:
       - name: Run ownership contract
         run: node tools/ownership_contract.mjs
 
+      - name: Run growth contract
+        run: node tools/growth_contract.mjs
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest

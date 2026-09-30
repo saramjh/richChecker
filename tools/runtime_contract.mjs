@@ -17,6 +17,9 @@ requireText("let loadingRunId = 0", "loading run generation guard")
 requireText("const MOTION = Object.freeze", "central motion policy")
 requireText("function prefersReducedMotion()", "central reduced-motion policy")
 requireText("function commitIntroState()", "single reset-state owner")
+requireText("async function hydrateSharedChallenge()", "shared challenge hydration")
+requireText("entry_context: entryContext", "entry context attribution")
+requireText("function buildChallengeUrl()", "challenge URL sharing")
 requireText("commitIntroState()", "reset state commits before decorative motion")
 requireText("const MIN_LOADING_MS = 900", "perceivable analysis state")
 requireText('modal.style.opacity = "1"', "immediate full-screen response")
@@ -33,7 +36,7 @@ requireText("function armShareArtifactPreparation()", "viewport-proximity share 
 requireText("function cancelShareArtifactPreparation()", "cancellable share preparation")
 requireText("scheduleShareArtifactPreparation(420)", "share capture delayed behind transitions")
 requireText('rootMargin: "560px 0px"', "share preparation proximity threshold")
-requireText("function sharePreparedCard(fallbackMessage)", "gesture-safe prepared sharing")
+requireText("function sharePreparedCard(fallbackMessage, method)", "gesture-safe prepared sharing")
 requireText('el.style.display = "none"', "share card hidden after capture")
 requireText("let outcomeTracked = false", "exclusive analysis outcome guard")
 requireText('trackEvent("analysis_error", eventParams({ error_type: errorType, stage }))', "stage-aware error telemetry")
@@ -53,7 +56,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20260930-cleanup-motion5')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20260930-growth6')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImage"') || !index.includes('src="assets/imgs/placeholder.svg"')) {
   throw new Error("Initial upload placeholder must be owned by index.html")
@@ -111,7 +114,7 @@ const preparedShareBlock = script.slice(preparedShareStart, preparedShareEnd)
 if (preparedShareBlock.includes("await captureShareCard") || preparedShareBlock.includes("canvas.toBlob")) {
   throw new Error("Share click path must not perform expensive card rendering before navigator.share")
 }
-if (!index.includes('css/style.css?v=20260930-cleanup-motion5')) throw new Error("Missing versioned result CSS URL")
+if (!index.includes('css/style.css?v=20260930-growth6')) throw new Error("Missing versioned result CSS URL")
 if (!index.includes('<div id="averageResult"></div>')) throw new Error("Result host must be a block container")
 if (!index.includes('class="result-actions"')) throw new Error("Result controls must be grouped for shared spacing")
 

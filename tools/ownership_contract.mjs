@@ -21,6 +21,8 @@ forbidText(index, 'id="resultsContainer" style=', "result visibility leaked back
 requireText(css, "--motion-ease-out:", "motion tokens missing")
 requireText(css, "#uploadImage {", "upload state has no CSS owner")
 requireText(css, "#resultsContainer {", "results state has no CSS owner")
+requireText(css, ".challenge-entry {", "challenge entry has no CSS owner")
+requireText(css, ".share-prompt {", "share prompt has no CSS owner")
 requireText(script, "const MOTION = Object.freeze", "motion policy has no JS owner")
 requireText(script, "function prefersReducedMotion()", "reduced-motion policy missing")
 requireText(script, "function commitIntroState()", "reset state owner missing")

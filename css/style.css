@@ -271,6 +271,35 @@ hr {
     color: var(--text-faint);
 }
 
+.challenge-entry {
+	width: min(300px, 100%);
+	margin: var(--space-3) auto 0;
+	padding: 10px 12px;
+	border-left: 2px solid var(--gold);
+	background: rgba(212, 175, 55, 0.08);
+	text-align: left;
+}
+
+.challenge-entry__eyebrow {
+	display: block;
+	margin-bottom: var(--space-1);
+	font-size: var(--type-micro);
+	font-weight: var(--weight-bold);
+	letter-spacing: var(--tracking-label);
+	color: var(--gold-soft);
+}
+
+.challenge-entry p {
+	margin: 0;
+	font-size: var(--type-caption);
+	line-height: var(--leading-body);
+	color: var(--text-muted);
+}
+
+.challenge-entry strong {
+	color: var(--gold-light);
+}
+
 #choosePhotoBtn {
     width: min(300px, 100%);
     margin-top: 14px;
@@ -487,6 +516,15 @@ p {
 	gap: var(--space-4);
 	width: 100%;
 	margin-top: var(--space-4);
+}
+
+.share-prompt {
+	width: min(300px, 100%);
+	margin: 0 auto;
+	font-size: var(--type-caption);
+	line-height: var(--leading-body);
+	color: var(--text-muted);
+	text-align: center;
 }
 
 #saveImg {

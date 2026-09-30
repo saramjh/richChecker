@@ -22,9 +22,21 @@ function classifyEntryReferrer() {
 
 const entryReferrer = classifyEntryReferrer()
 
+function parseSharedChallengeParams() {
+	const params = new URLSearchParams(window.location.search)
+	if (params.get("via") !== "share") return null
+	const matchId = params.get("match") || ""
+	const score = Number.parseInt(params.get("score") || "", 10)
+	if (!/^[a-z0-9-]{1,80}$/.test(matchId) || !Number.isInteger(score) || score < 3 || score > 100) return null
+	return { matchId, score }
+}
+
+const sharedEntryCandidate = parseSharedChallengeParams()
+let entryContext = sharedEntryCandidate ? "shared_candidate" : "standard"
+
 function trackEvent(name, params = {}) {
 	try {
-		if (typeof gtag === "function") gtag("event", name, { entry_ref: entryReferrer, ...params })
+		if (typeof gtag === "function") gtag("event", name, { entry_ref: entryReferrer, entry_context: entryContext, ...params })
 	} catch (err) {
 		console.warn("Analytics event skipped:", name, err)
 	}
@@ -295,6 +307,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	const fileSizeKb = Math.round(file.size / 1024)
 	const loadingSessionId = showLoadingModal()
 	trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
+	trackSharedVisitUpload()
 	const readerStartedAt = performance.now()
 	const reader = new FileReader()
 
@@ -376,8 +389,57 @@ async function loadEmbeddings() {
 // embeddings state is initialized above; startup warmup is now safe to begin.
 startCoreWarmup("startup")
 
+let sharedChallenge = null
+let sharedVisitUploadTracked = false
+let sharedVisitCompleteTracked = false
+async function hydrateSharedChallenge() {
+	if (!sharedEntryCandidate) return null
+	try {
+		const data = await loadEmbeddings()
+		const person = data.people.find((candidate) => candidate.id === sharedEntryCandidate.matchId)
+		if (!person) return null
+		sharedChallenge = { matchId: person.id, matchName: person.name, score: sharedEntryCandidate.score }
+		entryContext = "shared_result"
+		const challengeEl = document.getElementById("challengeEntry")
+		document.getElementById("challengeMatchName").textContent = person.name
+		document.getElementById("challengeMatchScore").textContent = String(sharedEntryCandidate.score)
+		challengeEl.hidden = false
+		trackEvent("shared_visit", { shared_match_id: person.id, shared_score: sharedEntryCandidate.score })
+		return sharedChallenge
+	} catch (err) {
+		console.warn("공유 결과 문맥을 확인하지 못했습니다.", err)
+		return null
+	}
+}
+const sharedChallengePromise = hydrateSharedChallenge()
+
+function trackSharedVisitUpload() {
+	if (!sharedChallengePromise || sharedVisitUploadTracked) return
+	sharedChallengePromise.then((challenge) => {
+		if (!challenge || sharedVisitUploadTracked) return
+		sharedVisitUploadTracked = true
+		trackEvent("shared_visit_upload", { shared_match_id: challenge.matchId, shared_score: challenge.score })
+	})
+}
+
+function trackSharedVisitComplete(topMatch) {
+	if (!sharedChallengePromise || sharedVisitCompleteTracked) return
+	sharedChallengePromise.then((challenge) => {
+		if (!challenge || sharedVisitCompleteTracked) return
+		sharedVisitCompleteTracked = true
+		trackEvent("shared_visit_complete", {
+			shared_match_id: challenge.matchId,
+			shared_score: challenge.score,
+			new_match_id: topMatch.id,
+			new_score: topMatch.similarityDisplay,
+			same_match: challenge.matchId === topMatch.id ? 1 : 0,
+		})
+	})
+}
+
 function toMatch(person, similarity, similarityDisplay) {
 	return {
+		id: person.id,
 		name: person.name,
 		title: person.title,
 		image: person.image, // 공유 카드에서 "나 vs 매칭 인물" 사진 비교에 사용
@@ -597,6 +659,7 @@ async function processImage(context = {}, loadingSessionId = null) {
 			archetype_name: archetype.name,
 			similarity: topMatch.similarityDisplay,
 		}))
+		trackSharedVisitComplete(topMatch)
 	} catch (err) {
 		fail("unknown", "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", err)
 	} finally {
@@ -1074,7 +1137,7 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	if (cardEl) initHoloEffect(cardEl)
 
 	const topSimilarityText = String(topSimilarity)
-	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity: topSimilarityText }
+	lastResultSummary = { topMatchId: topMatch.id, topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity: topSimilarityText }
 	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar, shareResultGeneration)
 	applyFaceHiddenState()
 	initializeResultAds()
@@ -1560,17 +1623,48 @@ document.getElementById("saveImgBtn").addEventListener("click", function () {
 function buildShareText() {
 	if (!lastResultSummary) return "나의 부자 관상 분석 결과!"
 	const { topMatchName, archetypeName, topSimilarity } = lastResultSummary
-	if (topMatchName && archetypeName) return `나는 ${topMatchName}과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 대한민국 재벌들과 내 관상을 비교해봤다.`
-	if (archetypeName) return `나는 재벌 표본과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! AI로 확인해봤다.`
+	if (topMatchName && archetypeName) return `나는 ${topMatchName}과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 내 결과와 비교해봐.`
+	if (archetypeName) return `나는 재벌 표본과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 내 결과와 비교해봐.`
 	return "나의 부자 관상 분석 결과!"
 }
-function sharePreparedCard(fallbackMessage) {
+
+function buildChallengeUrl() {
+	if (!lastResultSummary || !lastResultSummary.topMatchId) return document.querySelector('link[rel="canonical"]').href
+	const canonical = new URL(document.querySelector('link[rel="canonical"]').href)
+	canonical.searchParams.set("via", "share")
+	canonical.searchParams.set("match", lastResultSummary.topMatchId)
+	canonical.searchParams.set("score", lastResultSummary.topSimilarity)
+	return canonical.toString()
+}
+
+function trackShareLinkCreated(method) {
+	if (!lastResultSummary) return
+	trackEvent("share_link_created", {
+		method,
+		match_id: lastResultSummary.topMatchId,
+		score: lastResultSummary.topSimilarity,
+	})
+}
+
+async function copyChallengeUrl(challengeUrl) {
+	if (!navigator.clipboard || !navigator.clipboard.writeText) return false
+	try {
+		await navigator.clipboard.writeText(challengeUrl)
+		return true
+	} catch (err) {
+		console.warn("도전 링크 복사 실패", err)
+		return false
+	}
+}
+
+function sharePreparedCard(fallbackMessage, method) {
 	if (!ensurePreparedShareArtifact()) return
+	const challengeUrl = buildChallengeUrl()
 	const file = new File([preparedShareBlob], SHARE_FILE_NAME, { type: "image/png" })
+	const payload = { files: [file], title: SHARE_TITLE, text: buildShareText(), url: challengeUrl }
 	if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
 		try {
-			const sharePromise = navigator.share({ files: [file], title: SHARE_TITLE, text: buildShareText() })
-			sharePromise.catch((err) => {
+			navigator.share(payload).then(() => trackShareLinkCreated(method)).catch((err) => {
 				if (err.name === "AbortError") return
 				console.warn("공유 실패", err)
 				showToast("공유 시트를 열지 못했습니다. 저장 버튼으로 이미지를 저장해 공유해주세요.")
@@ -1578,17 +1672,27 @@ function sharePreparedCard(fallbackMessage) {
 			return
 		} catch (err) { console.warn("공유 실패", err) }
 	}
-	downloadPreparedShareBlob(fallbackMessage)
+	if (navigator.share) {
+		navigator.share({ title: SHARE_TITLE, text: buildShareText(), url: challengeUrl })
+			.then(() => trackShareLinkCreated(method + "_link"))
+			.catch((err) => { if (err.name !== "AbortError") console.warn("링크 공유 실패", err) })
+		return
+	}
+	copyChallengeUrl(challengeUrl).then((copied) => {
+		downloadPreparedShareBlob(copied ? `${fallbackMessage} 비교 링크도 클립보드에 복사했습니다.` : fallbackMessage)
+		if (copied) trackShareLinkCreated(method + "_clipboard")
+	})
 }
+
 document.getElementById("webShareBtn").addEventListener("click", function () {
 	playClick()
 	if (!preparedShareBlob) { ensurePreparedShareArtifact(); return }
 	trackEvent("share_click", { method: "web_share" })
-	sharePreparedCard("이 브라우저는 파일 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
+	sharePreparedCard("이 브라우저는 파일 공유 시트를 지원하지 않아 이미지를 저장했습니다.", "web_share")
 })
 document.getElementById("instagramShareBtn").addEventListener("click", function () {
 	playClick()
 	if (!preparedShareBlob) { ensurePreparedShareArtifact(); return }
 	trackEvent("share_click", { method: "instagram" })
-	sharePreparedCard("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
+	sharePreparedCard("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다.", "instagram")
 })
