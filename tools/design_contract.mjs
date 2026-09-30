@@ -8,7 +8,8 @@ for(const x of[
 "--leading-body: 1.55;","--radius-control: 8px;","--radius-card: 12px;",
 "--gold: #d4af37;","--text-muted: #c9b6e4;","--text-faint: #a599c2;","--panel-2: #2d1b4e;",
 "--weight-regular: 400;","--weight-medium: 600;","--weight-bold: 700;",
-"--tracking-body: 0.02em;","--tracking-emphasis: 0.04em;","--tracking-label: 0.05em;"
+"--tracking-body: 0.02em;","--tracking-emphasis: 0.04em;","--tracking-label: 0.05em;",
+"--space-1: 4px;","--space-2: 8px;","--space-3: 12px;","--space-4: 16px;","--space-5: 24px;"
 ])need(x)
 const sizes=[...css.matchAll(/font-size\s*:\s*([^;]+);/g)].map(m=>m[1].trim())
 const bad=sizes.filter(v=>!(v.startsWith("var(--type-")||v==="inherit"||v==="16px"))
@@ -29,6 +30,12 @@ for(const [x,m] of[
 ['font-size="12"',"radar label readability"]
 ])need(x,m)
 if(js.includes('font-size="10"'))throw new Error("radar labels regressed below 12px")
+for(const [x,m] of[
+[".result-actions {","result action grouping"],
+["gap: var(--space-4);","result action spacing"],
+["gap: var(--space-3);","result section rhythm"],
+["margin: var(--space-5) 0 0;","major follow-up spacing"]
+])need(x,m)
 const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255)
 const lum=h=>rgb(h).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)
 const contrast=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05)

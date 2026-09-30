@@ -11,6 +11,14 @@ requireText("function setImageSourceAndWait(img, src)", "source-specific image r
 requireText("await setImageSourceAndWait(uploadedImage, dataUrl)", "new image load before analysis")
 requireText("let mediapipeModulesPromise = null", "module promise dedupe")
 requireText("let faceLandmarkerPromise = null", "landmarker promise dedupe")
+requireText("let coreWarmupPromise = null", "eager core warmup dedupe")
+requireText('startCoreWarmup("startup")', "startup warmup begins during deferred runtime execution")
+requireText('modal.style.opacity = "1"', "repeat-analysis loader visibility reset")
+requireText("let loadingRunId = 0", "loading run generation guard")
+requireText("if (runId !== loadingRunId) return", "stale loader cleanup guard")
+requireText("let preparedShareBlob = null", "prepared share image cache")
+requireText("async function prepareShareArtifact()", "background share image preparation")
+requireText("function sharePreparedCard(fallbackMessage)", "gesture-safe prepared sharing")
 requireText("let outcomeTracked = false", "exclusive analysis outcome guard")
 requireText('trackEvent("analysis_error", eventParams({ error_type: errorType, stage }))', "stage-aware error telemetry")
 requireText('trackEvent("app_entry")', "entry event")
@@ -20,14 +28,14 @@ requireText("async function detectFaceWithRetry(landmarker, initialCanvas)", "bo
 requireText("timings.detection_attempts", "detection retry telemetry")
 requireText("let uploadTaskChain = Promise.resolve()", "serialized upload analysis")
 requireText("uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () =>", "queued upload processing")
-requireText("setTimeout(finish, 800)", "loading cleanup timeout fallback")
+requireText("setTimeout(finish, 500)", "loading cleanup timeout fallback")
 requireText("function initializeResultAds()", "non-fatal result ad initialization")
 requireText('console.warn("Result ad initialization skipped:", err)', "ad failure isolation")
 requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20260930-upload-runtime2')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20260930-runtime-spacing3')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImage"') || !index.includes('src="assets/imgs/placeholder.svg"')) {
   throw new Error("Initial upload placeholder must be owned by index.html")
@@ -75,5 +83,16 @@ const assignPos = sourceGateBlock.indexOf("img.src = src")
 if (!(listenerPos >= 0 && assignPos > listenerPos)) {
   throw new Error("New image load listener must be installed before changing img.src")
 }
+
+if (script.includes("scheduleCoreWarmup()")) throw new Error("Core warmup regressed to delayed window-load scheduling")
+const preparedShareStart = script.indexOf("function sharePreparedCard(fallbackMessage)")
+const preparedShareEnd = script.indexOf('document.getElementById("webShareBtn")', preparedShareStart)
+const preparedShareBlock = script.slice(preparedShareStart, preparedShareEnd)
+if (preparedShareBlock.includes("await captureShareCard") || preparedShareBlock.includes("canvas.toBlob")) {
+  throw new Error("Share click path must not perform expensive card rendering before navigator.share")
+}
+if (!index.includes('css/style.css?v=20260930-runtime-spacing3')) throw new Error("Missing versioned result CSS URL")
+if (!index.includes('<div id="averageResult"></div>')) throw new Error("Result host must be a block container")
+if (!index.includes('class="result-actions"')) throw new Error("Result controls must be grouped for shared spacing")
 
 console.log("PASS runtime contract: source-specific image gate, same-file retry, first-upload snapshot, bounded detection retry, deduped warmup, exclusive outcome, acquisition/performance telemetry")

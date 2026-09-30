@@ -58,6 +58,11 @@ summary:focus-visible,
 	--radius-card: 12px;
 	--radius-shell: 20px;
 	--radius-pill: 999px;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
 }
 
 /* 신비로운 점성술/관상학 테마.
@@ -315,8 +320,8 @@ hr {
 	align-items: center;
 	width: 100%;
 	min-height: 100px;
-	margin-top: 14px;
-	padding-top: 10px;
+	margin-top: var(--space-5);
+	padding-top: var(--space-3);
 	border-top: 1px dashed rgba(212, 175, 55, 0.25);
 }
 
@@ -341,7 +346,7 @@ p {
    결과 후 CTA는 한 번의 획득 유저가 두 표본을 연속 체험하도록 조금 더 분명하게 보여준다. */
 .cross-edition-cta {
 	width: 100%;
-	margin: 16px 0 10px;
+	margin: var(--space-5) 0 0;
 	padding: 14px;
 	border: 1px solid rgba(212, 175, 55, 0.42);
 	border-radius: 10px;
@@ -396,7 +401,7 @@ p {
 	display: block;
 	width: 100%;
 	min-height: 44px;
-	margin: 14px auto 0;
+	margin: var(--space-4) auto 0;
 	padding: 10px;
 	font-size: var(--type-caption);
 	font-weight: var(--weight-bold);
@@ -426,7 +431,7 @@ p {
 	gap: 6px;
 	width: auto;
 	min-height: 40px;
-	margin: 0 auto 10px;
+	margin: 0 auto;
 	padding: 6px 14px;
 	font-size: var(--type-caption);
 	color: var(--text-muted);
@@ -453,11 +458,20 @@ p {
 	filter: blur(18px);
 }
 
+.result-actions {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-4);
+	width: 100%;
+	margin-top: var(--space-4);
+}
+
 #saveImg {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: 5px;
+	gap: var(--space-2);
 	width: 100%;
 }
 
@@ -472,13 +486,13 @@ p {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 8px;
+	gap: var(--space-2);
 	min-height: 48px;
 	color: #1a1035;
 	font-weight: var(--weight-bold);
 	width: 100%;
 	padding: 12px;
-	margin: 5px 0 0;
+	margin: 0;
 	border: 1px solid var(--gold);
 	border-radius: var(--radius-control);
 	background: linear-gradient(160deg, var(--gold-light), var(--gold));
@@ -508,7 +522,7 @@ p {
 .share-row {
 	display: flex;
 	justify-content: center;
-	gap: 8px;
+	gap: var(--space-2);
 	width: min(300px, 100%);
 	margin: 0 auto;
 }
@@ -793,17 +807,32 @@ p {
 .section-divider {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: var(--space-2);
 	width: 100%;
 	color: var(--gold-soft);
 	font-size: var(--type-body);
-	margin: 4px 0;
+	margin: 0;
 }
 
 .section-divider span {
 	flex: 1;
 	height: 1px;
 	background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+#averageResult,
+#resultRate {
+	width: 100%;
+}
+
+#resultRate {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+#resultRate > * {
+	margin-block: 0;
 }
 
 #resultRate p {
@@ -849,7 +878,7 @@ p {
     color: var(--text-faint);
 }
 
-.runner-ups { width: 100%; margin: 8px 0 2px; }
+.runner-ups { width: 100%; margin: 0; }
 .runner-ups-heading { margin-bottom: 6px; font-size: var(--type-micro); font-weight: var(--weight-bold); color: var(--gold-soft); text-align: left; }
 
 .runner-up-row {
@@ -1122,7 +1151,7 @@ p {
 	border: 1px solid var(--gold-dim);
 	border-radius: 10px;
 	padding: 12px 14px;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0;
 	text-align: left;
 	font-family: var(--font-body);
 	color: var(--gold-soft);
@@ -1349,7 +1378,7 @@ p {
 	flex-direction: column;
 	align-items: center;
 	gap: 3px;
-	margin-top: 10px;
+	margin-top: 0;
 	padding: 14px;
 	background: linear-gradient(160deg, var(--panel-3) 0%, var(--panel-4) 100%);
 	border: 1.5px solid var(--gold);

@@ -123,3 +123,5 @@
 ## 문의
 
 프로젝트에 대한 문의 사항은 [saramjh@gmail.com](mailto:saramjh@gmail.com)으로 연락해 주세요.
+
+- 2026-09-30 runtime/UI contract: core MediaPipe/WASM/data warm-up begins during deferred runtime execution; every analysis explicitly restores loader visibility; share PNGs are prepared before share clicks; result spacing is owned by shared `--space-*` tokens and `.result-actions`.

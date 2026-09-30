@@ -120,6 +120,16 @@ let lastResultSummary = null
 // populateShareCard()가 진행 중인 마지막 Promise — captureShareCard()가 캡처 전에 기다린다
 // (사진 비율 보정을 위한 캔버스 크롭이 비동기라 생긴 경쟁 상태를 막기 위함).
 let shareCardReadyPromise = null
+let preparedShareBlob = null
+let shareArtifactPromise = null
+let shareResultGeneration = 0
+let shareArtifactVersion = 0
+
+function invalidateShareArtifact() {
+	shareArtifactVersion += 1
+	preparedShareBlob = null
+	shareArtifactPromise = null
+}
 
 // 저장/공유 시 내 얼굴이 그대로 나가는 게 부담스러울 수 있다는 피드백 — 매칭 카드와 공유용
 // 카드 양쪽의 "나" 사진에 블러를 걸지 여부. 새 결과가 렌더될 때도 이 선택을 유지한다
@@ -141,6 +151,8 @@ document.getElementById("faceHideToggle").addEventListener("click", function () 
 	playClick()
 	faceHidden = !faceHidden
 	applyFaceHiddenState()
+	invalidateShareArtifact()
+	if (lastResultSummary) scheduleShareArtifactPreparation()
 })
 
 let faceLandmarkerInstance = null
@@ -170,16 +182,25 @@ async function ensureFaceLandmarker() {
 	return faceLandmarkerPromise
 }
 
-function scheduleCoreWarmup() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
-    if (connection && (connection.saveData || String(connection.effectiveType || "").includes("2g"))) return
-    const warm = () => Promise.allSettled([ensureFaceLandmarker(), loadEmbeddings()])
-    if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(warm, { timeout: 2500 })
-    } else {
-        window.setTimeout(warm, 1000)
-    }
+let coreWarmupPromise = null
+function startCoreWarmup(reason = "startup") {
+	if (coreWarmupPromise) return coreWarmupPromise
+	const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+	if (reason === "startup" && connection && connection.saveData) return Promise.resolve([])
+	const startedAt = performance.now()
+	coreWarmupPromise = Promise.allSettled([ensureFaceLandmarker(), loadEmbeddings()]).then((results) => {
+		if (results.some((result) => result.status === "rejected")) coreWarmupPromise = null
+		trackEvent("core_warmup_complete", {
+			reason,
+			elapsed_ms: Math.round(performance.now() - startedAt),
+			model_ready: faceLandmarkerInstance ? 1 : 0,
+			data_ready: embeddingsReady ? 1 : 0,
+		})
+		return results
+	})
+	return coreWarmupPromise
 }
+
 
 function topExpressionFromBlendshapes(categories) {
 	const score = (...names) => {
@@ -211,6 +232,7 @@ let lastPhotoPickerSource = "unknown"
 function openPhotoPicker(source = "unknown") {
 	lastPhotoPickerSource = source
 	trackEvent("photo_picker_opened", { source })
+	startCoreWarmup("photo_intent")
 	ensureSfx().then(playClick)
 	document.getElementById("uploadImage").click()
 }
@@ -238,7 +260,6 @@ document.getElementById("uploadedImageContainer").classList.remove("is-initializ
 // 로드되지 않았을 수 있다 — window의 load 이벤트(모든 defer 스크립트 실행이 끝난 뒤 발생)까지
 // 기다렸다가 시작한다.
 window.addEventListener("load", function () {
-	scheduleCoreWarmup()
 	if (typeof gsap === "undefined") return
 	gsap.to(".container", {
 		y: -3,
@@ -364,6 +385,9 @@ async function loadEmbeddings() {
 	}
 	return embeddingsPromise
 }
+
+// embeddings state is initialized above; startup warmup is now safe to begin.
+startCoreWarmup("startup")
 
 function toMatch(person, similarity, similarityDisplay) {
 	return {
@@ -1075,7 +1099,7 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 
 	const topSimilarityText = String(topSimilarity)
 	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity: topSimilarityText }
-	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar)
+	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar, shareResultGeneration)
 	applyFaceHiddenState()
 	initializeResultAds()
 }
@@ -1133,11 +1157,12 @@ async function fixThumbnailAspectRatios(container) {
 // 인스타/페이스북/카카오톡에 공유하기 좋은 비율 카드(화면엔 안 보임, 캡처 전용)에 결과를
 // 채워넣는다. "나 vs 매칭 인물" 사진 비교 + 육각 레이더 차트 + 부위별 상세 분석까지, 온페이지
 // 결과와 같은 내용을 담아야 이미지만 보고도 "나도 해보고 싶다"는 마음이 들 만큼 정보가 된다.
-async function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar) {
+async function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, radar, generation = shareResultGeneration) {
 	const userPhotoSrc = document.getElementById("uploadedImage").src
 	// 사진 박스 CSS 비율(128:160)에 맞춰 미리 크롭 — 위 cropImageToRatio 주석 참고.
 	const PHOTO_RATIO = 128 / 160
 	const [userCropped, matchCropped] = await Promise.all([cropImageToRatio(userPhotoSrc, PHOTO_RATIO), cropImageToRatio(topMatch.image, PHOTO_RATIO)])
+	if (generation !== shareResultGeneration) return false
 
 	document.getElementById("shareCardUserPhoto").src = userCropped
 	document.getElementById("shareCardPercent").textContent = topSimilarity + "%"
@@ -1165,11 +1190,12 @@ async function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, 
 	const readingsEl = document.getElementById("shareCardReadings")
 	readingsEl.innerHTML = renderFeatureReadings(radar)
 	await fixThumbnailAspectRatios(readingsEl)
+	return generation === shareResultGeneration
 }
 
 // 저장/공유 버튼이 공용으로 사용할 카드 캡처. 폭은 360px로 고정하지만 높이는 레이더 차트
 // 포함 여부에 따라 내용물 기준으로 자연스럽게 늘어난다(el.offsetHeight로 실측) —
-// scale:3으로 캡처하면 실제 폭은 1080px, 세로는 그만큼 비례해서 커진다.
+// scale:2.5로 캡처하면 실제 폭은 900px. 모바일 공유 파일 생성 지연을 줄이면서 텍스트 해상도를 유지한다.
 async function captureShareCard() {
 	// populateShareCard의 사진 크롭(비동기)이 아직 끝나기 전에 캡처가 먼저 실행되면 옛
 	// 사진이나 빈 이미지가 찍힐 수 있다 — 항상 마지막 population이 끝난 뒤에 캡처한다.
@@ -1178,10 +1204,36 @@ async function captureShareCard() {
 	return html2canvas(el, {
 		width: el.offsetWidth,
 		height: el.offsetHeight,
-		scale: 3,
+		scale: 2.5,
 		useCORS: true,
 		backgroundColor: null,
 	})
+}
+
+async function prepareShareArtifact() {
+	if (preparedShareBlob) return preparedShareBlob
+	if (shareArtifactPromise) return shareArtifactPromise
+	const resultGeneration = shareResultGeneration
+	const artifactVersion = shareArtifactVersion
+	shareArtifactPromise = (async () => {
+		const canvas = await captureShareCard()
+		const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
+		if (!blob) throw new Error("Share card PNG encoding failed")
+		if (resultGeneration !== shareResultGeneration || artifactVersion !== shareArtifactVersion) return null
+		preparedShareBlob = blob
+		return blob
+	})().catch((err) => {
+		if (resultGeneration === shareResultGeneration && artifactVersion === shareArtifactVersion) shareArtifactPromise = null
+		throw err
+	})
+	return shareArtifactPromise
+}
+
+function scheduleShareArtifactPreparation() {
+	const prepare = () => prepareShareArtifact().catch((err) => console.warn("Share card preparation failed:", err))
+	// Give the result one paint, then start preparing the file users will share. Deferring this to a
+	// long idle window made fast users reach the social buttons before a shareable File existed.
+	window.setTimeout(prepare, 80)
 }
 
 // 마우스/터치 위치에 따라 카드가 기울어지고 무지개 시광이 움직이는 홀로그래픽 효과
@@ -1240,8 +1292,9 @@ document.getElementById("reset").addEventListener("click", function () {
 
 // 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
 // 유지한다. 그렇지 않으면 들어오는 애니메이션과 나가는 애니메이션이 서로 충돌해 뚝뚝 끊겨 보인다.
-const MIN_LOADING_MS = 900
+const MIN_LOADING_MS = 450
 let loadingStartedAt = 0
+let loadingRunId = 0
 
 // 화면이 균일하게 페이드아웃되며 덮이는 "순간이동 출발" 연출 + 휘익 효과음 + 안쪽 골드
 // 빛(#portalFlash)의 짧은 번쩍임. (예전엔 clip-path로 원을 키워서 덮었는데, 원이 다 자라기
@@ -1250,43 +1303,56 @@ let loadingStartedAt = 0
 // GSAP/Tone이 아직 로드되기 전이거나 로드 실패한 극단적인 경우에도 분석 자체는 막히지 않도록
 // 항상 modal을 보이게 만드는 폴백을 먼저 깔아둔다.
 function showLoadingModal() {
+	loadingRunId += 1
 	loadingStartedAt = Date.now()
 	const modal = document.getElementById("loadingModal")
+	const content = modal.querySelector(".modal-content")
+	const progress = document.getElementById("progressBarInner")
+	if (typeof gsap !== "undefined") gsap.killTweensOf([modal, content, "#portalFlash", "#introSection", "#uploadedImageContainer"])
 	modal.style.display = "block"
+	modal.style.opacity = "1"
+	modal.style.pointerEvents = "auto"
+	if (content) content.style.opacity = "1"
+	if (progress) {
+		progress.style.animation = "none"
+		void progress.offsetWidth
+		progress.style.animation = ""
+	}
 	startLoadingMessages()
-
 	if (typeof gsap === "undefined") return
 	playWhoosh("out")
-	// 소개 블록+업로드 사진이 결과 화면에서는 통째로 숨겨지므로(renderResults에서 display:none),
-	// 그 퇴장을 화면 전체 전환과는 별개로 "이 컴포넌트가 시청자 쪽으로 빠르게 다가오며 사라지는"
-	// 느낌으로 연출한다 — animista의 slide-out-fwd-center를 GSAP z(=translateZ)로 재현
-	// (body에 이미 걸려있는 perspective 덕에 z 이동이 확대되어 보인다).
-	gsap
-		.timeline()
-		.to(["#introSection", "#uploadedImageContainer"], { z: 500, opacity: 0, duration: 0.4, ease: "power2.in" }, 0)
-		.fromTo(modal, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05)
-		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.12, ease: "power1.out" }, 0.05)
-		.to("#portalFlash", { opacity: 0, duration: 0.35, ease: "power2.out" }, 0.17)
-		.to(".modal-content", { opacity: 1, duration: 0.2 }, 0.3)
+	gsap.timeline()
+		.to(["#introSection", "#uploadedImageContainer"], { z: 500, opacity: 0, duration: 0.25, ease: "power2.in" }, 0)
+		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.45, duration: 0.1, ease: "power1.out" }, 0.02)
+		.to("#portalFlash", { opacity: 0, duration: 0.24, ease: "power2.out" }, 0.12)
 }
 
 // 화면이 다시 균일하게 걷히며 "먼 곳으로 순간이동해서 도착한" 듯 결과를 드러내는 연출 + 효과음.
 // 최소 노출 시간을 채울 때까지 기다린 뒤, 나가는 애니메이션이 끝날 때까지 대기한다.
 async function hideLoadingModal() {
+	const runId = loadingRunId
 	const modal = document.getElementById("loadingModal")
-
 	const elapsed = Date.now() - loadingStartedAt
 	if (elapsed < MIN_LOADING_MS) {
 		await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
 	}
+	// A newer analysis already owns the loader. The older run must not stop its messages,
+	// change opacity, or hide the modal when its delayed cleanup finally resumes.
+	if (runId !== loadingRunId) return
 	stopLoadingMessages()
 
 	const finalize = () => {
+		if (runId !== loadingRunId) return
 		modal.style.display = "none"
+		modal.style.opacity = ""
+		modal.style.pointerEvents = ""
+		const content = modal.querySelector(".modal-content")
+		if (content) content.style.opacity = ""
 		if (typeof gsap !== "undefined") {
-			gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
+			gsap.set(["#portalFlash"], { clearProps: "all" })
 			gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "opacity,z" })
 		}
+		if (lastResultSummary) scheduleShareArtifactPreparation()
 	}
 
 	if (typeof gsap === "undefined") {
@@ -1306,16 +1372,14 @@ async function hideLoadingModal() {
 			resolve()
 		}
 
+		// Keep the actual loader/content fully visible until cleanup. Only the decorative flash animates;
+		// fading modal/content itself created retained opacity=0 state on rapid repeat analyses.
 		timeline = gsap
 			.timeline({ onComplete: finish })
-			.to(".modal-content", { opacity: 0, duration: 0.12 }, 0)
-			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.1 }, 0.12)
-			.to("#portalFlash", { opacity: 0, duration: 0.3 }, 0.22)
-			.to(modal, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0.15)
+			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.5, duration: 0.08 }, 0)
+			.to("#portalFlash", { opacity: 0, duration: 0.2 }, 0.08)
 
-		// 핵심 상태 해제를 애니메이션 프레임 진행 여부에 맡기지 않는다. 백그라운드 탭이나
-		// RAF throttling에서도 이 시간이 지나면 반드시 modal/state를 정리한다.
-		setTimeout(finish, 800)
+		setTimeout(finish, 500)
 	})
 }
 
@@ -1329,6 +1393,7 @@ const LOADING_MESSAGES = [
 let loadingMessageTimer = null
 
 function startLoadingMessages() {
+	stopLoadingMessages()
 	const el = document.getElementById("loadingStatus")
 	if (!el) return
 	let i = 0
@@ -1348,85 +1413,75 @@ function stopLoadingMessages() {
 
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
+	shareResultGeneration += 1
+	lastResultSummary = null
+	shareCardReadyPromise = null
+	invalidateShareArtifact()
 	document.getElementById("averageResult").textContent = ""
 	document.getElementById("aiInfoBadge").textContent = ""
 }
 
 /* share function */
-
-async function saveAsImage() {
-	const canvas = await captureShareCard()
+const SHARE_FILE_NAME = "부자관상분석결과.png"
+const SHARE_TITLE = "인공지능 부자 관상 테스트"
+function downloadPreparedShareBlob(fallbackMessage = "") {
+	if (!preparedShareBlob) return false
+	const url = URL.createObjectURL(preparedShareBlob)
 	const link = document.createElement("a")
-	link.href = canvas.toDataURL("image/png")
-	link.download = "부자관상분석결과.png"
+	link.href = url
+	link.download = SHARE_FILE_NAME
 	link.click()
+	setTimeout(() => URL.revokeObjectURL(url), 1500)
+	if (fallbackMessage) showToast(fallbackMessage)
+	return true
 }
-
-document.getElementById("saveImgBtn").addEventListener("click", async function () {
+function ensurePreparedShareArtifact() {
+	if (preparedShareBlob) return true
+	prepareShareArtifact().catch((err) => {
+		console.warn("공유 카드 준비 실패", err)
+		showToast("공유 이미지를 준비하지 못했습니다. 잠시 후 다시 시도해주세요.")
+	})
+	showToast("공유 이미지를 준비하는 중입니다. 잠시 후 다시 눌러주세요.")
+	return false
+}
+document.getElementById("saveImgBtn").addEventListener("click", function () {
 	playClick()
+	if (!ensurePreparedShareArtifact()) return
 	trackEvent("save_image")
-	await saveAsImage()
+	downloadPreparedShareBlob()
 })
-
-// 카카오톡/인스타그램/페이스북/X는 위에 전용 버튼이 있으니, 이건 그 목록에 없는 다른 앱
-// (왓츠앱/라인/텔레그램 등)으로 보내고 싶을 때 쓰는 보조 옵션 — OS 공유 시트를 그대로 띄운다.
-// 데스크톱이나 미지원 브라우저에서는 이미지를 저장한 뒤 알림으로 안내한다.
-// 고정 문구("나의 부자 관상 분석 결과!")보다 실제 결과가 들어간 문구가 클릭률이 훨씬
-// 높다 — "나는 이재용과 87% 닮은 전략가형?!"처럼 구체적인 숫자·이름·유형이 들어간 문구가
-// 스스로 자랑거리가 되어 공유를 유도한다.
 function buildShareText() {
 	if (!lastResultSummary) return "나의 부자 관상 분석 결과!"
 	const { topMatchName, archetypeName, topSimilarity } = lastResultSummary
-	if (topMatchName && archetypeName) {
-		return `나는 ${topMatchName}과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 대한민국 재벌들과 내 관상을 비교해봤다.`
-	}
-	if (archetypeName) {
-		return `나는 재벌 표본과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! AI로 확인해봤다.`
-	}
+	if (topMatchName && archetypeName) return `나는 ${topMatchName}과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! 대한민국 재벌들과 내 관상을 비교해봤다.`
+	if (archetypeName) return `나는 재벌 표본과 ${topSimilarity}% 닮은 '${archetypeName}' 관상?! AI로 확인해봤다.`
 	return "나의 부자 관상 분석 결과!"
 }
-
-// 결과 카드를 캡처해 OS 공유 시트로 보내고, 미지원 브라우저(대부분의 데스크톱)에서는
-// 대신 이미지를 저장한 뒤 fallbackMessage로 다음 행동을 안내한다. 공유하기/인스타그램
-// 버튼이 "캡처 → 공유 시도 → 실패 시 저장" 흐름을 그대로 공유하고, 안내 문구만 다르다.
-async function shareCardOrDownload(fallbackMessage) {
-	const canvas = await captureShareCard()
-	const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
-	const file = new File([blob], "부자관상분석결과.png", { type: "image/png" })
-
-	if (navigator.canShare && navigator.canShare({ files: [file] })) {
+function sharePreparedCard(fallbackMessage) {
+	if (!ensurePreparedShareArtifact()) return
+	const file = new File([preparedShareBlob], SHARE_FILE_NAME, { type: "image/png" })
+	if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
 		try {
-			await navigator.share({
-				files: [file],
-				title: "인공지능 부자 관상 테스트",
-				text: buildShareText(),
+			const sharePromise = navigator.share({ files: [file], title: SHARE_TITLE, text: buildShareText() })
+			sharePromise.catch((err) => {
+				if (err.name === "AbortError") return
+				console.warn("공유 실패", err)
+				showToast("공유 시트를 열지 못했습니다. 저장 버튼으로 이미지를 저장해 공유해주세요.")
 			})
 			return
-		} catch (err) {
-			if (err.name === "AbortError") return // 사용자가 공유를 취소함
-			console.warn("공유 실패", err)
-		}
+		} catch (err) { console.warn("공유 실패", err) }
 	}
-
-	// Web Share API 미지원 → 저장으로 대체
-	const link = document.createElement("a")
-	link.href = canvas.toDataURL("image/png")
-	link.download = "부자관상분석결과.png"
-	link.click()
-	showToast(fallbackMessage)
+	downloadPreparedShareBlob(fallbackMessage)
 }
-
-document.getElementById("webShareBtn").addEventListener("click", async function () {
+document.getElementById("webShareBtn").addEventListener("click", function () {
 	playClick()
+	if (!preparedShareBlob) { ensurePreparedShareArtifact(); return }
 	trackEvent("share_click", { method: "web_share" })
-	await shareCardOrDownload("이 브라우저는 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
+	sharePreparedCard("이 브라우저는 파일 공유 시트를 지원하지 않아 이미지를 저장했습니다. 저장된 이미지를 원하는 앱에 직접 첨부해 공유해주세요.")
 })
-
-// 인스타그램은 카카오톡/페이스북/X와 달리 "이 URL 그대로 피드에 올려줘" 하는 웹 공유 방법이
-// 아예 없다(공식 API 없음). OS 공유 시트가 지원되면(대부분의 모바일) 거기서 인스타그램을
-// 직접 고를 수 있으니 그걸 먼저 시도하고, 안 되면 저장 후 인스타그램 앱에서 직접 올리도록 안내한다.
-document.getElementById("instagramShareBtn").addEventListener("click", async function () {
+document.getElementById("instagramShareBtn").addEventListener("click", function () {
 	playClick()
+	if (!preparedShareBlob) { ensurePreparedShareArtifact(); return }
 	trackEvent("share_click", { method: "instagram" })
-	await shareCardOrDownload("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
+	sharePreparedCard("인스타그램은 웹에서 바로 업로드할 수 없어 이미지를 저장했습니다. 인스타그램 앱을 열어 방금 저장한 사진을 선택해 올려주세요.")
 })
