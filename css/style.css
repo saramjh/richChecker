@@ -6,6 +6,19 @@
 	text-decoration: none;
 }
 
+button,
+summary {
+	font-family: var(--font-body);
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+#uploadedImage:focus-visible {
+	outline: 3px solid var(--gold-light);
+	outline-offset: 3px;
+}
+
 :root {
 	--bg-deep: #0d0818;
 	--panel-1: #1a1035;
@@ -23,6 +36,28 @@
 	/* 장식용 세리프는 큰 제목류에만 쓴다 — 작은 본문 글씨에 쓰면 가독성이 크게 떨어짐 */
 	--font-display: Georgia, "Nanum Myeongjo", serif;
 	--font-body: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+
+	--type-micro: 0.75rem;
+	--type-caption: 0.8125rem;
+	--type-body: 0.875rem;
+	--type-body-strong: 0.9375rem;
+	--type-subtitle: 1rem;
+	--type-section: 1.125rem;
+	--type-heading: 1.375rem;
+	--type-display: 1.625rem;
+	--type-hero: clamp(1.5rem, 5vw, 1.75rem);
+	--leading-tight: 1.3;
+	--leading-body: 1.55;
+	--weight-regular: 400;
+	--weight-medium: 600;
+	--weight-bold: 700;
+	--tracking-body: 0.02em;
+	--tracking-emphasis: 0.04em;
+	--tracking-label: 0.05em;
+	--radius-control: 8px;
+	--radius-card: 12px;
+	--radius-shell: 20px;
+	--radius-pill: 999px;
 }
 
 /* 신비로운 점성술/관상학 테마.
@@ -35,6 +70,11 @@
    단순 반복만으로도 그 어긋남이 자동으로 재현되게 했다. */
 body {
 	font-family: var(--font-body);
+	font-size: 16px;
+	line-height: var(--leading-body);
+	color: var(--text-primary);
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
 	background-color: var(--bg-deep);
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='64' viewBox='0 0 80 64'%3E%3Cg fill='none' stroke='%233a2a5c' stroke-width='1'%3E%3Cpath d='M0,40 A40,40 0 0,1 80,40'/%3E%3Cpath d='M12,40 A28,28 0 0,1 68,40'/%3E%3Cpath d='M24,40 A16,16 0 0,1 56,40'/%3E%3Cpath d='M-40,64 A40,40 0 0,1 40,64'/%3E%3Cpath d='M-28,64 A28,28 0 0,1 28,64'/%3E%3Cpath d='M-16,64 A16,16 0 0,1 16,64'/%3E%3Cpath d='M40,64 A40,40 0 0,1 120,64'/%3E%3Cpath d='M52,64 A28,28 0 0,1 108,64'/%3E%3Cpath d='M64,64 A16,16 0 0,1 96,64'/%3E%3C/g%3E%3C/svg%3E");
 	background-repeat: repeat;
@@ -55,12 +95,12 @@ body {
 	text-align: center;
 	background: linear-gradient(165deg, var(--panel-1) 0%, var(--panel-2) 55%, var(--panel-1) 100%);
 	border: 2px solid var(--gold);
-	border-radius: 20px;
+	border-radius: var(--radius-shell);
 	box-shadow: 0 0 0 1px var(--gold-dim) inset, 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 24px rgba(212, 175, 55, 0.25);
-	padding: 30px 20px 20px;
+	padding: 30px 20px 24px;
 	max-width: 500px;
-	width: 100%;
-	margin-bottom: 70px;
+	width: min(500px, calc(100% - 24px));
+	margin: 16px 0 70px;
 	z-index: 3;
 	/* preserve-3d는 제거함 — 아이들 float 애니메이션은 y 이동뿐이라 자식의 3D 위치를 보존할
 	   필요가 없고, 이 3D 렌더링 컨텍스트가 안쪽의 #topMatchShine(mix-blend-mode) 요소와
@@ -84,7 +124,7 @@ body {
 
 #bootOverlay p {
 	color: var(--gold-soft);
-	font-size: 0.75rem;
+	font-size: var(--type-caption);
 	width: auto;
 }
 
@@ -119,16 +159,16 @@ body {
 
 h1 {
 	font-family: var(--font-display);
-	font-size: 1.4rem;
+	font-size: var(--type-hero);
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
-	letter-spacing: 0.02em;
+	letter-spacing: var(--tracking-body);
 }
 
 h2 {
 	font-family: var(--font-display);
 	margin-top: 20px;
-	font-size: 1.7rem;
+	font-size: var(--type-heading);
 	color: var(--gold-light);
 }
 
@@ -139,7 +179,7 @@ h2 {
 	margin: 10px 0 2px;
 	padding: 3px;
 	border: 1px solid rgba(212, 175, 55, 0.24);
-	border-radius: 999px;
+	border-radius: var(--radius-pill);
 	background: rgba(12, 7, 25, 0.38);
 }
 
@@ -147,12 +187,12 @@ h2 {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 32px;
+	min-height: 40px;
 	padding: 5px 11px;
-	border-radius: 999px;
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: 0.02em;
+	border-radius: var(--radius-pill);
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
+	letter-spacing: var(--tracking-body);
 	color: var(--text-faint);
 	text-decoration: none;
 	transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
@@ -178,8 +218,8 @@ hr {
 
 .tagline {
 	font-family: var(--font-display);
-	font-size: 1rem;
-	font-weight: 700;
+	font-size: var(--type-subtitle);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	font-style: italic;
 	max-width: 100%;
@@ -187,9 +227,9 @@ hr {
 }
 
 .value-prop {
-	font-size: 0.82rem;
+	font-size: var(--type-body);
 	color: var(--gold-soft);
-	line-height: 1.5;
+	line-height: var(--leading-body);
 	margin-top: 9px;
 	max-width: 100%;
 	overflow-wrap: anywhere;
@@ -202,23 +242,23 @@ hr {
 
 .intro-proof {
     margin-top: 8px;
-    font-size: 0.75rem;
-    line-height: 1.45;
+    font-size: var(--type-caption);
+    line-height: var(--leading-body);
     color: var(--text-faint);
 }
 
 #choosePhotoBtn {
     width: min(300px, 100%);
     margin-top: 14px;
-    min-height: 46px;
+    min-height: 48px;
     padding: 12px 16px;
     border: 1px solid var(--gold);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: linear-gradient(160deg, var(--gold-light), var(--gold));
     color: #1a1035;
     font: inherit;
-    font-size: 0.86rem;
-    font-weight: 700;
+    font-size: var(--type-body);
+    font-weight: var(--weight-bold);
     cursor: pointer;
 }
 
@@ -236,9 +276,13 @@ hr {
 
 .method-note summary,
 .culture-note summary {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
     color: var(--gold-soft);
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: var(--type-caption);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-body);
     cursor: pointer;
 }
 
@@ -246,15 +290,15 @@ hr {
 .culture-note p {
     width: auto;
     margin-top: 7px;
-    font-size: 0.72rem;
-    line-height: 1.55;
+    font-size: var(--type-caption);
+    line-height: var(--leading-body);
     text-align: left;
     color: var(--text-muted);
 }
 
 .fine-print {
-	font-size: 0.75rem;
-	line-height: 1.45;
+	font-size: var(--type-caption);
+	line-height: var(--leading-body);
 	color: var(--text-faint);
 	margin-top: 7px;
 }
@@ -279,16 +323,16 @@ hr {
 .ad-label {
 	display: block;
 	margin-bottom: 4px;
-	font-size: 0.58rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
-	letter-spacing: 0.05em;
+	letter-spacing: var(--tracking-label);
 	text-align: center;
 }
 
 p {
 	margin: 10px auto 0;
 	width: 100%;
-	font-size: 0.7rem;
+	font-size: var(--type-caption);
 	text-align: center;
 	color: var(--text-muted);
 }
@@ -308,25 +352,25 @@ p {
 .cross-edition-kicker {
 	display: block;
 	margin-bottom: 4px;
-	font-size: 0.58rem;
-	font-weight: 700;
-	letter-spacing: 0.05em;
+	font-size: var(--type-micro);
+	font-weight: var(--weight-bold);
+	letter-spacing: var(--tracking-label);
 	text-transform: uppercase;
-	color: var(--gold-dim);
+	color: var(--gold);
 }
 
 .cross-edition-cta strong {
 	display: block;
 	font-family: var(--font-display);
-	font-size: 0.84rem;
-	line-height: 1.4;
+	font-size: var(--type-body);
+	line-height: var(--leading-tight);
 	color: var(--gold-light);
 }
 
 .cross-edition-cta p {
 	margin: 6px 0 10px;
-	font-size: 0.64rem;
-	line-height: 1.5;
+	font-size: var(--type-micro);
+	line-height: var(--leading-body);
 	color: var(--text-muted);
 	text-align: left;
 }
@@ -335,8 +379,8 @@ p {
 	display: inline-flex;
 	align-items: center;
 	gap: 5px;
-	font-size: 0.68rem;
-	font-weight: 700;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
 	color: var(--gold);
 	text-decoration: none;
 }
@@ -351,14 +395,15 @@ p {
 .reset-link {
 	display: block;
 	width: 100%;
+	min-height: 44px;
 	margin: 14px auto 0;
 	padding: 10px;
-	font-size: 0.75rem;
-	font-weight: 700;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
 	color: var(--text-primary);
 	background: rgba(0, 0, 0, 0.35);
 	border: 1px solid var(--gold-dim);
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	cursor: pointer;
 }
 
@@ -380,12 +425,13 @@ p {
 	justify-content: center;
 	gap: 6px;
 	width: auto;
+	min-height: 40px;
 	margin: 0 auto 10px;
 	padding: 6px 14px;
-	font-size: 0.68rem;
+	font-size: var(--type-caption);
 	color: var(--text-muted);
 	border: 1px solid var(--gold-dim);
-	border-radius: 20px;
+	border-radius: var(--radius-shell);
 	background: rgba(0, 0, 0, 0.3);
 	cursor: pointer;
 }
@@ -427,13 +473,14 @@ p {
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
+	min-height: 48px;
 	color: #1a1035;
-	font-weight: 700;
+	font-weight: var(--weight-bold);
 	width: 100%;
 	padding: 12px;
 	margin: 5px 0 0;
 	border: 1px solid var(--gold);
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	background: linear-gradient(160deg, var(--gold-light), var(--gold));
 	cursor: pointer;
 }
@@ -462,7 +509,7 @@ p {
 	display: flex;
 	justify-content: center;
 	gap: 8px;
-	width: 300px;
+	width: min(300px, 100%);
 	margin: 0 auto;
 }
 
@@ -570,18 +617,18 @@ p {
 }
 
 .ai-badge-line {
-	font-weight: 700;
-	font-size: 0.85rem;
+	font-weight: var(--weight-bold);
+	font-size: var(--type-body);
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
 	line-height: 1.25;
 }
 
 .ai-badge-line.ai-badge-sub {
-	font-weight: 400;
-	font-size: 0.55rem;
+	font-weight: var(--weight-regular);
+	font-size: var(--type-micro);
 	color: var(--text-muted);
-	letter-spacing: 0.02em;
+	letter-spacing: var(--tracking-body);
 }
 
 #uploadedImage {
@@ -658,14 +705,14 @@ p {
 	padding: 20px;
 	width: 80%;
 	max-width: 320px;
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	box-shadow: 0 0 24px rgba(212, 175, 55, 0.4);
 	color: var(--text-primary);
 	opacity: 0;
 }
 
 #processTitle {
-	font-size: 1.3rem;
+	font-size: var(--type-heading);
 	margin: 0 0 10px;
 	color: var(--gold-light);
 }
@@ -690,10 +737,10 @@ p {
 	background: linear-gradient(160deg, #3a1420 0%, var(--panel-1) 100%);
 	border: 1px solid var(--accent-red);
 	color: var(--text-primary);
-	font-size: 0.82rem;
-	line-height: 1.45;
+	font-size: var(--type-body);
+	line-height: var(--leading-body);
 	padding: 12px 16px;
-	border-radius: 12px;
+	border-radius: var(--radius-card);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 90, 90, 0.45);
 	opacity: 0;
 	pointer-events: none;
@@ -748,8 +795,8 @@ p {
 	align-items: center;
 	gap: 10px;
 	width: 100%;
-	color: var(--gold-dim);
-	font-size: 0.8rem;
+	color: var(--gold-soft);
+	font-size: var(--type-body);
 	margin: 4px 0;
 }
 
@@ -764,10 +811,10 @@ p {
 	display: flex;
 	flex-direction: column;
 	line-height: 1.3;
-	font-size: 0.9rem;
+	font-size: var(--type-body-strong);
 	background: linear-gradient(160deg, var(--panel-1) 0%, var(--panel-2) 100%);
 	border: 1px solid var(--gold-dim);
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	padding: 10px;
 	text-align: center;
 	margin-bottom: 0.5rem;
@@ -779,8 +826,8 @@ p {
 	color: #1a1035;
 	border-radius: 5px;
 	padding: 10px 0;
-	font-size: 1.2rem;
-	font-weight: 700;
+	font-size: var(--type-section);
+	font-weight: var(--weight-bold);
 	margin-bottom: 0.5rem;
 	text-align: center;
 }
@@ -796,14 +843,14 @@ p {
     position: relative;
     z-index: 1;
     margin-bottom: 5px;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: var(--type-micro);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-emphasis);
     color: var(--text-faint);
 }
 
 .runner-ups { width: 100%; margin: 8px 0 2px; }
-.runner-ups-heading { margin-bottom: 6px; font-size: 0.64rem; font-weight: 700; color: var(--gold-soft); text-align: left; }
+.runner-ups-heading { margin-bottom: 6px; font-size: var(--type-micro); font-weight: var(--weight-bold); color: var(--gold-soft); text-align: left; }
 
 .runner-up-row {
     display: grid;
@@ -814,13 +861,13 @@ p {
     border-top: 1px solid rgba(212, 175, 55, 0.18);
 }
 .runner-up-row:first-of-type { border-top: 0; }
-.runner-up-position { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; color: var(--gold); }
+.runner-up-position { font-family: var(--font-display); font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--gold); }
 .runner-up-row img { width: 42px; height: 50px; object-fit: cover; border: 1px solid var(--gold-dim); border-radius: 6px; }
 .runner-up-copy { min-width: 0; text-align: left; }
-.runner-up-name { display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-primary); }
-.runner-up-title { display: block; margin-top: 2px; font-size: 0.58rem; line-height: 1.35; color: var(--text-faint); }
-.runner-up-similarity { font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--gold-light); white-space: nowrap; }
-.runner-ups-note { margin-top: 4px; font-size: 0.58rem; color: var(--text-faint); text-align: left; }
+.runner-up-name { display: block; font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--text-primary); }
+.runner-up-title { display: block; margin-top: 2px; font-size: var(--type-micro); line-height: 1.35; color: var(--text-faint); }
+.runner-up-similarity { font-family: var(--font-display); font-size: var(--type-caption); font-weight: var(--weight-bold); color: var(--gold-light); white-space: nowrap; }
+.runner-ups-note { margin-top: 4px; font-size: var(--type-micro); color: var(--text-faint); text-align: left; }
 .standout-match { display: block; margin-top: 5px; color: var(--gold-soft); }
 .standout-match strong { color: var(--gold-light); }
 
@@ -829,7 +876,7 @@ p {
 	width: 100%;
 	background: linear-gradient(160deg, var(--panel-1) 0%, var(--panel-2) 45%, var(--panel-1) 100%);
 	border: 3px solid var(--gold);
-	border-radius: 14px;
+	border-radius: var(--radius-lg);
 	padding: 14px;
 	margin-bottom: 0.5rem;
 	box-shadow: 0 0 0 1px var(--gold-dim) inset, 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 18px rgba(212, 175, 55, 0.35);
@@ -883,14 +930,14 @@ p {
 
 #topMatchName {
 	font-family: var(--font-display);
-	font-size: 1.15rem;
-	font-weight: 700;
+	font-size: var(--type-section);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
 }
 
 #topMatchTitle {
-	font-size: 0.75rem;
+	font-size: var(--type-caption);
 	color: var(--text-muted);
 	margin-top: 2px;
 	position: relative;
@@ -909,10 +956,10 @@ p {
 	background-color: rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--gold);
 	color: var(--text-primary);
-	border-radius: 12px;
+	border-radius: var(--radius-card);
 	padding: 3px 10px;
-	font-size: 0.7rem;
-	font-weight: 600;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-medium);
 }
 
 /* 결과 카드 안 "나 vs 매칭 인물" 사진 비교 — 텍스트로만 설명하지 말고 실제 얼굴을 바로
@@ -937,7 +984,7 @@ p {
 	width: 92px;
 	height: 112px;
 	object-fit: cover;
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	border: 2px solid var(--gold);
 	box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
@@ -967,7 +1014,7 @@ p {
 	align-items: center;
 	justify-content: center;
 	gap: 3px;
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	background: linear-gradient(160deg, var(--panel-2) 0%, var(--panel-1) 100%);
 }
 
@@ -983,15 +1030,15 @@ p {
 }
 
 .face-hidden-overlay span {
-	font-size: 0.6rem;
-	font-weight: 700;
+	font-size: var(--type-micro);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .topMatch-photo-box span {
-	font-size: 0.68rem;
-	font-weight: 700;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-bold);
 	color: var(--text-primary);
 }
 
@@ -999,8 +1046,8 @@ p {
    "이 둘이 몇 % 닮았다"는 뜻이 사진 사이 공간에서 바로 읽히게 한다. */
 .topMatch-percent {
 	font-family: var(--font-display);
-	font-size: 1.2rem;
-	font-weight: 700;
+	font-size: var(--type-section);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
 	line-height: 1.1;
@@ -1019,7 +1066,7 @@ p {
 #radarLegend {
 	display: flex;
 	gap: 12px;
-	font-size: 0.65rem;
+	font-size: var(--type-micro);
 	margin-top: 2px;
 }
 
@@ -1045,7 +1092,7 @@ p {
 	border: none;
 	margin-top: 4px;
 	padding: 0;
-	font-size: 0.75rem;
+	font-size: var(--type-caption);
 	color: var(--gold-soft);
 	text-align: center;
 	position: relative;
@@ -1057,7 +1104,7 @@ p {
 	border: none;
 	margin-top: 6px;
 	padding: 0;
-	font-size: 0.6rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
 	text-align: center;
 	position: relative;
@@ -1084,10 +1131,10 @@ p {
 #readingScroll h4 {
 	font-family: var(--font-display);
 	text-align: center;
-	font-size: 0.85rem;
+	font-size: var(--type-body);
 	color: var(--gold-light);
 	margin-bottom: 2px;
-	letter-spacing: 0.02em;
+	letter-spacing: var(--tracking-body);
 }
 
 /* 위쪽 헤드라인(종합 1위 매칭)과 여기 부위별 매칭이 다른 사람일 수 있다는 걸 미리 설명해서
@@ -1104,14 +1151,14 @@ p {
 }
 
 .reading-legend-item {
-	font-size: 0.65rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
-	white-space: nowrap;
+	white-space: normal;
 }
 
 .reading-legend-item strong {
 	color: var(--gold-soft);
-	font-weight: 700;
+	font-weight: var(--weight-bold);
 }
 
 .reading-item {
@@ -1136,8 +1183,8 @@ p {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	font-size: 0.78rem;
-	font-weight: 700;
+	font-size: var(--type-body);
+	font-weight: var(--weight-bold);
 	color: var(--text-primary);
 }
 
@@ -1154,7 +1201,9 @@ p {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	padding: 2px;
+	width: 28px;
+	height: 28px;
+	padding: 6px;
 	background: none;
 	border: none;
 	color: var(--text-faint);
@@ -1181,11 +1230,11 @@ p {
 	max-width: 70vw;
 	background: linear-gradient(160deg, var(--panel-1) 0%, var(--panel-2) 100%);
 	border: 1px solid var(--gold);
-	border-radius: 8px;
+	border-radius: var(--radius-control);
 	padding: 8px 10px;
-	font-size: 0.65rem;
-	font-weight: 400;
-	line-height: 1.5;
+	font-size: var(--type-micro);
+	font-weight: var(--weight-regular);
+	line-height: var(--leading-body);
 	color: var(--gold-soft);
 	text-align: left;
 	white-space: normal;
@@ -1213,7 +1262,7 @@ p {
 
 .reading-bar-caption {
 	display: block;
-	font-size: 0.62rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
 	margin-bottom: 3px;
 }
@@ -1254,7 +1303,7 @@ p {
 	border: none;
 	padding: 0;
 	margin: 4px 0 0;
-	font-size: 0.68rem;
+	font-size: var(--type-caption);
 	color: var(--gold-soft);
 	text-align: left;
 }
@@ -1262,7 +1311,7 @@ p {
 #resultRate .reading-item .reading-match p {
 	margin: 0;
 	font-size: inherit;
-	line-height: 1.4;
+	line-height: var(--leading-tight);
 	color: inherit;
 }
 
@@ -1285,8 +1334,8 @@ p {
 	padding: 0;
 	background-color: transparent;
 	border: none;
-	font-size: 0.72rem;
-	line-height: 1.4;
+	font-size: var(--type-caption);
+	line-height: var(--leading-tight);
 	color: #d9cba0;
 	text-align: left;
 }
@@ -1309,9 +1358,9 @@ p {
 }
 
 #archetypeEyebrow {
-	font-size: 0.65rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
-	letter-spacing: 0.05em;
+	letter-spacing: var(--tracking-label);
 }
 
 #archetypeName {
@@ -1319,8 +1368,8 @@ p {
 	align-items: center;
 	gap: 6px;
 	font-family: var(--font-display);
-	font-size: 1.3rem;
-	font-weight: 700;
+	font-size: var(--type-heading);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
 }
@@ -1338,7 +1387,7 @@ p {
 	border: none;
 	padding: 0;
 	margin-top: 4px;
-	font-size: 0.72rem;
+	font-size: var(--type-caption);
 	color: var(--text-primary);
 	text-align: center;
 }
@@ -1358,7 +1407,7 @@ p {
 	/* 투명이면 공유 이미지 캡처 시(html2canvas) 배경이 흰색으로 떨어져 반투명 박스들이
 	   깨져 보이므로, 항상 불투명한 테마 배경을 명시한다 */
 	background: linear-gradient(165deg, var(--panel-1) 0%, var(--panel-2) 55%, var(--panel-1) 100%);
-	border-radius: 12px;
+	border-radius: var(--radius-card);
 	padding: 12px 4px;
 }
 
@@ -1383,16 +1432,16 @@ p {
 
 .share-card-brand {
 	text-align: center;
-	font-size: 0.6rem;
-	letter-spacing: 0.05em;
-	color: var(--gold-dim);
+	font-size: var(--type-micro);
+	letter-spacing: var(--tracking-label);
+	color: var(--gold);
 }
 
 .share-card-headline {
 	font-family: var(--font-display);
 	text-align: center;
-	font-size: 1.15rem;
-	font-weight: 700;
+	font-size: var(--type-section);
+	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	line-height: 1.35;
 	margin: 8px 0 12px;
@@ -1433,19 +1482,19 @@ p {
 }
 
 .share-card-photo-box .face-hidden-overlay span {
-	font-size: 0.72rem;
+	font-size: var(--type-caption);
 }
 
 .share-card-photo-box span {
-	font-size: 0.8rem;
-	font-weight: 700;
+	font-size: var(--type-body);
+	font-weight: var(--weight-bold);
 	color: var(--text-primary);
 }
 
 .share-card-vs {
 	font-family: var(--font-display);
-	font-size: 1.7rem;
-	font-weight: 700;
+	font-size: var(--type-display);
+	font-weight: var(--weight-bold);
 	color: var(--gold);
 }
 
@@ -1461,16 +1510,16 @@ p {
 	background-color: rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--gold);
 	color: var(--text-primary);
-	border-radius: 12px;
+	border-radius: var(--radius-card);
 	padding: 3px 10px;
-	font-size: 0.68rem;
-	font-weight: 600;
+	font-size: var(--type-caption);
+	font-weight: var(--weight-medium);
 }
 
 #shareCardTier {
 	text-align: center;
-	font-size: 0.82rem;
-	font-weight: 700;
+	font-size: var(--type-body);
+	font-weight: var(--weight-bold);
 	color: #1a1035;
 	background: var(--gold);
 	border-radius: 6px;
@@ -1484,14 +1533,14 @@ p {
 }
 
 .share-card-cta-hook {
-	font-size: 0.78rem;
-	font-weight: 700;
+	font-size: var(--type-body);
+	font-weight: var(--weight-bold);
 	color: var(--gold-soft);
 	margin-bottom: 2px;
 }
 
 .share-card-cta-url {
-	font-size: 0.65rem;
+	font-size: var(--type-micro);
 	color: var(--text-faint);
 }
 
@@ -1512,7 +1561,7 @@ footer {
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	font-size: 0.7rem;
+	font-size: var(--type-caption);
 	width: 500px;
 	height: 30px;
 	margin: 1rem;
@@ -1547,21 +1596,21 @@ footer:active {
 #privacyNote {
 	margin: 14px auto 0;
 	max-width: 320px;
-	font-size: 0.62rem;
-	line-height: 1.5;
+	font-size: var(--type-micro);
+	line-height: var(--leading-body);
 	color: var(--text-faint);
-	opacity: 0.75;
+	opacity: 0.9;
 	text-align: center;
 }
 
 @media (max-width: 600px) {
 	.container {
-		padding: 30px 5px 20px;
+		padding: 24px 12px 20px;
 		max-width: 480px;
 	}
 
 	#window {
-		width: 95%;
+		width: 100%;
 	}
 	#resultsContainer {
 		width: 100%;
@@ -1579,3 +1628,12 @@ footer:active {
 		width: 95%;
 	}
 }
+
+[hidden] { display: none !important; }
+.share-disclaimer { font-size: var(--type-micro); line-height: var(--leading-body); color: var(--text-muted); text-align: center; margin: 10px 8px; }
+.step-label { white-space: normal; }
+.reading-legend-item { white-space: normal; line-height: var(--leading-body); }
+.reading-match { flex-wrap: nowrap; align-items: center; text-align: left; }
+.reading-match p { min-width: 0; }
+#shareCard .reading-match { display: flex; gap: 6px; margin: 6px 0; }
+#shareCard .reading-match p { margin: 0; font-size: var(--type-micro); line-height: var(--leading-body); }

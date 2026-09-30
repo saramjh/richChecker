@@ -42,6 +42,9 @@ jobs:
       - name: Run runtime contract
         run: node tools/runtime_contract.mjs
 
+      - name: Run design contract
+        run: node tools/design_contract.mjs
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest

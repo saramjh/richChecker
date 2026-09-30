@@ -840,7 +840,7 @@ function renderRadarChart(labels, userScores, matchScores, matchLabel, tierLabel
 			const angle = startAngle + angleStep * i
 			const lx = (center + (radius + 20) * Math.cos(angle)).toFixed(1)
 			const ly = (center + (radius + 20) * Math.sin(angle)).toFixed(1)
-			return `<text x="${lx}" y="${ly}" font-size="10" fill="#e8d9a0" text-anchor="middle" dominant-baseline="middle">${label}</text>`
+			return `<text x="${lx}" y="${ly}" font-size="12" fill="#e8d9a0" text-anchor="middle" dominant-baseline="middle">${label}</text>`
 		})
 		.join("")
 
