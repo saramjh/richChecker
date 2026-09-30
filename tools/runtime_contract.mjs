@@ -7,8 +7,8 @@ function requireText(text, label) {
   if (!script.includes(text)) throw new Error("Missing runtime contract: " + label)
 }
 
-requireText("function waitForImageReady(img)", "image readiness gate")
-requireText("await waitForImageReady(uploadedImage)", "image decode before analysis")
+requireText("function setImageSourceAndWait(img, src)", "source-specific image readiness gate")
+requireText("await setImageSourceAndWait(uploadedImage, dataUrl)", "new image load before analysis")
 requireText("let mediapipeModulesPromise = null", "module promise dedupe")
 requireText("let faceLandmarkerPromise = null", "landmarker promise dedupe")
 requireText("let outcomeTracked = false", "exclusive analysis outcome guard")
@@ -16,8 +16,16 @@ requireText('trackEvent("analysis_error", eventParams({ error_type: errorType, s
 requireText('trackEvent("app_entry")', "entry event")
 requireText("function classifyEntryReferrer()", "internal acquisition referrer classification")
 requireText('timings.detection_ms', "detection timing")
+requireText("async function detectFaceWithRetry(landmarker, initialCanvas)", "bounded detection retry")
+requireText("timings.detection_attempts", "detection retry telemetry")
+requireText("let uploadTaskChain = Promise.resolve()", "serialized upload analysis")
+requireText("uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () =>", "queued upload processing")
+requireText("setTimeout(finish, 800)", "loading cleanup timeout fallback")
 requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
+requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
+
+if (!index.includes('js/script.js?v=20260930-upload-runtime')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImage"') || !index.includes('src="assets/imgs/placeholder.svg"')) {
   throw new Error("Initial upload placeholder must be owned by index.html")
@@ -51,11 +59,19 @@ const uploadStart = script.indexOf('document.getElementById("uploadImage").addEv
 const uploadEnd = script.indexOf("\n// data/embeddings.json:", uploadStart)
 if (uploadStart < 0 || uploadEnd < 0) throw new Error("Could not isolate upload handler")
 const uploadBlock = script.slice(uploadStart, uploadEnd)
-const srcPos = uploadBlock.indexOf("uploadedImage.src = e.target.result")
-const readyPos = uploadBlock.indexOf("await waitForImageReady(uploadedImage)")
+const clearInputPos = uploadBlock.indexOf('this.value = ""')
+const readyPos = uploadBlock.indexOf("await setImageSourceAndWait(uploadedImage, dataUrl)")
 const analysisPos = uploadBlock.indexOf("await processImage(")
-if (!(srcPos >= 0 && readyPos > srcPos && analysisPos > readyPos)) {
-  throw new Error("Upload flow must set src, await decode, then analyze")
+if (!(clearInputPos >= 0 && readyPos > clearInputPos && analysisPos > readyPos)) {
+  throw new Error("Upload flow must clear the file input, wait for the newly selected image, then analyze")
+}
+const sourceGateStart = script.indexOf("function setImageSourceAndWait(img, src)")
+const sourceGateEnd = script.indexOf("\n\n// 이미지 업로드 시 처리", sourceGateStart)
+const sourceGateBlock = script.slice(sourceGateStart, sourceGateEnd)
+const listenerPos = sourceGateBlock.indexOf('img.addEventListener("load", onLoad)')
+const assignPos = sourceGateBlock.indexOf("img.src = src")
+if (!(listenerPos >= 0 && assignPos > listenerPos)) {
+  throw new Error("New image load listener must be installed before changing img.src")
 }
 
-console.log("PASS runtime contract: decode gate, first-upload snapshot, deduped warmup, exclusive outcome, acquisition/performance telemetry")
+console.log("PASS runtime contract: source-specific image gate, same-file retry, first-upload snapshot, bounded detection retry, deduped warmup, exclusive outcome, acquisition/performance telemetry")

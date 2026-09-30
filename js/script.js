@@ -251,30 +251,41 @@ window.addEventListener("load", function () {
 
 // 이미지가 실제 픽셀 크기까지 준비되기 전에 MediaPipe를 시작하면 느린 모바일에서
 // naturalWidth/Height가 0인 캔버스가 만들어질 수 있다. src 설정 후 decode/load 완료를 보장한다.
-function waitForImageReady(img) {
-	if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) return Promise.resolve()
+function setImageSourceAndWait(img, src) {
+	return new Promise((resolve, reject) => {
+		let settled = false
+		const cleanup = () => {
+			img.removeEventListener("load", onLoad)
+			img.removeEventListener("error", onError)
+		}
+		const finish = (error) => {
+			if (settled) return
+			settled = true
+			cleanup()
+			if (error) reject(error)
+			else if (img.naturalWidth > 0 && img.naturalHeight > 0) resolve()
+			else reject(new Error("Image has no decodable pixels"))
+		}
+		const onLoad = () => finish()
+		const onError = () => finish(new Error("Image decode failed"))
 
-	const waitForLoad = () =>
-		new Promise((resolve, reject) => {
-			if (img.complete) {
-				if (img.naturalWidth > 0 && img.naturalHeight > 0) resolve()
-				else reject(new Error("Image decode failed"))
-				return
-			}
-			img.addEventListener("load", resolve, { once: true })
-			img.addEventListener("error", () => reject(new Error("Image decode failed")), { once: true })
-		})
-
-	if (typeof img.decode !== "function") return waitForLoad()
-	return img.decode().catch(() => waitForLoad()).then(() => {
-		if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) throw new Error("Image has no decodable pixels")
+		// placeholder가 이미 complete인 상태를 새 사진의 준비 완료로 오인하지 않도록
+		// 반드시 새 src를 넣기 전에 그 새 리소스의 load/error를 기다린다.
+		img.addEventListener("load", onLoad)
+		img.addEventListener("error", onError)
+		img.src = src
 	})
 }
 
-// 이미지 업로드 시 처리
+
+// 이미지 업로드 시 처리. 이전 분석의 finally/전환 애니메이션이 끝나기 전에 다음 분석이
+// DOM을 건드리지 않도록 직렬화한다. 실패 직후 같은 사진을 빠르게 다시 골라도 상태가 섞이지 않는다.
+let uploadTaskChain = Promise.resolve()
 document.getElementById("uploadImage").addEventListener("change", function () {
 	const file = this.files[0]
 	if (!file) return
+	// 같은 파일을 다시 선택해도 change가 발생하도록 즉시 비운다. File 객체는 이미 로컬 변수에 보존된다.
+	this.value = ""
 
 	const source = lastPhotoPickerSource
 	const fileSizeKb = Math.round(file.size / 1024)
@@ -286,37 +297,41 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		showToast("사진 파일을 읽지 못했습니다. 다른 사진으로 다시 시도해주세요.")
 	}
 
-	reader.onload = async function (e) {
-		const uploadedImage = document.getElementById("uploadedImage")
-		uploadedImage.src = e.target.result
-		uploadedImage.style.display = "block"
-		document.getElementById("uploadedImageContainer").classList.add("has-photo")
-		clearResults()
-		trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
+	reader.onload = function (e) {
+		const readerReadyAt = performance.now()
+		const fileReadMs = Math.round(readerReadyAt - readerStartedAt)
+		const dataUrl = e.target.result
+		uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
+			const uploadedImage = document.getElementById("uploadedImage")
+			uploadedImage.style.display = "block"
+			document.getElementById("uploadedImageContainer").classList.add("has-photo")
+			clearResults()
+			trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
 
-		const imageReadyStartedAt = performance.now()
-		try {
-			await waitForImageReady(uploadedImage)
-		} catch (err) {
-			console.error(err)
-			trackEvent("upload_error", {
-				error_type: "image_decode",
+			const imageReadyStartedAt = performance.now()
+			try {
+				await setImageSourceAndWait(uploadedImage, dataUrl)
+			} catch (err) {
+				console.error(err)
+				trackEvent("upload_error", {
+					error_type: "image_decode",
+					source,
+					file_size_kb: fileSizeKb,
+					file_read_ms: fileReadMs,
+				})
+				showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
+				return
+			}
+
+			const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
+			const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
+			await processImage({
 				source,
 				file_size_kb: fileSizeKb,
-				file_read_ms: Math.round(imageReadyStartedAt - readerStartedAt),
+				file_read_ms: fileReadMs,
+				image_ready_ms: imageReadyMs,
+				image_megapixels: imageMegapixels,
 			})
-			showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
-			return
-		}
-
-		const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
-		const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
-		await processImage({
-			source,
-			file_size_kb: fileSizeKb,
-			file_read_ms: Math.round(imageReadyStartedAt - readerStartedAt),
-			image_ready_ms: imageReadyMs,
-			image_megapixels: imageMegapixels,
 		})
 	}
 	reader.readAsDataURL(file)
@@ -384,6 +399,33 @@ function toDetectionCanvas(imgEl, maxDim = 2200) {
 	return canvas
 }
 
+function resizeDetectionCanvas(sourceCanvas, maxDim) {
+	const scale = Math.min(1, maxDim / Math.max(sourceCanvas.width, sourceCanvas.height))
+	if (scale === 1) return sourceCanvas
+	const canvas = document.createElement("canvas")
+	canvas.width = Math.max(1, Math.round(sourceCanvas.width * scale))
+	canvas.height = Math.max(1, Math.round(sourceCanvas.height * scale))
+	canvas.getContext("2d").drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height)
+	return canvas
+}
+
+async function detectFaceWithRetry(landmarker, initialCanvas) {
+	const attempts = [initialCanvas]
+	const fallbackCanvas = resizeDetectionCanvas(initialCanvas, 1280)
+	if (fallbackCanvas !== initialCanvas) attempts.push(fallbackCanvas)
+	else attempts.push(initialCanvas)
+
+	for (let i = 0; i < attempts.length; i += 1) {
+		if (i > 0) await new Promise((resolve) => setTimeout(resolve, 16))
+		const canvas = attempts[i]
+		const detection = landmarker.detect(canvas)
+		if (detection.faceLandmarks && detection.faceLandmarks[0]) {
+			return { detection, canvas, attempts: i + 1 }
+		}
+	}
+	return { detection: null, canvas: attempts[attempts.length - 1], attempts: attempts.length }
+}
+
 async function processImage(context = {}) {
 	const startedAt = performance.now()
 	const attemptNumber = ++analysisAttemptCounter
@@ -447,9 +489,12 @@ async function processImage(context = {}) {
 
 		stage = "detect"
 		const detectionStartedAt = performance.now()
-		const detection = landmarker.detect(detectionCanvas)
+		const detectionResult = await detectFaceWithRetry(landmarker, detectionCanvas)
+		const detection = detectionResult.detection
+		const analyzedCanvas = detectionResult.canvas
 		timings.detection_ms = Math.round(performance.now() - detectionStartedAt)
-		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
+		timings.detection_attempts = detectionResult.attempts
+		const landmarks = detection && detection.faceLandmarks && detection.faceLandmarks[0]
 		if (!landmarks) {
 			fail("face_not_detected", "얼굴을 정확히 인식하지 못했습니다. 정면을 향한 밝은 사진으로 다시 시도해주세요.")
 			return
@@ -457,7 +502,7 @@ async function processImage(context = {}) {
 
 		stage = "match"
 		const matchingStartedAt = performance.now()
-		const featureObj = computeFeatures(landmarks, detectionCanvas.width, detectionCanvas.height)
+		const featureObj = computeFeatures(landmarks, analyzedCanvas.width, analyzedCanvas.height)
 		const uploadedFeatures = FEATURE_KEYS.map((key) => featureObj[key])
 
 		let embeddingsData
@@ -897,7 +942,7 @@ function renderTopMatch(match, radar, tierLabel, tierDesc) {
 					</div>
 					<span>나</span>
 				</div>
-				<div class="topMatch-percent" id="topMatchPercent">0%</div>
+				<div class="topMatch-percent" id="topMatchPercent">${match.similarityDisplay}%</div>
 				<div class="topMatch-photo-box"><img src="${match.image}" alt="${match.name}"><span>${match.name}</span></div>
 			</div>
 		`
@@ -990,24 +1035,10 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	document.getElementById("introSection").style.display = "none"
 	document.getElementById("uploadedImageContainer").style.display = "none"
 
-	const topMatchPercentEl = document.getElementById("topMatchPercent")
+	// 핵심 결과 숫자는 애니메이션 상태와 분리한다. 전환이 중단돼도 실제 유사도는 즉시 정확하게 보인다.
 	if (typeof gsap !== "undefined") {
-		gsap.to(
-			{ v: 0 },
-			{
-				v: topSimilarity,
-				duration: 0.9,
-				ease: "power2.out",
-				delay: 0.6,
-				onUpdate: function () {
-					if (topMatchPercentEl) topMatchPercentEl.textContent = Math.round(this.targets()[0].v) + "%"
-				},
-			},
-		)
 		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
 		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
-	} else if (topMatchPercentEl) {
-		topMatchPercentEl.textContent = topSimilarity + "%"
 	}
 
 	const revealEl = document.getElementById("topMatchReveal")
@@ -1230,35 +1261,41 @@ async function hideLoadingModal() {
 	}
 	stopLoadingMessages()
 
-	if (typeof gsap === "undefined") {
+	const finalize = () => {
 		modal.style.display = "none"
+		if (typeof gsap !== "undefined") {
+			gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
+			gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "opacity,z" })
+		}
+	}
+
+	if (typeof gsap === "undefined") {
+		finalize()
 		return
 	}
 
 	playWhoosh("in")
-	// #uploadedImageContainer/#introSection를 다시 드러내는 애니메이션은 없앴다 — renderResults가
-	// 이 시점 이전에 이미 그 둘을 display:none으로 완전히 숨겼으므로(결과 화면에서는 계속
-	// 숨김 상태 유지), 여기서 다시 보이게 하면 방금 숨긴 걸 되살리는 꼴이 된다. 다시 보이는
-	// 시점은 "다른 사진으로 다시 하기" 클릭(초기화 핸들러)뿐이다.
 	await new Promise((resolve) => {
-		gsap
-			.timeline({
-				onComplete: () => {
-					modal.style.display = "none"
-					gsap.set([modal, "#portalFlash", ".modal-content"], { clearProps: "all" })
-					// 분석이 실패해서 renderResults()가 호출되지 않은 경우, showLoadingModal()이 걸어둔
-					// opacity/z만 되돌린다(display는 안 건드림) — 성공 시엔 renderResults()가 이미
-					// display:none으로 영구히 숨겨놨는데 여기서 clearProps:"all"을 그대로 쓰면 그 display도
-					// 같이 지워져 결과 화면 위에 소개 영역이 다시 나타나는 회귀가 생긴다. 반대로 이 복구
-					// 자체가 없으면 실패 시 소개 영역이 opacity:0로 남아 텅 빈 카드만 보이는 버그가 된다.
-					gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "opacity,z" })
-					resolve()
-				},
-			})
+		let finished = false
+		let timeline = null
+		const finish = () => {
+			if (finished) return
+			finished = true
+			if (timeline) timeline.kill()
+			finalize()
+			resolve()
+		}
+
+		timeline = gsap
+			.timeline({ onComplete: finish })
 			.to(".modal-content", { opacity: 0, duration: 0.12 }, 0)
 			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.55, duration: 0.1 }, 0.12)
 			.to("#portalFlash", { opacity: 0, duration: 0.3 }, 0.22)
 			.to(modal, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0.15)
+
+		// 핵심 상태 해제를 애니메이션 프레임 진행 여부에 맡기지 않는다. 백그라운드 탭이나
+		// RAF throttling에서도 이 시간이 지나면 반드시 modal/state를 정리한다.
+		setTimeout(finish, 800)
 	})
 }
 
