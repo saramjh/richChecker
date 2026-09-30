@@ -32,7 +32,7 @@ function parseSharedChallengeParams() {
 }
 
 const sharedEntryCandidate = parseSharedChallengeParams()
-let entryContext = sharedEntryCandidate ? "shared_candidate" : "standard"
+let entryContext = "standard"
 
 function trackEvent(name, params = {}) {
 	try {

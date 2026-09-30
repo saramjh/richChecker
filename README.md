@@ -137,3 +137,5 @@
 - Reset follows state-first motion: result DOM, scroll and caches commit to the intro state synchronously; the intro settle animation is decorative and cannot delay geometry restoration.
 
 - 2026-09-30 acquisition loop: shared results use only `via=share`, a stable public match ID, and the displayed similarity score; photos and facial ratios never enter URLs. Valid shared visits show a contextual challenge above the existing upload flow and emit `shared_visit → shared_visit_upload → shared_visit_complete`. Native sharing carries the same challenge URL alongside the generated result card. `tools/growth_contract.mjs` enforces these invariants and sitemap freshness in CI.
+
+- Shared-link analytics treats query parameters as untrusted until the match ID is found in the current edition dataset. `app_entry` remains `standard`; only a verified challenge is promoted to `shared_result` and emits `shared_visit`.
