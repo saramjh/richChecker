@@ -302,19 +302,27 @@ function setImageSourceAndWait(img, src) {
 // 이미지 업로드 시 처리. 이전 분석의 finally/전환 애니메이션이 끝나기 전에 다음 분석이
 // DOM을 건드리지 않도록 직렬화한다. 실패 직후 같은 사진을 빠르게 다시 골라도 상태가 섞이지 않는다.
 let uploadTaskChain = Promise.resolve()
+function waitForUiPaint() {
+	return new Promise((resolve) => {
+		if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve())
+		else setTimeout(resolve, 16)
+	})
+}
 document.getElementById("uploadImage").addEventListener("change", function () {
 	const file = this.files[0]
 	if (!file) return
-	// 같은 파일을 다시 선택해도 change가 발생하도록 즉시 비운다. File 객체는 이미 로컬 변수에 보존된다.
 	this.value = ""
 
 	const source = lastPhotoPickerSource
 	const fileSizeKb = Math.round(file.size / 1024)
+	const loadingSessionId = showLoadingModal()
+	trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
 	const readerStartedAt = performance.now()
 	const reader = new FileReader()
 
-	reader.onerror = function () {
+	reader.onerror = async function () {
 		trackEvent("upload_error", { error_type: "file_read", source, file_size_kb: fileSizeKb })
+		await hideLoadingModal(loadingSessionId)
 		showToast("사진 파일을 읽지 못했습니다. 다른 사진으로 다시 시도해주세요.")
 	}
 
@@ -323,11 +331,11 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		const fileReadMs = Math.round(readerReadyAt - readerStartedAt)
 		const dataUrl = e.target.result
 		uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
+			await waitForUiPaint()
 			const uploadedImage = document.getElementById("uploadedImage")
 			uploadedImage.style.display = "block"
 			document.getElementById("uploadedImageContainer").classList.add("has-photo")
 			clearResults()
-			trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
 
 			const imageReadyStartedAt = performance.now()
 			try {
@@ -340,6 +348,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 					file_size_kb: fileSizeKb,
 					file_read_ms: fileReadMs,
 				})
+				await hideLoadingModal(loadingSessionId)
 				showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
 				return
 			}
@@ -352,7 +361,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 				file_read_ms: fileReadMs,
 				image_ready_ms: imageReadyMs,
 				image_megapixels: imageMegapixels,
-			})
+			}, loadingSessionId)
 		})
 	}
 	reader.readAsDataURL(file)
@@ -450,7 +459,7 @@ async function detectFaceWithRetry(landmarker, initialCanvas) {
 	return { detection: null, canvas: attempts[attempts.length - 1], attempts: attempts.length }
 }
 
-async function processImage(context = {}) {
+async function processImage(context = {}, loadingSessionId = null) {
 	const startedAt = performance.now()
 	const attemptNumber = ++analysisAttemptCounter
 	const modelWarm = Boolean(faceLandmarkerInstance)
@@ -488,7 +497,7 @@ async function processImage(context = {}) {
 	// <img> src가 바뀌더라도 이번 분석은 사용자가 선택한 바로 그 사진을 계속 사용해야 한다.
 	const detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))
 
-	showLoadingModal()
+	const activeLoadingSessionId = loadingSessionId || showLoadingModal()
 	trackEvent("analysis_started", eventParams())
 
 	try {
@@ -613,10 +622,11 @@ async function processImage(context = {}) {
 	} catch (err) {
 		fail("unknown", "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", err)
 	} finally {
-		await hideLoadingModal()
-		if (document.getElementById("resultsContainer").style.display === "none" && typeof gsap !== "undefined") {
-			gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "transform,opacity" })
-		}
+		const resultsVisible = document.getElementById("resultsContainer").style.display !== "none"
+		if (resultsVisible) window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+		await hideLoadingModal(activeLoadingSessionId)
+		if (resultsVisible) revealRenderedResults()
+		else if (typeof gsap !== "undefined") gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "transform,opacity" })
 	}
 }
 
@@ -1074,25 +1084,13 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 		</div>
 	`
 
-	document.getElementById("resultsContainer").style.display = "block"
+	const resultsEl = document.getElementById("resultsContainer")
+	resultsEl.style.display = "block"
+	resultsEl.style.opacity = "0"
+	resultsEl.style.transform = "translateY(12px)"
+	document.body.classList.add("result-mode")
 	document.getElementById("introSection").style.display = "none"
 	document.getElementById("uploadedImageContainer").style.display = "none"
-
-	// 핵심 결과 숫자는 애니메이션 상태와 분리한다. 전환이 중단돼도 실제 유사도는 즉시 정확하게 보인다.
-	if (typeof gsap !== "undefined") {
-		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
-		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
-	}
-
-	const revealEl = document.getElementById("topMatchReveal")
-	if (revealEl) {
-		requestAnimationFrame(() => {
-			setTimeout(() => {
-				revealEl.classList.add("revealed")
-				playChime()
-			}, 500)
-		})
-	}
 
 	const cardEl = document.getElementById("topMatch")
 	if (cardEl) initHoloEffect(cardEl)
@@ -1102,6 +1100,34 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar, shareResultGeneration)
 	applyFaceHiddenState()
 	initializeResultAds()
+}
+
+function revealRenderedResults() {
+	const resultsEl = document.getElementById("resultsContainer")
+	if (!resultsEl || resultsEl.style.display === "none") return
+	const revealEl = document.getElementById("topMatchReveal")
+	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+	if (revealEl) revealEl.classList.add("revealed")
+	if (reducedMotion || typeof gsap === "undefined") {
+		resultsEl.style.opacity = "1"
+		resultsEl.style.transform = "none"
+		armShareArtifactPreparation()
+		return
+	}
+
+	gsap.killTweensOf([resultsEl, ".reading-item", ".radar-poly"])
+	gsap.to(resultsEl, {
+		opacity: 1,
+		y: 0,
+		duration: 0.42,
+		ease: "power2.out",
+		onComplete: () => gsap.set(resultsEl, { clearProps: "opacity,transform" }),
+	})
+	gsap.from(".reading-item", { opacity: 0, y: 8, duration: 0.3, stagger: 0.045, ease: "power2.out", delay: 0.12 })
+	gsap.fromTo(".radar-poly", { scale: 0.96, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.38, ease: "power2.out", stagger: 0.06, delay: 0.16 })
+	window.setTimeout(playChime, 180)
+	armShareArtifactPreparation()
 }
 
 // html2canvas(1.4.1)는 <img>의 CSS object-fit을 반영하지 않고 원본 이미지를 그냥 박스
@@ -1197,17 +1223,20 @@ async function populateShareCard(topMatch, topSimilarity, tierLabel, archetype, 
 // 포함 여부에 따라 내용물 기준으로 자연스럽게 늘어난다(el.offsetHeight로 실측) —
 // scale:2.5로 캡처하면 실제 폭은 900px. 모바일 공유 파일 생성 지연을 줄이면서 텍스트 해상도를 유지한다.
 async function captureShareCard() {
-	// populateShareCard의 사진 크롭(비동기)이 아직 끝나기 전에 캡처가 먼저 실행되면 옛
-	// 사진이나 빈 이미지가 찍힐 수 있다 — 항상 마지막 population이 끝난 뒤에 캡처한다.
 	if (shareCardReadyPromise) await shareCardReadyPromise
 	const el = document.getElementById("shareCard")
-	return html2canvas(el, {
-		width: el.offsetWidth,
-		height: el.offsetHeight,
-		scale: 2.5,
-		useCORS: true,
-		backgroundColor: null,
-	})
+	el.style.display = "flex"
+	try {
+		return await html2canvas(el, {
+			width: el.offsetWidth,
+			height: el.offsetHeight,
+			scale: 2.5,
+			useCORS: true,
+			backgroundColor: null,
+		})
+	} finally {
+		el.style.display = "none"
+	}
 }
 
 async function prepareShareArtifact() {
@@ -1229,11 +1258,35 @@ async function prepareShareArtifact() {
 	return shareArtifactPromise
 }
 
+let sharePreparationObserver = null
+function cancelShareArtifactPreparation() {
+	if (sharePreparationObserver) sharePreparationObserver.disconnect()
+	sharePreparationObserver = null
+}
+
 function scheduleShareArtifactPreparation() {
 	const prepare = () => prepareShareArtifact().catch((err) => console.warn("Share card preparation failed:", err))
-	// Give the result one paint, then start preparing the file users will share. Deferring this to a
-	// long idle window made fast users reach the social buttons before a shareable File existed.
-	window.setTimeout(prepare, 80)
+	if ("requestIdleCallback" in window) window.requestIdleCallback(prepare, { timeout: 1000 })
+	else window.setTimeout(prepare, 80)
+}
+
+function armShareArtifactPreparation() {
+	cancelShareArtifactPreparation()
+	const target = document.querySelector(".result-actions")
+	if (!target) return
+	window.setTimeout(() => {
+		if (document.getElementById("resultsContainer").style.display === "none") return
+		if (!("IntersectionObserver" in window)) {
+			scheduleShareArtifactPreparation()
+			return
+		}
+		sharePreparationObserver = new IntersectionObserver((entries) => {
+			if (!entries.some((entry) => entry.isIntersecting)) return
+			cancelShareArtifactPreparation()
+			scheduleShareArtifactPreparation()
+		}, { rootMargin: "320px 0px" })
+		sharePreparationObserver.observe(target)
+	}, 650)
 }
 
 // 마우스/터치 위치에 따라 카드가 기울어지고 무지개 시광이 움직이는 홀로그래픽 효과
@@ -1275,122 +1328,43 @@ function initHoloEffect(cardEl) {
 document.getElementById("reset").addEventListener("click", function () {
 	playClick()
 	const uploadedImage = document.getElementById("uploadedImage")
-	uploadedImage.src = "assets/imgs/placeholder.svg"
-	document.getElementById("uploadedImageContainer").classList.remove("has-photo")
-	document.getElementById("uploadImage").value = "" // 같은 파일을 다시 선택해도 change가 발생하도록
-	clearResults()
-	document.getElementById("resultsContainer").style.display = "none"
-
-	// 결과 화면 진입 시 숨겼던 소개 블록/업로드 미리보기를 되돌린다. showLoadingModal에서 건
-	// z/opacity가 인라인 스타일로 남아있을 수 있어 clearProps로 완전히 지운 뒤 다시 보인다.
+	const uploadContainer = document.getElementById("uploadedImageContainer")
 	const introEl = document.getElementById("introSection")
-	const uploadEl = document.getElementById("uploadedImageContainer")
-	if (typeof gsap !== "undefined") gsap.set([introEl, uploadEl], { clearProps: "all" })
+	const resultsEl = document.getElementById("resultsContainer")
+	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+	if (typeof gsap !== "undefined") gsap.killTweensOf([resultsEl, introEl, ".reading-item", ".radar-poly"])
+	resultsEl.style.display = "none"
+	resultsEl.style.opacity = ""
+	resultsEl.style.transform = ""
+	document.body.classList.remove("result-mode")
+	uploadedImage.src = "assets/imgs/placeholder.svg"
+	uploadContainer.classList.remove("has-photo")
+	document.getElementById("uploadImage").value = ""
+	clearResults()
 	introEl.style.display = ""
-	uploadEl.style.display = ""
+	uploadContainer.style.display = ""
+	if (typeof gsap !== "undefined") gsap.set([introEl, uploadContainer], { clearProps: "all" })
+	window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+
+	if (!reducedMotion && typeof gsap !== "undefined") {
+		gsap.fromTo(introEl, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.36, ease: "power2.out", clearProps: "opacity,transform" })
+	}
 })
 
 // 실제 분석이 이보다 빨리 끝나도(MediaPipe는 로컬에서 꽤 빠름) 최소 이만큼은 "안개" 상태를
 // 유지한다. 그렇지 않으면 들어오는 애니메이션과 나가는 애니메이션이 서로 충돌해 뚝뚝 끊겨 보인다.
-const MIN_LOADING_MS = 450
+const MIN_LOADING_MS = 900
 let loadingStartedAt = 0
 let loadingRunId = 0
-
-// 화면이 균일하게 페이드아웃되며 덮이는 "순간이동 출발" 연출 + 휘익 효과음 + 안쪽 골드
-// 빛(#portalFlash)의 짧은 번쩍임. (예전엔 clip-path로 원을 키워서 덮었는데, 원이 다 자라기
-// 전까지 화면 귀퉁이에 배경 물결무늬가 계속 비쳐서 "깜빡인다"는 신고를 반복해서 받았다 —
-// opacity 페이드는 화면 전체가 한 번에 균일하게 바뀌어 그 문제가 구조적으로 없다.)
-// GSAP/Tone이 아직 로드되기 전이거나 로드 실패한 극단적인 경우에도 분석 자체는 막히지 않도록
-// 항상 modal을 보이게 만드는 폴백을 먼저 깔아둔다.
-function showLoadingModal() {
-	loadingRunId += 1
-	loadingStartedAt = Date.now()
-	const modal = document.getElementById("loadingModal")
-	const content = modal.querySelector(".modal-content")
-	const progress = document.getElementById("progressBarInner")
-	if (typeof gsap !== "undefined") gsap.killTweensOf([modal, content, "#portalFlash", "#introSection", "#uploadedImageContainer"])
-	modal.style.display = "block"
-	modal.style.opacity = "1"
-	modal.style.pointerEvents = "auto"
-	if (content) content.style.opacity = "1"
-	if (progress) {
-		progress.style.animation = "none"
-		void progress.offsetWidth
-		progress.style.animation = ""
-	}
-	startLoadingMessages()
-	if (typeof gsap === "undefined") return
-	playWhoosh("out")
-	gsap.timeline()
-		.to(["#introSection", "#uploadedImageContainer"], { z: 500, opacity: 0, duration: 0.25, ease: "power2.in" }, 0)
-		.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.45, duration: 0.1, ease: "power1.out" }, 0.02)
-		.to("#portalFlash", { opacity: 0, duration: 0.24, ease: "power2.out" }, 0.12)
-}
-
-// 화면이 다시 균일하게 걷히며 "먼 곳으로 순간이동해서 도착한" 듯 결과를 드러내는 연출 + 효과음.
-// 최소 노출 시간을 채울 때까지 기다린 뒤, 나가는 애니메이션이 끝날 때까지 대기한다.
-async function hideLoadingModal() {
-	const runId = loadingRunId
-	const modal = document.getElementById("loadingModal")
-	const elapsed = Date.now() - loadingStartedAt
-	if (elapsed < MIN_LOADING_MS) {
-		await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
-	}
-	// A newer analysis already owns the loader. The older run must not stop its messages,
-	// change opacity, or hide the modal when its delayed cleanup finally resumes.
-	if (runId !== loadingRunId) return
-	stopLoadingMessages()
-
-	const finalize = () => {
-		if (runId !== loadingRunId) return
-		modal.style.display = "none"
-		modal.style.opacity = ""
-		modal.style.pointerEvents = ""
-		const content = modal.querySelector(".modal-content")
-		if (content) content.style.opacity = ""
-		if (typeof gsap !== "undefined") {
-			gsap.set(["#portalFlash"], { clearProps: "all" })
-			gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "opacity,z" })
-		}
-		if (lastResultSummary) scheduleShareArtifactPreparation()
-	}
-
-	if (typeof gsap === "undefined") {
-		finalize()
-		return
-	}
-
-	playWhoosh("in")
-	await new Promise((resolve) => {
-		let finished = false
-		let timeline = null
-		const finish = () => {
-			if (finished) return
-			finished = true
-			if (timeline) timeline.kill()
-			finalize()
-			resolve()
-		}
-
-		// Keep the actual loader/content fully visible until cleanup. Only the decorative flash animates;
-		// fading modal/content itself created retained opacity=0 state on rapid repeat analyses.
-		timeline = gsap
-			.timeline({ onComplete: finish })
-			.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.5, duration: 0.08 }, 0)
-			.to("#portalFlash", { opacity: 0, duration: 0.2 }, 0.08)
-
-		setTimeout(finish, 500)
-	})
-}
-
-// 실제 진행률이 아니라 그냥 "지금 뭘 하고 있는지" 느낌을 주려고 순환시키는 문구들.
-const LOADING_MESSAGES = [
-	"먼 곳의 재벌들과 관상을 비교하는 중입니다...",
-	"이마 · 눈매 · 코 · 턱선을 하나씩 대조하는 중...",
-	"가장 닮은 재벌상을 찾는 중...",
-	"관상 카드를 완성하는 중...",
-]
 let loadingMessageTimer = null
+
+const LOADING_MESSAGES = [
+	"사진을 준비하는 중입니다...",
+	"얼굴 랜드마크를 찾는 중입니다...",
+	"6가지 얼굴 비율을 비교하는 중입니다...",
+	"가장 가까운 매치를 정리하는 중입니다...",
+]
 
 function startLoadingMessages() {
 	stopLoadingMessages()
@@ -1401,7 +1375,7 @@ function startLoadingMessages() {
 	loadingMessageTimer = setInterval(() => {
 		i = (i + 1) % LOADING_MESSAGES.length
 		el.textContent = LOADING_MESSAGES[i]
-	}, 550)
+	}, 650)
 }
 
 function stopLoadingMessages() {
@@ -1411,8 +1385,89 @@ function stopLoadingMessages() {
 	}
 }
 
+function showLoadingModal() {
+	loadingRunId += 1
+	const runId = loadingRunId
+	loadingStartedAt = performance.now()
+	const modal = document.getElementById("loadingModal")
+	const content = modal.querySelector(".modal-content")
+	const progress = document.getElementById("progressBarInner")
+	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+	document.documentElement.classList.add("analysis-active")
+	document.body.classList.add("analysis-active")
+	if (typeof gsap !== "undefined") gsap.killTweensOf([modal, content, "#portalFlash"])
+	modal.style.display = "block"
+	modal.style.pointerEvents = "auto"
+	if (progress) {
+		progress.style.animation = "none"
+		void progress.offsetWidth
+		progress.style.animation = ""
+	}
+	startLoadingMessages()
+
+	if (reducedMotion || typeof gsap === "undefined") {
+		modal.style.opacity = "1"
+		content.style.opacity = "1"
+		content.style.transform = "translate(-50%, -50%)"
+		return runId
+	}
+
+	// The full-screen surface becomes visible immediately. Only its inner status card eases in.
+	// This removes the short ambiguous gap where the selected photo seems to do nothing.
+	modal.style.opacity = "1"
+	content.style.opacity = "1"
+	content.style.transform = "translate(-50%, -50%)"
+	gsap.fromTo("#portalFlash", { opacity: 0 }, { opacity: 0.14, duration: 0.1, yoyo: true, repeat: 1, ease: "sine.inOut" })
+	return runId
+}
+
+async function hideLoadingModal(runId = loadingRunId) {
+	const modal = document.getElementById("loadingModal")
+	const content = modal.querySelector(".modal-content")
+	const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+	const elapsed = performance.now() - loadingStartedAt
+	if (elapsed < MIN_LOADING_MS) await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS - elapsed))
+	if (runId !== loadingRunId) return
+	stopLoadingMessages()
+
+	const finalize = () => {
+		if (runId !== loadingRunId) return
+		modal.style.display = "none"
+		modal.style.opacity = ""
+		modal.style.pointerEvents = ""
+		content.style.opacity = ""
+		content.style.transform = ""
+		document.documentElement.classList.remove("analysis-active")
+		document.body.classList.remove("analysis-active")
+		if (typeof gsap !== "undefined") gsap.set([modal, content, "#portalFlash"], { clearProps: "opacity,transform" })
+	}
+
+	if (reducedMotion || typeof gsap === "undefined") {
+		finalize()
+		return
+	}
+
+	await new Promise((resolve) => {
+		let finished = false
+		let timeline = null
+		const finish = () => {
+			if (finished) return
+			finished = true
+			if (timeline) timeline.kill()
+			finalize()
+			resolve()
+		}
+		timeline = gsap.timeline({ onComplete: finish })
+			.to(content, { opacity: 0, y: -6, duration: 0.16, ease: "power2.in" }, 0)
+			.to(modal, { opacity: 0, duration: 0.24, ease: "power2.inOut" }, 0.08)
+		setTimeout(finish, 420)
+	})
+}
+
 function clearResults() {
 	// 결과 리스트 및 평균 유사도 초기화
+	cancelShareArtifactPreparation()
 	shareResultGeneration += 1
 	lastResultSummary = null
 	shareCardReadyPromise = null

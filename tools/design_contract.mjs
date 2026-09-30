@@ -34,7 +34,12 @@ for(const [x,m] of[
 [".result-actions {","result action grouping"],
 ["gap: var(--space-4);","result action spacing"],
 ["gap: var(--space-3);","result section rhythm"],
-["margin: var(--space-5) 0 0;","major follow-up spacing"]
+["margin: var(--space-5) 0 0;","major follow-up spacing"],
+["body.result-mode {","top-aligned long result state"],
+["height: 100dvh;","dynamic viewport analysis overlay"],
+["transform: translate3d(-120%, 0, 0);","compositor-driven progress motion"],
+["#shareCard {","share capture component"],
+["display: none;","hidden share capture footprint"]
 ])need(x,m)
 const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255)
 const lum=h=>rgb(h).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)

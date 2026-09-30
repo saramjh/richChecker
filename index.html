@@ -73,13 +73,13 @@
 
   <link rel="preload" href="models/mediapipe/face_landmarker.task" as="fetch">
   <link rel="preload" href="js/vendor/mediapipe/wasm/vision_wasm_internal.wasm" as="fetch">
-  <link rel="stylesheet" href="css/style.css?v=20260930-runtime-spacing3">
+  <link rel="stylesheet" href="css/style.css?v=20260930-transition4">
   <!-- 전부 defer로 로드한다(파싱을 막지 않기 위해). script.js는 맨 먼저 둔다 — defer 스크립트는
        "문서 순서대로 실행"되므로, script.js를 라이브러리들 뒤에 두면 그 라이브러리들의 실행이
        전부 끝날 때까지 업로드/초기화 버튼 리스너가 안 붙는 채로 남는다. script.js 안에서 외부
        라이브러리(gsap/Tone 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
        최상단에서 즉시 실행되는 건 없으므로, 순서를 앞으로 당겨도 안전하다. -->
-  <script defer src="js/script.js?v=20260930-runtime-spacing3"></script>
+  <script defer src="js/script.js?v=20260930-transition4"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -265,7 +265,7 @@
     </div>
   </footer>
   <!-- 로딩/순간이동 오버레이 -->
-  <div id="loadingModal" class="modal">
+  <div id="loadingModal" class="modal" role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
     <div id="portalFlash"></div>
     <div class="modal-content">
       <h2 id="processTitle">관상 분석 중</h2>
