@@ -82,6 +82,7 @@
 - 새 사진의 `load` 리스너를 `src` 변경 전에 설치해 실제로 새 픽셀이 준비된 뒤에만 MediaPipe 분석을 시작합니다. 기존 placeholder의 `complete` 상태를 새 사진 준비 완료로 재사용하지 않으며, 첫 비동기 모델 로드 전에 선택된 픽셀을 분석용 canvas로 고정합니다.
 - 파일 input은 선택 즉시 비워 같은 파일을 연속 선택해도 `change`가 다시 발생합니다. 분석/전환 cleanup은 직렬화하며, 얼굴 검출은 최대 2회까지만 내부 재시도하고 `detection_attempts`로 기록합니다.
 - 핵심 결과 유사도는 애니메이션 값이 아니라 실제 계산값을 즉시 렌더링하며, 로딩 전환 cleanup은 GSAP 완료 콜백이 멈춰도 timeout fallback으로 반드시 종료됩니다.
+- 결과 광고는 핵심 결과 렌더가 완료된 뒤 비동기로 초기화하며, AdSense 슬롯 크기/네트워크 오류는 분석 성공 상태에 영향을 주지 않습니다.
 - analysis_complete는 결과 UI 렌더가 성공한 뒤에만 기록하며, 한 시도에서 analysis_complete와 analysis_error가 동시에 기록되지 않도록 보호합니다.
 - 분석 이벤트에는 source, entry_ref, model_warm, data_warm, 파일/이미지 크기와 각 단계 처리시간을 포함합니다.
 - same-origin 유입은 rich-tester, rich-face-test, 글로벌 소개 글, 한국/글로벌 edition으로 분류하며 외부 referrer URL 자체는 이벤트 파라미터로 보내지 않습니다.

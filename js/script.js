@@ -981,6 +981,31 @@ function renderRunnerUps(matches) {
 	return `<div class="runner-ups"><div class="runner-ups-heading">다음으로 가까운 매치</div>${rows}<div class="runner-ups-note">전체 6개 얼굴 비율 기준</div></div>`
 }
 
+function initializeResultAds() {
+	if (["localhost", "127.0.0.1"].includes(location.hostname)) return
+	const attempt = (remainingRetries) => {
+		let waitingForLayout = false
+		document.querySelectorAll("#resultsContainer .adsbygoogle").forEach((ins) => {
+			if (ins.dataset.adsbygoogleStatus) return
+			if (ins.getBoundingClientRect().width <= 0) {
+				waitingForLayout = true
+				return
+			}
+			try {
+				(window.adsbygoogle = window.adsbygoogle || []).push({})
+			} catch (err) {
+				// 광고 네트워크/레이아웃 오류는 분석 결과를 실패로 바꾸면 안 된다.
+				console.warn("Result ad initialization skipped:", err)
+			}
+		})
+		if (waitingForLayout && remainingRetries > 0) {
+			setTimeout(() => attempt(remainingRetries - 1), 250)
+		}
+	}
+
+	requestAnimationFrame(() => setTimeout(() => attempt(2), 0))
+}
+
 function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	const topMatch = topMatches[0]
 	const topSimilarity = topMatch.similarityDisplay
@@ -1026,12 +1051,6 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	`
 
 	document.getElementById("resultsContainer").style.display = "block"
-	if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
-		document.querySelectorAll("#resultsContainer .adsbygoogle").forEach((ins) => {
-			if (!ins.dataset.adsbygoogleStatus) (window.adsbygoogle = window.adsbygoogle || []).push({})
-		})
-	}
-
 	document.getElementById("introSection").style.display = "none"
 	document.getElementById("uploadedImageContainer").style.display = "none"
 
@@ -1058,6 +1077,7 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity: topSimilarityText }
 	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar)
 	applyFaceHiddenState()
+	initializeResultAds()
 }
 
 // html2canvas(1.4.1)는 <img>의 CSS object-fit을 반영하지 않고 원본 이미지를 그냥 박스
