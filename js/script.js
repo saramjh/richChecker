@@ -2,13 +2,35 @@
 // 가장 먼저(다른 어떤 로직보다도 앞서) 부팅 오버레이부터 걷어낸다.
 document.getElementById("bootOverlay")?.remove()
 
-// GA4는 기본적으로 page_view/scroll 같은 자동 이벤트만 잡아서, 실제로 업로드→분석→저장/공유까지
-// 끝까지 쓰는 사람이 몇 명인지가 안 보인다는 문제가 있었다 — 채널별(디스콰이엇/루리웹/...)로
-// 글을 올릴 때마다 "어디서 온 사람이 실제로 써보는지"를 구분하려면 퍼널 단계별 커스텀 이벤트가
-// 필요하다. 광고 차단기 등으로 gtag가 아예 안 실려있을 수 있으니 안전하게 no-op한다.
-function trackEvent(name, params) {
-	if (typeof gtag === "function") gtag("event", name, params)
+// GA4 커스텀 이벤트는 퍼널을 보되 제품 동작에는 절대 영향을 주지 않아야 한다.
+// same-origin referrer만 의미 있는 내부 유입원으로 분류하고 외부 URL 자체는 수집하지 않는다.
+function classifyEntryReferrer() {
+	if (!document.referrer) return "direct"
+	try {
+		const ref = new URL(document.referrer)
+		if (ref.origin !== location.origin) return "external"
+		if (ref.pathname.startsWith("/rich-tester/")) return "rich-tester"
+		if (ref.pathname.startsWith("/rich-face-test/")) return "rich-face-test"
+		if (ref.pathname.startsWith("/billionaire-lookalike-test/")) return "billionaire-lookalike-test"
+		if (ref.pathname.startsWith("/richChecker-us/")) return "edition-global"
+		if (ref.pathname.startsWith("/richChecker/")) return "edition-korea"
+		return "internal-other"
+	} catch {
+		return "unknown"
+	}
 }
+
+const entryReferrer = classifyEntryReferrer()
+
+function trackEvent(name, params = {}) {
+	try {
+		if (typeof gtag === "function") gtag("event", name, { entry_ref: entryReferrer, ...params })
+	} catch (err) {
+		console.warn("Analytics event skipped:", name, err)
+	}
+}
+
+trackEvent("app_entry")
 
 document.querySelectorAll("[data-edition-link]").forEach((link) => {
 	link.addEventListener("click", () => {
@@ -66,13 +88,28 @@ function playChime() {
 	sfx.chime.triggerAttackRelease(["C5", "E5", "G5"], "8n")
 }
 
-// MediaPipe FaceLandmarker + faceFeatures.js는 ESM이라 동적 import로 로드
+// MediaPipe FaceLandmarker + faceFeatures.js는 ESM이라 동적 import로 로드.
+// idle warmup과 즉시 분석이 겹쳐도 같은 import를 한 번만 수행한다.
 let mediapipeModules = null
+let mediapipeModulesPromise = null
 async function ensureMediapipeModules() {
 	if (mediapipeModules) return mediapipeModules
-	const [vision, features, matchMath] = await Promise.all([import("./vendor/mediapipe/vision_bundle.mjs"), import("./faceFeatures.js"), import("./matchMath.js")])
-	mediapipeModules = { ...vision, ...features, ...matchMath }
-	return mediapipeModules
+	if (!mediapipeModulesPromise) {
+		mediapipeModulesPromise = Promise.all([
+			import("./vendor/mediapipe/vision_bundle.mjs"),
+			import("./faceFeatures.js"),
+			import("./matchMath.js"),
+		])
+			.then(([vision, features, matchMath]) => {
+				mediapipeModules = { ...vision, ...features, ...matchMath }
+				return mediapipeModules
+			})
+			.catch((err) => {
+				mediapipeModulesPromise = null
+				throw err
+			})
+	}
+	return mediapipeModulesPromise
 }
 
 // 카카오톡/X 공유 문구를 "나의 부자 관상 분석 결과!" 같은 뻔한 고정 문구 대신 실제 결과로
@@ -107,17 +144,30 @@ document.getElementById("faceHideToggle").addEventListener("click", function () 
 })
 
 let faceLandmarkerInstance = null
+let faceLandmarkerPromise = null
 async function ensureFaceLandmarker() {
 	if (faceLandmarkerInstance) return faceLandmarkerInstance
-	const { FaceLandmarker, FilesetResolver } = await ensureMediapipeModules()
-	const fileset = await FilesetResolver.forVisionTasks("./js/vendor/mediapipe/wasm")
-	faceLandmarkerInstance = await FaceLandmarker.createFromOptions(fileset, {
-		baseOptions: { modelAssetPath: "./models/mediapipe/face_landmarker.task", delegate: "CPU" },
-		outputFaceBlendshapes: true,
-		runningMode: "IMAGE",
-		numFaces: 1,
-	})
-	return faceLandmarkerInstance
+	if (!faceLandmarkerPromise) {
+		faceLandmarkerPromise = (async () => {
+			const { FaceLandmarker, FilesetResolver } = await ensureMediapipeModules()
+			const fileset = await FilesetResolver.forVisionTasks("./js/vendor/mediapipe/wasm")
+			return FaceLandmarker.createFromOptions(fileset, {
+				baseOptions: { modelAssetPath: "./models/mediapipe/face_landmarker.task", delegate: "CPU" },
+				outputFaceBlendshapes: true,
+				runningMode: "IMAGE",
+				numFaces: 1,
+			})
+		})()
+			.then((instance) => {
+				faceLandmarkerInstance = instance
+				return instance
+			})
+			.catch((err) => {
+				faceLandmarkerPromise = null
+				throw err
+			})
+	}
+	return faceLandmarkerPromise
 }
 
 function scheduleCoreWarmup() {
@@ -202,28 +252,84 @@ window.addEventListener("load", function () {
 	})
 })
 
+// 이미지가 실제 픽셀 크기까지 준비되기 전에 MediaPipe를 시작하면 느린 모바일에서
+// naturalWidth/Height가 0인 캔버스가 만들어질 수 있다. src 설정 후 decode/load 완료를 보장한다.
+function waitForImageReady(img) {
+	if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) return Promise.resolve()
+
+	const waitForLoad = () =>
+		new Promise((resolve, reject) => {
+			if (img.complete) {
+				if (img.naturalWidth > 0 && img.naturalHeight > 0) resolve()
+				else reject(new Error("Image decode failed"))
+				return
+			}
+			img.addEventListener("load", resolve, { once: true })
+			img.addEventListener("error", () => reject(new Error("Image decode failed")), { once: true })
+		})
+
+	if (typeof img.decode !== "function") return waitForLoad()
+	return img.decode().catch(() => waitForLoad()).then(() => {
+		if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) throw new Error("Image has no decodable pixels")
+	})
+}
+
 // 이미지 업로드 시 처리
 document.getElementById("uploadImage").addEventListener("change", function () {
 	const file = this.files[0]
-	if (file) {
-		const reader = new FileReader()
-		reader.onload = async function (e) {
-			const uploadedImage = document.getElementById("uploadedImage")
-			uploadedImage.src = e.target.result
-			uploadedImage.style.display = "block"
-			document.getElementById("uploadedImageContainer").classList.add("has-photo")
-			clearResults() // 이미지가 업로드될 때마다 결과 초기화
-			trackEvent("upload_started", { source: lastPhotoPickerSource })
-			await processImage(uploadedImage.src)
-		}
-		reader.readAsDataURL(file)
+	if (!file) return
+
+	const source = lastPhotoPickerSource
+	const fileSizeKb = Math.round(file.size / 1024)
+	const readerStartedAt = performance.now()
+	const reader = new FileReader()
+
+	reader.onerror = function () {
+		trackEvent("upload_error", { error_type: "file_read", source, file_size_kb: fileSizeKb })
+		showToast("사진 파일을 읽지 못했습니다. 다른 사진으로 다시 시도해주세요.")
 	}
+
+	reader.onload = async function (e) {
+		const uploadedImage = document.getElementById("uploadedImage")
+		uploadedImage.src = e.target.result
+		uploadedImage.style.display = "block"
+		document.getElementById("uploadedImageContainer").classList.add("has-photo")
+		clearResults()
+		trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
+
+		const imageReadyStartedAt = performance.now()
+		try {
+			await waitForImageReady(uploadedImage)
+		} catch (err) {
+			console.error(err)
+			trackEvent("upload_error", {
+				error_type: "image_decode",
+				source,
+				file_size_kb: fileSizeKb,
+				file_read_ms: Math.round(imageReadyStartedAt - readerStartedAt),
+			})
+			showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
+			return
+		}
+
+		const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
+		const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
+		await processImage({
+			source,
+			file_size_kb: fileSizeKb,
+			file_read_ms: Math.round(imageReadyStartedAt - readerStartedAt),
+			image_ready_ms: imageReadyMs,
+			image_megapixels: imageMegapixels,
+		})
+	}
+	reader.readAsDataURL(file)
 })
 
 // data/embeddings.json: tools/precompute.html(MediaPipe 기반)로 미리 계산해둔
 // { featureKeys, stats: {mean, std}, people: [{..., features}] } 구조.
 // 성별 구분 없이 전체 인물 표본 하나로 통합 (여성 표본이 너무 적어 따로 나누는 의미가 없음).
 let embeddingsPromise = null
+let embeddingsReady = false
 async function loadEmbeddings() {
 	if (!embeddingsPromise) {
 		embeddingsPromise = fetch("data/embeddings.json")
@@ -235,10 +341,12 @@ async function loadEmbeddings() {
 				if (!data || !Array.isArray(data.people) || data.people.length === 0) {
 					throw new Error("비교 데이터가 비어 있습니다.")
 				}
+				embeddingsReady = true
 				return data
 			})
 			.catch((err) => {
 				embeddingsPromise = null
+				embeddingsReady = false
 				throw err
 			})
 	}
@@ -279,27 +387,48 @@ function toDetectionCanvas(imgEl, maxDim = 2200) {
 	return canvas
 }
 
-async function processImage() {
+async function processImage(context = {}) {
 	const startedAt = performance.now()
 	const attemptNumber = ++analysisAttemptCounter
+	const modelWarm = Boolean(faceLandmarkerInstance)
+	const dataWarm = embeddingsReady
+	let stage = "start"
+	let outcomeTracked = false
+	const timings = {}
 	const eventParams = (extra = {}) => ({
 		attempt_number: attemptNumber,
+		source: context.source || "unknown",
 		elapsed_ms: Math.round(performance.now() - startedAt),
+		model_warm: modelWarm ? 1 : 0,
+		data_warm: dataWarm ? 1 : 0,
+		...context,
+		...timings,
 		...extra,
 	})
 	const fail = (errorType, message, err) => {
+		if (outcomeTracked) return
+		outcomeTracked = true
 		if (err) console.error(err)
-		trackEvent("analysis_error", eventParams({ error_type: errorType }))
+		trackEvent("analysis_error", eventParams({ error_type: errorType, stage }))
 		showToast(message)
+	}
+	const timed = async (name, task) => {
+		const phaseStartedAt = performance.now()
+		try {
+			return await task()
+		} finally {
+			timings[name + "_ms"] = Math.round(performance.now() - phaseStartedAt)
+		}
 	}
 
 	showLoadingModal()
-	trackEvent("analysis_started", { attempt_number: attemptNumber })
+	trackEvent("analysis_started", eventParams())
 
 	try {
 		let modules
+		stage = "module_load"
 		try {
-			modules = await ensureMediapipeModules()
+			modules = await timed("modules_ready", () => ensureMediapipeModules())
 		} catch (err) {
 			fail("module_load", "얼굴 인식 모듈을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.", err)
 			return
@@ -307,28 +436,35 @@ async function processImage() {
 		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile, similarityFromDistance, displaySimilarity } = modules
 
 		let landmarker
+		stage = "model_load"
 		try {
-			landmarker = await ensureFaceLandmarker()
+			landmarker = await timed("model_ready", () => ensureFaceLandmarker())
 		} catch (err) {
 			fail("model_load", "얼굴 인식 모델을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.", err)
 			return
 		}
 
+		stage = "detect"
+		const detectionStartedAt = performance.now()
 		const uploadedImage = document.getElementById("uploadedImage")
 		const detectionCanvas = toDetectionCanvas(uploadedImage)
 		const detection = landmarker.detect(detectionCanvas)
+		timings.detection_ms = Math.round(performance.now() - detectionStartedAt)
 		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
 		if (!landmarks) {
 			fail("face_not_detected", "얼굴을 정확히 인식하지 못했습니다. 정면을 향한 밝은 사진으로 다시 시도해주세요.")
 			return
 		}
 
+		stage = "match"
+		const matchingStartedAt = performance.now()
 		const featureObj = computeFeatures(landmarks, detectionCanvas.width, detectionCanvas.height)
 		const uploadedFeatures = FEATURE_KEYS.map((key) => featureObj[key])
 
 		let embeddingsData
+		stage = "data_load"
 		try {
-			embeddingsData = await loadEmbeddings()
+			embeddingsData = await timed("data_ready", () => loadEmbeddings())
 		} catch (err) {
 			fail("embeddings_load", "표본 데이터를 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.", err)
 			return
@@ -389,14 +525,23 @@ async function processImage() {
 			matchLabel: topMatch.name,
 			nearestByFeature,
 		}
+		timings.matching_ms = Math.round(performance.now() - matchingStartedAt)
 
+		stage = "render"
+		const renderStartedAt = performance.now()
+		renderResults({ expression }, radar, archetype, overallMatches, standoutMatch)
+		timings.render_ms = Math.round(performance.now() - renderStartedAt)
+
+		// 완료는 결과 UI까지 실제 생성된 뒤에만 기록한다. renderResults가 실패하면
+		// 같은 시도에 complete와 error가 동시에 찍히지 않는다.
+		stage = "complete"
+		outcomeTracked = true
 		trackEvent("analysis_complete", eventParams({
 			match_name: topMatch.name,
 			standout_match_name: standoutMatch.name,
 			archetype_name: archetype.name,
 			similarity: topMatch.similarityDisplay,
 		}))
-		renderResults({ expression }, radar, archetype, overallMatches, standoutMatch)
 	} catch (err) {
 		fail("unknown", "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", err)
 	} finally {

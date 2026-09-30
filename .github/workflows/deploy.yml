@@ -39,6 +39,9 @@ jobs:
       - name: Run matching contract
         run: node tools/matching_contract.mjs
 
+      - name: Run runtime contract
+        run: node tools/runtime_contract.mjs
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest

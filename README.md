@@ -67,6 +67,15 @@
 
 검색·링크로 들어온 사용자는 `무엇을 받는지 → 사진 선택 → 신뢰 정보` 순서로 이해할 수 있어야 합니다. 비어 있는 업로드 영역은 220px로 작게 유지하고, 실제 사진을 선택한 뒤에만 400px 미리보기로 확장합니다. `photo_picker_opened`와 `upload_started`의 `source`로 주 CTA와 업로드 패널의 실제 사용을 비교합니다.
 
+
+### 런타임/퍼널 계측 계약
+
+- 파일 선택 후 실제 이미지 decode가 끝난 뒤에만 MediaPipe 분석을 시작합니다.
+- analysis_complete는 결과 UI 렌더가 성공한 뒤에만 기록하며, 한 시도에서 analysis_complete와 analysis_error가 동시에 기록되지 않도록 보호합니다.
+- 분석 이벤트에는 source, entry_ref, model_warm, data_warm, 파일/이미지 크기와 각 단계 처리시간을 포함합니다.
+- same-origin 유입은 rich-tester, rich-face-test, 글로벌 소개 글, 한국/글로벌 edition으로 분류하며 외부 referrer URL 자체는 이벤트 파라미터로 보내지 않습니다.
+- node tools/runtime_contract.mjs가 decode gate, promise dedupe, 결과 렌더 후 completion, referrer/성능 계측 계약을 CI에서 검증합니다.
+
 ## 에디션 간 연결
 
 이 서비스는 서로 다른 표본을 쓰는 두 에디션으로 운영합니다. 한국판은 한국 부자 47인, 글로벌판은 억만장자 100인 표본을 사용하며 단순 번역 페이지가 아닙니다. 따라서 `hreflang` 번역 관계 대신 일반 크롤러블 링크로 상호 연결합니다. 첫 행동 뒤의 에디션 전환과 결과 후 다른 에디션 CTA는 `cross_edition_click` 이벤트의 `placement`, `target_edition`, `link_url`로 측정합니다.
