@@ -27,7 +27,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20260930-upload-runtime')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20260930-upload-runtime2')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImage"') || !index.includes('src="assets/imgs/placeholder.svg"')) {
   throw new Error("Initial upload placeholder must be owned by index.html")
