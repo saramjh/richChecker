@@ -29,9 +29,6 @@
   <meta name="theme-color" content="#1a1035">
   <title>부자 관상 테스트 | AI로 나와 닮은 한국 부자 찾기</title>
   <link rel="canonical" href="https://saramjh.github.io/richChecker/">
-  <link rel="alternate" hreflang="ko" href="https://saramjh.github.io/richChecker/">
-  <link rel="alternate" hreflang="en" href="https://saramjh.github.io/richChecker-us/">
-  <link rel="alternate" hreflang="x-default" href="https://saramjh.github.io/richChecker-us/">
   <link rel="icon" type="image/svg+xml" href="assets/imgs/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/imgs/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/imgs/apple-touch-icon.png">
@@ -102,6 +99,11 @@
     </div>
     <div id="window">
       <h1>부자 관상 테스트</h1>
+      <nav class="edition-switch" aria-label="부자 얼굴 매치 에디션">
+        <span class="edition-switch__item edition-switch__item--current" aria-current="page">한국 부자 47</span>
+        <a class="edition-switch__item" href="https://saramjh.github.io/richChecker-us/" data-edition-link data-placement="header" data-target-edition="global">Global 100</a>
+      </nav>
+
       <hr>
       <!-- 소개(태그라인/포브스 배지/이용흐름/가치제안)는 "이걸 왜 해야 하는지" 모르는 첫
            방문자에게 필요한 정보다 — 이미 결과를 받은 사용자에겐 불필요한 반복이라는 피드백
@@ -177,9 +179,14 @@
             </svg>
           </button>
         </div>
-        <!-- 초기화는 업로드 전 화면에선 되돌릴 대상이 없어 불필요하다는 피드백 — 결과 영역
-             안으로 옮겨서 결과가 있을 때만(#resultsContainer 표시 여부에 자연히 종속) 나타나게
-             하고, 주 액션(저장/공유)과 헷갈리지 않도록 텍스트 링크에 가깝게 눌러둔다. -->
+        <!-- 다른 에디션은 번역 전환이 아니라 별도 표본을 다시 체험하는 후속 액션이다. -->
+        <section class="cross-edition-cta" aria-label="글로벌 억만장자 버전">
+          <span class="cross-edition-kicker">다른 리그에서도 비교해보기</span>
+          <strong>글로벌 억만장자 100명에서는 누가 나올까?</strong>
+          <p>별도의 글로벌 표본으로 같은 6개 얼굴 비율을 다시 비교합니다. 다음 페이지에서 사진을 다시 선택합니다.</p>
+          <a href="https://saramjh.github.io/richChecker-us/" data-edition-link data-placement="result" data-target-edition="global">글로벌 버전 해보기 <span aria-hidden="true">→</span></a>
+        </section>
+        <!-- 다시 하기는 결과가 있을 때만 노출되는 보조 액션이다. -->
         <button id="reset" class="reset-link">다른 사진으로 다시 하기</button>
 
         <div class="ad-slot">

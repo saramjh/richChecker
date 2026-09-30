@@ -10,6 +10,16 @@ function trackEvent(name, params) {
 	if (typeof gtag === "function") gtag("event", name, params)
 }
 
+document.querySelectorAll("[data-edition-link]").forEach((link) => {
+	link.addEventListener("click", () => {
+		trackEvent("cross_edition_click", {
+			placement: link.dataset.placement || "unknown",
+			target_edition: link.dataset.targetEdition || "unknown",
+			link_url: link.href,
+		})
+	})
+})
+
 let analysisAttemptCounter = 0
 
 // ===== 효과음 (Tone.js로 직접 합성 — 외부 음원 파일 없이 저작권 이슈 없이 재생) =====
