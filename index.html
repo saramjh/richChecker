@@ -75,13 +75,12 @@
   <!-- 전부 defer로 로드한다(파싱을 막지 않기 위해). script.js는 맨 먼저 둔다 — defer 스크립트는
        "문서 순서대로 실행"되므로, script.js를 라이브러리들 뒤에 두면 그 라이브러리들의 실행이
        전부 끝날 때까지 업로드/초기화 버튼 리스너가 안 붙는 채로 남는다. script.js 안에서 외부
-       라이브러리(gsap/Tone/faceapi 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
+       라이브러리(gsap/Tone 등)를 쓰는 코드는 전부 "나중에 호출되는 함수 안"에만 있고
        최상단에서 즉시 실행되는 건 없으므로, 순서를 앞으로 당겨도 안전하다. -->
   <script defer src="js/script.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 
 <body>
@@ -119,7 +118,7 @@
           <div id="initSpinner"></div>
           <div id="aiInfoBadge"></div>
         </div>
-        <p class="fine-print">사진은 서버로 전송되지 않습니다. 정면을 향한 밝은 사진을 권장합니다.</p>
+        <p class="fine-print">얼굴 분석용 사진은 서버에 업로드하지 않고 이 기기에서 처리합니다. 정면을 향한 밝은 사진을 권장합니다.</p>
         <details class="method-note">
           <summary>어떻게 비교하나요?</summary>
           <p>얼굴 랜드마크에서 이마 높이, 눈 사이 거리, 코 길이, 입 너비, 턱 길이, 얼굴 종횡비를 계산해 47명 표본과 비교합니다.</p>
@@ -200,7 +199,7 @@
            부분까지 정직하게 밝히는 문구로 바꿨다. 예전엔 하단 고정 푸터(높이 30px 고정, 한 줄용)
            안에 욱여넣었더니 두 번째 줄이 overflow:hidden에 잘려서 아예 안 보였다 — 카드 하단의
            일반 흐름 안에 작은 글씨 각주로 옮긴다. -->
-      <p id="privacyNote">사진은 서버 전송 없이 기기에서만 분석됩니다.</p>
+      <p id="privacyNote">얼굴 분석용 사진은 서버에 업로드하지 않고 브라우저에서 처리합니다.</p>
     </div>
   </div>
 

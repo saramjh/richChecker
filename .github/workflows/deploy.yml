@@ -36,6 +36,9 @@ jobs:
             node --check "$f"
           done
 
+      - name: Run matching contract
+        run: node tools/matching_contract.mjs
+
   deploy:
     needs: validate
     runs-on: ubuntu-latest

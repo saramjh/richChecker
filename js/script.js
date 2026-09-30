@@ -66,27 +66,12 @@ function playChime() {
 	sfx.chime.triggerAttackRelease(["C5", "E5", "G5"], "8n")
 }
 
-// 나이 추정만 face-api.js를 계속 사용 (MediaPipe Tasks Vision에는 대응하는 로컬 나이 추정 모델이 없음)
-let ageModelPromise = null
-async function loadAgeModel() {
-    if (!ageModelPromise) {
-        ageModelPromise = Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri("./models"),
-            faceapi.nets.ageGenderNet.loadFromUri("./models"),
-        ]).catch((err) => {
-            ageModelPromise = null
-            throw err
-        })
-    }
-    return ageModelPromise
-}
-
 // MediaPipe FaceLandmarker + faceFeatures.js는 ESM이라 동적 import로 로드
 let mediapipeModules = null
 async function ensureMediapipeModules() {
 	if (mediapipeModules) return mediapipeModules
-	const [vision, features] = await Promise.all([import("./vendor/mediapipe/vision_bundle.mjs"), import("./faceFeatures.js")])
-	mediapipeModules = { ...vision, ...features }
+	const [vision, features, matchMath] = await Promise.all([import("./vendor/mediapipe/vision_bundle.mjs"), import("./faceFeatures.js"), import("./matchMath.js")])
+	mediapipeModules = { ...vision, ...features, ...matchMath }
 	return mediapipeModules
 }
 
@@ -184,7 +169,7 @@ document.getElementById("choosePhotoBtn").addEventListener("click", openPhotoPic
 
 // 위 리스너를 붙이는 줄이 실행됐다는 건 이 시점부터 클릭이 실제로 동작한다는 뜻이므로,
 // 그제서야 "초기화 중" 표시를 걷어낸다. index.html에서 모든 외부 스크립트를 defer로 바꾸고
-// script.js를 맨 마지막에 두었기 때문에, 이 줄이 실행되는 시점엔 GSAP/Tone/face-api 등
+// script.js를 맨 마지막에 두었기 때문에, 이 줄이 실행되는 시점엔 GSAP/Tone 등
 // 의존 라이브러리도 이미 전부 로드가 끝나 있다.
 document.getElementById("uploadedImageContainer").classList.remove("is-initializing")
 
@@ -248,7 +233,7 @@ async function loadEmbeddings() {
 	return embeddingsPromise
 }
 
-function toMatch(person, similarity) {
+function toMatch(person, similarity, similarityDisplay) {
 	return {
 		name: person.name,
 		title: person.title,
@@ -260,21 +245,8 @@ function toMatch(person, similarity) {
 		isIllustration: person.isIllustration,
 		features: person.features,
 		similarity,
+		similarityDisplay,
 	}
-}
-
-// z-score 거리를 0~100 유사도로 변환. SIMILARITY_SCALE은 실측 분포로 보정된 값.
-const SIMILARITY_SCALE = 14
-
-// zscoreDistance는 항목별 z-score를 ±2로 묶어도, 매칭된 사람이 여러 항목에서 동시에
-// 극단값(±2)인 데다 업로드한 얼굴이 반대쪽 극단이면 이론상 거리가 최대치(6항목 모두 4씩
-// 벌어짐, sqrt(6*4^2)≈9.8)까지 나올 수 있어 0%가 완전히 불가능하진 않다. "일치율 0.0%인데
-// 이 사람이 매칭됐다"는 문구 자체가 모순으로 읽히므로, 이름이 있는 매칭에는 항상 0보다
-// 뚜렷하게 큰 최소값을 보장한다(등급표의 최하단 "완전히 반대" 구간 안에 자연스럽게 들어감).
-const MIN_SIMILARITY = 3
-
-function similarityFromDistance(distance) {
-	return Math.max(MIN_SIMILARITY, 100 - distance * SIMILARITY_SCALE)
 }
 
 // 휴대폰 카메라 사진은 보통 EXIF 방향 태그가 붙어 있다 — <img>는 화면에 그릴 때 이 태그를
@@ -320,7 +292,7 @@ async function processImage() {
 			fail("module_load", "얼굴 인식 모듈을 불러오지 못했습니다. 네트워크 상태를 확인하고 다시 시도해주세요.", err)
 			return
 		}
-		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile } = modules
+		const { computeFeatures, FEATURE_KEYS, FEATURE_LABELS, zscoreDistance, zscoreToPercentile, similarityFromDistance, displaySimilarity } = modules
 
 		let landmarker
 		try {
@@ -353,16 +325,6 @@ async function processImage() {
 		const blendshapeCategories = detection.faceBlendshapes && detection.faceBlendshapes[0] && detection.faceBlendshapes[0].categories
 		const expression = blendshapeCategories ? topExpressionFromBlendshapes(blendshapeCategories) : null
 
-		// 나이 추정은 매칭의 핵심 경로가 아니다. 실패해도 부자 매칭 결과는 정상 제공한다.
-		let age = null
-		try {
-			await loadAgeModel()
-			const ageDetection = await faceapi.detectSingleFace(detectionCanvas, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender()
-			if (ageDetection) age = Math.round(ageDetection.age)
-		} catch (err) {
-			console.warn("나이 추정은 건너뜁니다.", err)
-		}
-
 		const percentiles = (features) =>
 			FEATURE_KEYS.map((key, i) => zscoreToPercentile(features[i], embeddingsData.stats.mean[i], embeddingsData.stats.std[i]))
 		const userPercentiles = percentiles(uploadedFeatures)
@@ -389,7 +351,10 @@ async function processImage() {
 			}))
 			.sort((left, right) => left.distance - right.distance)
 			.slice(0, 3)
-			.map((item) => toMatch(item.person, similarityFromDistance(item.distance)))
+			.map((item) => {
+				const rawSimilarity = similarityFromDistance(item.distance)
+				return toMatch(item.person, rawSimilarity, displaySimilarity(rawSimilarity))
+			})
 
 		const topMatch = overallMatches[0]
 		const radarForArchetype = {
@@ -401,7 +366,8 @@ async function processImage() {
 		const dominantIdx = FEATURE_KEYS.indexOf(archetype.featureKey)
 		const standoutPerson = nearestByFeature[dominantIdx]
 		const standoutDistance = zscoreDistance(uploadedFeatures, standoutPerson.features, embeddingsData.stats)
-		const standoutMatch = toMatch(standoutPerson, similarityFromDistance(standoutDistance))
+		const standoutRawSimilarity = similarityFromDistance(standoutDistance)
+		const standoutMatch = toMatch(standoutPerson, standoutRawSimilarity, displaySimilarity(standoutRawSimilarity))
 
 		const radar = {
 			keys: FEATURE_KEYS,
@@ -416,9 +382,9 @@ async function processImage() {
 			match_name: topMatch.name,
 			standout_match_name: standoutMatch.name,
 			archetype_name: archetype.name,
-			similarity: Math.round(topMatch.similarity),
+			similarity: topMatch.similarityDisplay,
 		}))
-		renderResults({ age, expression }, radar, archetype, overallMatches, standoutMatch)
+		renderResults({ expression }, radar, archetype, overallMatches, standoutMatch)
 	} catch (err) {
 		fail("unknown", "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", err)
 	} finally {
@@ -775,7 +741,7 @@ function renderTopMatch(match, radar, tierLabel, tierDesc) {
 					</div>
 					<span>나</span>
 				</div>
-				<div class="topMatch-percent" id="topMatchPercent">0.0%</div>
+				<div class="topMatch-percent" id="topMatchPercent">0%</div>
 				<div class="topMatch-photo-box"><img src="${match.image}" alt="${match.name}"><span>${match.name}</span></div>
 			</div>
 		`
@@ -808,7 +774,7 @@ function renderRunnerUps(matches) {
 				<span class="runner-up-name">${match.name}</span>
 				${match.title ? `<span class="runner-up-title">${match.title}</span>` : ""}
 			</span>
-			<span class="runner-up-similarity">${match.similarity.toFixed(1)}%</span>
+			<span class="runner-up-similarity">${match.similarityDisplay}%</span>
 		</div>
 	`).join("")
 	return `<div class="runner-ups"><div class="runner-ups-heading">다음으로 가까운 매치</div>${rows}<div class="runner-ups-note">전체 6개 얼굴 비율 기준</div></div>`
@@ -816,12 +782,11 @@ function renderRunnerUps(matches) {
 
 function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	const topMatch = topMatches[0]
-	const topSimilarity = topMatch.similarity
+	const topSimilarity = topMatch.similarityDisplay
 	const readingHtml = renderFeatureReadings(radar)
 	const runnerUpsHtml = renderRunnerUps(topMatches)
 
 	const aiBadgeLines = []
-	if (aiInfo && aiInfo.age) aiBadgeLines.push(`<span class="ai-badge-line">예상 나이: ${aiInfo.age}</span>`)
 	if (aiInfo && aiInfo.expression) aiBadgeLines.push(`<span class="ai-badge-line ai-badge-sub">${aiInfo.expression.label} ${(aiInfo.expression.score * 100).toFixed(0)}%</span>`)
 	document.getElementById("aiInfoBadge").innerHTML = aiBadgeLines.join("")
 
@@ -879,14 +844,14 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 				ease: "power2.out",
 				delay: 0.6,
 				onUpdate: function () {
-					if (topMatchPercentEl) topMatchPercentEl.textContent = this.targets()[0].v.toFixed(1) + "%"
+					if (topMatchPercentEl) topMatchPercentEl.textContent = Math.round(this.targets()[0].v) + "%"
 				},
 			},
 		)
 		gsap.from(".reading-item", { opacity: 0, y: 10, duration: 0.4, stagger: 0.07, ease: "power2.out", delay: 0.9 })
 		gsap.fromTo(".radar-poly", { scale: 0 }, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.65)", stagger: 0.12, delay: 0.55 })
 	} else if (topMatchPercentEl) {
-		topMatchPercentEl.textContent = topSimilarity.toFixed(1) + "%"
+		topMatchPercentEl.textContent = topSimilarity + "%"
 	}
 
 	const revealEl = document.getElementById("topMatchReveal")
@@ -902,7 +867,7 @@ function renderResults(aiInfo, radar, archetype, topMatches, standoutMatch) {
 	const cardEl = document.getElementById("topMatch")
 	if (cardEl) initHoloEffect(cardEl)
 
-	const topSimilarityText = topSimilarity.toFixed(1)
+	const topSimilarityText = String(topSimilarity)
 	lastResultSummary = { topMatchName: topMatch.name, archetypeName: archetype && archetype.name, topSimilarity: topSimilarityText }
 	shareCardReadyPromise = populateShareCard(topMatch, topSimilarityText, tierLabel, archetype, radar)
 	applyFaceHiddenState()
