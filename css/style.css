@@ -136,7 +136,7 @@ h2 {
 	display: inline-flex;
 	align-items: center;
 	gap: 3px;
-	margin: 4px 0 2px;
+	margin: 10px 0 2px;
 	padding: 3px;
 	border: 1px solid rgba(212, 175, 55, 0.24);
 	border-radius: 999px;
@@ -147,10 +147,10 @@ h2 {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 28px;
-	padding: 4px 10px;
+	min-height: 32px;
+	padding: 5px 11px;
 	border-radius: 999px;
-	font-size: 0.62rem;
+	font-size: 0.68rem;
 	font-weight: 700;
 	letter-spacing: 0.02em;
 	color: var(--text-faint);
@@ -164,9 +164,9 @@ a.edition-switch__item:hover {
 }
 
 .edition-switch__item--current {
-	color: #1a1035;
-	background: var(--gold);
-	box-shadow: 0 0 8px rgba(212, 175, 55, 0.16);
+	color: var(--gold-light);
+	background: rgba(212, 175, 55, 0.10);
+	box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
 }
 
 hr {
@@ -178,7 +178,7 @@ hr {
 
 .tagline {
 	font-family: var(--font-display);
-	font-size: 0.95rem;
+	font-size: 1rem;
 	font-weight: 700;
 	color: var(--gold-light);
 	font-style: italic;
@@ -187,10 +187,10 @@ hr {
 }
 
 .value-prop {
-	font-size: 0.75rem;
+	font-size: 0.82rem;
 	color: var(--gold-soft);
 	line-height: 1.5;
-	margin-top: 10px;
+	margin-top: 9px;
 	max-width: 100%;
 	overflow-wrap: anywhere;
 }
@@ -202,7 +202,7 @@ hr {
 
 .intro-proof {
     margin-top: 8px;
-    font-size: 0.62rem;
+    font-size: 0.75rem;
     line-height: 1.45;
     color: var(--text-faint);
 }
@@ -210,13 +210,14 @@ hr {
 #choosePhotoBtn {
     width: min(300px, 100%);
     margin-top: 14px;
+    min-height: 46px;
     padding: 12px 16px;
     border: 1px solid var(--gold);
     border-radius: 8px;
     background: linear-gradient(160deg, var(--gold-light), var(--gold));
     color: #1a1035;
     font: inherit;
-    font-size: 0.78rem;
+    font-size: 0.86rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -236,7 +237,7 @@ hr {
 .method-note summary,
 .culture-note summary {
     color: var(--gold-soft);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -245,16 +246,17 @@ hr {
 .culture-note p {
     width: auto;
     margin-top: 7px;
-    font-size: 0.62rem;
+    font-size: 0.72rem;
     line-height: 1.55;
     text-align: left;
     color: var(--text-muted);
 }
 
 .fine-print {
-	font-size: 0.6rem;
+	font-size: 0.75rem;
+	line-height: 1.45;
 	color: var(--text-faint);
-	margin-top: 4px;
+	margin-top: 7px;
 }
 
 /* 광고는 결과 확인 이후에만 노출한다. 분석 전 퍼널에는 광고를 넣지 않아 사진 선택 흐름을 끊지 않는다. */
@@ -500,9 +502,13 @@ p {
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	margin: 10px 0 10px;
+	margin: 10px 0 8px;
 	width: 300px;
 	max-width: 100%;
+	height: 220px;
+}
+
+#uploadedImageContainer.has-photo {
 	height: 400px;
 }
 
@@ -538,8 +544,8 @@ p {
 	}
 }
 
-/* 업로드된 사진 자체에 대한 정보(AI 추정 나이·표정)를 인증 마크처럼 사진 위에 박아서
-   사진과 한 덩어리로 보이게 한다. 나이/표정 둘 다 실패할 수 있어(:empty) 그 경우엔 숨긴다. */
+/* 업로드된 사진의 표정 정보를 작은 배지로 사진 위에 표시한다.
+   표정 값을 만들 수 없으면 :empty 상태로 숨긴다. */
 #aiInfoBadge {
 	position: absolute;
 	top: -14px;
@@ -586,8 +592,12 @@ p {
 	background: var(--panel-1);
 	box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
 	cursor: pointer;
-	object-fit: cover;
+	object-fit: contain;
 	transition: opacity 0.25s ease;
+}
+
+#uploadedImageContainer.has-photo #uploadedImage {
+	object-fit: cover;
 }
 
 #uploadedImage:hover {

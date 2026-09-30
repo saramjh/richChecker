@@ -158,14 +158,25 @@ window.onload = function () {
 	uploadedImage.style.display = "block"
 }
 
-// 이미지와 명시적 CTA가 같은 파일 선택 흐름을 사용한다.
-function openPhotoPicker() {
+// 이미지와 명시적 CTA가 같은 파일 선택 흐름을 사용한다. 어느 진입점이 실제 선택으로
+// 이어지는지 측정해 첫 화면의 기능 접근성을 검증한다.
+let lastPhotoPickerSource = "unknown"
+function openPhotoPicker(source = "unknown") {
+	lastPhotoPickerSource = source
+	trackEvent("photo_picker_opened", { source })
 	ensureSfx().then(playClick)
 	document.getElementById("uploadImage").click()
 }
 
-document.getElementById("uploadedImage").addEventListener("click", openPhotoPicker)
-document.getElementById("choosePhotoBtn").addEventListener("click", openPhotoPicker)
+document.getElementById("uploadedImage").addEventListener("click", () => openPhotoPicker("upload_panel"))
+document.getElementById("choosePhotoBtn").addEventListener("click", () => openPhotoPicker("primary_cta"))
+
+document.getElementById("uploadedImage").addEventListener("keydown", (event) => {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault()
+		openPhotoPicker("upload_panel_keyboard")
+	}
+})
 
 // 위 리스너를 붙이는 줄이 실행됐다는 건 이 시점부터 클릭이 실제로 동작한다는 뜻이므로,
 // 그제서야 "초기화 중" 표시를 걷어낸다. index.html에서 모든 외부 스크립트를 defer로 바꾸고
@@ -200,8 +211,9 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 			const uploadedImage = document.getElementById("uploadedImage")
 			uploadedImage.src = e.target.result
 			uploadedImage.style.display = "block"
+			document.getElementById("uploadedImageContainer").classList.add("has-photo")
 			clearResults() // 이미지가 업로드될 때마다 결과 초기화
-			trackEvent("upload_started")
+			trackEvent("upload_started", { source: lastPhotoPickerSource })
 			await processImage(uploadedImage.src)
 		}
 		reader.readAsDataURL(file)
@@ -1017,6 +1029,7 @@ document.getElementById("reset").addEventListener("click", function () {
 	playClick()
 	const uploadedImage = document.getElementById("uploadedImage")
 	uploadedImage.src = "assets/imgs/placeholder.svg"
+	document.getElementById("uploadedImageContainer").classList.remove("has-photo")
 	document.getElementById("uploadImage").value = "" // 같은 파일을 다시 선택해도 change가 발생하도록
 	clearResults()
 	document.getElementById("resultsContainer").style.display = "none"

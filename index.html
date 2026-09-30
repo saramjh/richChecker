@@ -36,17 +36,17 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://saramjh.github.io/richChecker/">
-  <meta property="og:title" content="인공지능 부자 관상 테스트">
+  <meta property="og:title" content="부자 관상 테스트">
   <meta property="og:description" content="사진 한 장으로 포브스 2026 한국 부자 47인과 6가지 얼굴 비율을 비교해 가장 가까운 3명을 확인하세요.">
   <meta property="og:image" content="https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="인공지능 부자 관상 테스트">
+  <meta property="og:site_name" content="부자 관상 테스트">
   <meta property="og:locale" content="ko_KR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="인공지능 부자 관상 테스트">
+  <meta name="twitter:title" content="부자 관상 테스트">
   <meta name="twitter:description" content="사진 한 장으로 포브스 2026 한국 부자 47인과 6가지 얼굴 비율을 비교해 가장 가까운 3명을 확인하세요.">
   <meta name="twitter:image" content="https://saramjh.github.io/richChecker/assets/imgs/og-image.jpg">
 
@@ -56,9 +56,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "인공지능 부자 관상 테스트",
+    "name": "부자 관상 테스트",
     "url": "https://saramjh.github.io/richChecker/",
-    "description": "대한민국 재벌들과 나의 관상은 얼마나 비슷할까요? 포브스 선정 2026 대한민국 부자 순위를 기반으로 AI가 얼굴 관상을 분석해 비교해주는 엔터테인먼트 서비스입니다.",
+    "description": "사진 한 장의 6가지 얼굴 비율을 포브스 2026 한국 부자 47인 표본과 비교해 가장 가까운 Top 3와 두드러진 특징을 보여주는 무료 엔터테인먼트 웹앱입니다.",
     "applicationCategory": "EntertainmentApplication",
     "operatingSystem": "Any",
     "inLanguage": "ko",
@@ -98,27 +98,27 @@
     </div>
     <div id="window">
       <h1>부자 관상 테스트</h1>
-      <nav class="edition-switch" aria-label="부자 얼굴 매치 에디션">
-        <span class="edition-switch__item edition-switch__item--current" aria-current="page">한국 부자 47</span>
-        <a class="edition-switch__item" href="https://saramjh.github.io/richChecker-us/" data-edition-link data-placement="header" data-target-edition="global">Global 100</a>
-      </nav>
-
       <hr>
       <!-- 소개(태그라인/포브스 배지/이용흐름/가치제안)는 "이걸 왜 해야 하는지" 모르는 첫
            방문자에게 필요한 정보다 — 이미 결과를 받은 사용자에겐 불필요한 반복이라는 피드백
            반영, 결과가 나오면 이 블록 전체를 접는다(JS에서 처리, 다시 하면 재노출). -->
       <div id="introSection">
-        <p class="tagline">내 얼굴은 어떤 한국 부자와 가장 닮았을까?</p>
-        <p class="value-prop">사진 한 장으로 얼굴의 6개 비율을 비교해 <strong>가장 가까운 부자 3명</strong>과 내 두드러진 특징을 보여줍니다.</p>
-        <p class="intro-proof">포브스 2026 한국 부자 47인 표본 · 기기 내 분석 · 가입 없음</p>
+        <p class="tagline">내 얼굴 비율은 한국 부자 47인 중 누구와 가장 가까울까?</p>
+        <p class="value-prop">사진 한 장으로 6가지 얼굴 비율을 비교해 <strong>가장 가까운 Top 3</strong>와 내 두드러진 특징을 확인합니다.</p>
+        <p class="intro-proof">Top 3 · 6가지 얼굴 비율 · 저장/공유 결과 카드</p>
         <input type="file" id="uploadImage" accept="image/*" style="display: none;">
-        <button id="choosePhotoBtn" type="button">사진 선택하고 비교하기</button>
+        <button id="choosePhotoBtn" type="button">사진 선택하고 테스트 시작</button>
         <div id="uploadedImageContainer" class="is-initializing">
           <img id="uploadedImage" role="button" tabindex="0" aria-label="사진 선택하기" src="assets/imgs/placeholder.svg" alt="사진을 선택해 부자 얼굴 매치를 시작하세요">
           <div id="initSpinner"></div>
           <div id="aiInfoBadge"></div>
         </div>
-        <p class="fine-print">얼굴 분석용 사진은 서버에 업로드하지 않고 이 기기에서 처리합니다. 정면을 향한 밝은 사진을 권장합니다.</p>
+        <p class="fine-print">무료 · 가입 없음 · 얼굴 분석용 사진은 서버에 업로드하지 않고 이 기기에서 처리합니다. 정면을 향한 밝은 사진을 권장합니다.</p>
+        <nav class="edition-switch" aria-label="부자 얼굴 매치 에디션">
+          <span class="edition-switch__item edition-switch__item--current" aria-current="page">한국 부자 47</span>
+          <a class="edition-switch__item" href="https://saramjh.github.io/richChecker-us/" data-edition-link data-placement="intro" data-target-edition="global">Global 100</a>
+        </nav>
+
         <details class="method-note">
           <summary>어떻게 비교하나요?</summary>
           <p>얼굴 랜드마크에서 이마 높이, 눈 사이 거리, 코 길이, 입 너비, 턱 길이, 얼굴 종횡비를 계산해 47명 표본과 비교합니다.</p>
