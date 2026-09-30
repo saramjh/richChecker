@@ -201,12 +201,9 @@ function topExpressionFromBlendshapes(categories) {
 	return { label, score: topScore }
 }
 
-// 페이지 로드 시 기본 이미지 설정
-window.onload = function () {
-	const uploadedImage = document.getElementById("uploadedImage")
-	uploadedImage.src = "assets/imgs/placeholder.svg"
-	uploadedImage.style.display = "block"
-}
+// 초기 placeholder는 index.html의 <img src>가 소유한다.
+// load 시점에 src를 다시 쓰면 첫 방문에서 사용자가 고른 사진을 뒤늦은 window load가
+// placeholder로 덮어써 첫 분석만 face_not_detected가 되는 레이스가 생긴다.
 
 // 이미지와 명시적 CTA가 같은 파일 선택 흐름을 사용한다. 어느 진입점이 실제 선택으로
 // 이어지는지 측정해 첫 화면의 기능 접근성을 검증한다.
@@ -421,6 +418,10 @@ async function processImage(context = {}) {
 		}
 	}
 
+	// 업로드 직후 준비된 픽셀을 첫 await 전에 고정한다. 모델/WASM 초기화 중 DOM의
+	// <img> src가 바뀌더라도 이번 분석은 사용자가 선택한 바로 그 사진을 계속 사용해야 한다.
+	const detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))
+
 	showLoadingModal()
 	trackEvent("analysis_started", eventParams())
 
@@ -446,8 +447,6 @@ async function processImage(context = {}) {
 
 		stage = "detect"
 		const detectionStartedAt = performance.now()
-		const uploadedImage = document.getElementById("uploadedImage")
-		const detectionCanvas = toDetectionCanvas(uploadedImage)
 		const detection = landmarker.detect(detectionCanvas)
 		timings.detection_ms = Math.round(performance.now() - detectionStartedAt)
 		const landmarks = detection.faceLandmarks && detection.faceLandmarks[0]
