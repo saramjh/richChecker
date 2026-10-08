@@ -3,12 +3,12 @@ const css=fs.readFileSync(new URL("../css/style.css",import.meta.url),"utf8")
 const js=fs.readFileSync(new URL("../js/script.js",import.meta.url),"utf8")
 const need=(x,m)=>{if(!css.includes(x)&&!js.includes(x))throw new Error(m||("missing: "+x))}
 for(const x of[
-"--type-micro: 0.75rem;","--type-caption: 0.8125rem;","--type-body: 0.875rem;",
-"--type-heading: 1.375rem;","--type-hero: clamp(1.5rem, 5vw, 1.75rem);",
-"--leading-body: 1.55;","--radius-control: 8px;","--radius-card: 12px;",
+"--type-micro: 0.8125rem;","--type-caption: 0.875rem;","--type-body: 1rem;",
+"--type-heading: 1.375rem;","--type-hero: 1.75rem;",
+"--leading-body: 1.65;","--radius-control: 8px;","--radius-card: 12px;",
 "--gold: #d4af37;","--text-muted: #c9b6e4;","--text-faint: #a599c2;","--panel-2: #2d1b4e;",
 "--weight-regular: 400;","--weight-medium: 600;","--weight-bold: 700;",
-"--tracking-body: 0.02em;","--tracking-emphasis: 0.04em;","--tracking-label: 0.05em;",
+"--tracking-body: 0;","--tracking-emphasis: 0;","--tracking-label: 0;",
 "--space-1: 4px;","--space-2: 8px;","--space-3: 12px;","--space-4: 16px;","--space-5: 24px;",
 "--motion-fast: 160ms;","--motion-base: 320ms;","--motion-slow: 460ms;","--motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);"
 ])need(x)

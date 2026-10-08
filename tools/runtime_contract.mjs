@@ -23,7 +23,11 @@ requireText('entryContext = "shared_result"', "validated share analytics promoti
 requireText("entry_context: entryContext", "entry context attribution")
 requireText("function buildChallengeUrl()", "challenge URL sharing")
 requireText("commitIntroState()", "reset state commits before decorative motion")
-requireText("const MIN_LOADING_MS = 900", "perceivable analysis state")
+if (script.includes("MIN_LOADING_MS") || script.includes("loadingStartedAt")) throw new Error("Do not enforce a minimum analysis wait")
+requireText('displayLoadingFace(detectionCanvas, activeLoadingSessionId)', "actual selected pixels in analysis UI")
+requireText('modules.createFaceGeometry(landmarks, analyzedCanvas.width, analyzedCanvas.height)', "geometry from actual detected landmarks")
+requireText('setLoadingStage(1, activeLoadingSessionId)', "status from actual detection stage")
+requireText("revealResultFaceMotion()", "nonblocking result-photo continuation")
 requireText('modal.style.opacity = "1"', "immediate full-screen response")
 requireText('content.style.opacity = "1"', "immediate progress-card response")
 requireText("const loadingSessionId = showLoadingModal()", "loader begins before file read")
@@ -52,24 +56,38 @@ requireText("function waitForUiPaint()", "UI paint yield before analysis")
 requireText("await waitForUiPaint()", "processing state paints before heavy work")
 requireText("uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () =>", "queued upload processing")
 requireText("setTimeout(finish, 380)", "loading cleanup timeout fallback")
-requireText("function initializeResultAds()", "non-fatal result ad initialization")
-requireText('console.warn("Result ad initialization skipped:", err)', "ad failure isolation")
+requireText("function initializeBottomAd()", "non-fatal bottom ad initialization")
+requireText('console.warn("Bottom ad initialization skipped:", err)', "ad failure isolation")
+requireText("function observeBottomAd()", "viewport-based ad initialization")
+if ((index.match(/class="adsbygoogle"/g) || []).length !== 1) throw new Error("Keep exactly one existing ad unit")
+if (!index.includes('id="bottomAd"')) throw new Error("Bottom ad missing")
+requireText('ins.dataset.adRequested = "true"', "prevent duplicate ad requests on results/reset")
 requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20260930-growth6')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20261009-bottom1')) throw new Error("Missing versioned runtime script URL")
 
-if (!index.includes('id="uploadedImage"') || !index.includes('src="assets/imgs/placeholder.svg"')) {
-  throw new Error("Initial upload placeholder must be owned by index.html")
+if (!index.includes('id="uploadedImageContainer" hidden') || !index.includes('id="choosePhotoBtn" type="button"')) {
+  throw new Error("Initial photo entry must keep the native CTA and hide the undecoded photo")
+}
+if (!index.includes('id="photoSlot" type="button"')) throw new Error("Initial photo slot must be a native whole-area action")
+if (index.indexOf('id="photoSlot"') > index.indexOf('id="choosePhotoBtn"')) throw new Error("Photo slot must precede start CTA")
+requireText('openPhotoPicker("photo_slot")', "photo slot uses the existing picker/analysis pipeline")
+requireText('document.getElementById("photoSlot").hidden = true', "real photo replaces empty slot")
+requireText('document.getElementById("photoSlot").hidden = false', "empty slot restored on reset")
+if ((index + script).includes('assets/imgs/placeholder.svg')) {
+  throw new Error("Do not display or restore a fake upload photo")
 }
 if (script.includes("window.onload = function ()")) {
   throw new Error("Do not mutate upload state from window.onload; it races the first user selection")
 }
-const placeholderWrites = script.match(/uploadedImage\.src = "assets\/imgs\/placeholder\.svg"/g) || []
-if (placeholderWrites.length !== 1) {
-  throw new Error("Placeholder src may only be restored by the explicit reset action")
+const resetImageClears = script.match(/uploadedImage\.removeAttribute\("src"\)/g) || []
+if (resetImageClears.length !== 1) {
+  throw new Error("Only explicit reset should clear the selected image")
 }
+requireText("uploadContainer.hidden = true", "photo frame hidden on reset and before decode")
+requireText("uploadContainer.hidden = false", "decoded photo frame restored")
 
 const processStart = script.indexOf("async function processImage(")
 const processEnd = script.indexOf("\n// Lucide", processStart)
@@ -110,13 +128,19 @@ if (!(listenerPos >= 0 && assignPos > listenerPos)) {
 }
 
 if (script.includes("scheduleCoreWarmup()")) throw new Error("Core warmup regressed to delayed window-load scheduling")
-const preparedShareStart = script.indexOf("function sharePreparedCard(fallbackMessage)")
+const preparedShareStart = script.indexOf("function sharePreparedCard(fallbackMessage, method)")
 const preparedShareEnd = script.indexOf('document.getElementById("webShareBtn")', preparedShareStart)
 const preparedShareBlock = script.slice(preparedShareStart, preparedShareEnd)
+if (preparedShareStart < 0 || preparedShareEnd < 0) throw new Error("Could not isolate first-click sharing")
+if (preparedShareBlock.includes("ensurePreparedShareArtifact()")) throw new Error("Share must not gate first click on card preparation")
+requireText('trackEvent("share_click", params)', "record every share attempt, even without a card")
+requireText('outcome === "success"', "successful share outcome")
+requireText('err.name === "AbortError" ? "cancel" : "error"', "separate cancellation from failure")
+if (!index.includes('id="resultDetails"')) throw new Error("Missing findable optional analysis details")
 if (preparedShareBlock.includes("await captureShareCard") || preparedShareBlock.includes("canvas.toBlob")) {
   throw new Error("Share click path must not perform expensive card rendering before navigator.share")
 }
-if (!index.includes('css/style.css?v=20260930-growth6')) throw new Error("Missing versioned result CSS URL")
+if (!index.includes('css/style.css?v=20261009-bottom1')) throw new Error("Missing versioned result CSS URL")
 if (!index.includes('<div id="averageResult"></div>')) throw new Error("Result host must be a block container")
 if (!index.includes('class="result-actions"')) throw new Error("Result controls must be grouped for shared spacing")
 

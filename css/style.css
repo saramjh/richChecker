@@ -34,26 +34,26 @@ summary:focus-visible,
 	--text-faint: #a599c2;
 	--accent-red: #ff5a5a;
 	/* 장식용 세리프는 큰 제목류에만 쓴다 — 작은 본문 글씨에 쓰면 가독성이 크게 떨어짐 */
-	--font-display: Georgia, "Nanum Myeongjo", serif;
-	--font-body: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+	--font-display: "Noto Serif KR", Georgia, serif;
+	--font-body: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 
-	--type-micro: 0.75rem;
-	--type-caption: 0.8125rem;
-	--type-body: 0.875rem;
-	--type-body-strong: 0.9375rem;
+	--type-micro: 0.8125rem;
+	--type-caption: 0.875rem;
+	--type-body: 1rem;
+	--type-body-strong: 1.0625rem;
 	--type-subtitle: 1rem;
 	--type-section: 1.125rem;
 	--type-heading: 1.375rem;
 	--type-display: 1.625rem;
-	--type-hero: clamp(1.5rem, 5vw, 1.75rem);
+	--type-hero: 1.75rem;
 	--leading-tight: 1.3;
-	--leading-body: 1.55;
+	--leading-body: 1.65;
 	--weight-regular: 400;
 	--weight-medium: 600;
 	--weight-bold: 700;
-	--tracking-body: 0.02em;
-	--tracking-emphasis: 0.04em;
-	--tracking-label: 0.05em;
+	--tracking-body: 0;
+	--tracking-emphasis: 0;
+	--tracking-label: 0;
 	--radius-control: 8px;
 	--radius-card: 12px;
 	--radius-shell: 20px;
@@ -95,6 +95,7 @@ body {
 	position: relative;
 	min-height: 100vh;
 	perspective: 1400px;
+	overflow-wrap: anywhere;
 }
 
 body.result-mode {
@@ -187,6 +188,9 @@ h1 {
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
 	letter-spacing: var(--tracking-body);
+	text-wrap: balance;
+	line-height: var(--leading-tight);
+	font-weight: var(--weight-bold);
 }
 
 h2 {
@@ -194,6 +198,7 @@ h2 {
 	margin-top: 20px;
 	font-size: var(--type-heading);
 	color: var(--gold-light);
+	text-wrap: balance;
 }
 
 .edition-switch {
@@ -245,18 +250,19 @@ hr {
 	font-size: var(--type-subtitle);
 	font-weight: var(--weight-bold);
 	color: var(--gold-light);
-	font-style: italic;
-	max-width: 100%;
-	overflow-wrap: anywhere;
+	font-style: normal;
+	max-width: 28ch;
+	text-wrap: balance;
+	line-height: var(--leading-body);
 }
 
 .value-prop {
 	font-size: var(--type-body);
 	color: var(--gold-soft);
 	line-height: var(--leading-body);
-	margin-top: 9px;
-	max-width: 100%;
-	overflow-wrap: anywhere;
+	margin-top: 12px;
+	max-width: 38ch;
+	text-wrap: balance;
 }
 
 .value-prop strong {
@@ -300,10 +306,54 @@ hr {
 	color: var(--gold-light);
 }
 
+#photoEntry {
+	width: min(300px, 100%);
+	margin: var(--space-4) auto 0;
+}
+
+#photoSlot {
+	width: 100%;
+	aspect-ratio: 5 / 3;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	border: 1px dashed var(--gold-dim);
+	border-radius: var(--radius-control);
+	background: var(--panel-1);
+	color: var(--text-muted);
+	font: inherit;
+	font-size: var(--type-body);
+	font-weight: var(--weight-medium);
+	cursor: pointer;
+	transition: border-color var(--motion-fast) ease, background-color var(--motion-fast) ease;
+}
+
+#photoSlot:hover {
+	border-color: var(--gold);
+	background: var(--panel-2);
+}
+
+#photoSlot:active {
+	border-color: var(--gold-light);
+}
+
+.photo-slot-icon {
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+}
+
 #choosePhotoBtn {
     width: min(300px, 100%);
     margin-top: 14px;
     min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     padding: 12px 16px;
     border: 1px solid var(--gold);
     border-radius: var(--radius-control);
@@ -341,6 +391,8 @@ hr {
     font-weight: var(--weight-bold);
     line-height: var(--leading-body);
     cursor: pointer;
+	justify-content: space-between;
+	gap: var(--space-3);
 }
 
 .method-note p {
@@ -350,16 +402,20 @@ hr {
     line-height: var(--leading-body);
     text-align: left;
     color: var(--text-muted);
+	text-wrap: pretty;
 }
 
 .fine-print {
 	font-size: var(--type-caption);
 	line-height: var(--leading-body);
 	color: var(--text-faint);
-	margin-top: 7px;
+	margin-top: var(--space-4);
+	width: min(360px, 100%);
+	text-align: left;
+	text-wrap: pretty;
 }
 
-/* 광고는 결과 확인 이후에만 노출한다. 분석 전 퍼널에는 광고를 넣지 않아 사진 선택 흐름을 끊지 않는다. */
+/* One bottom ad stays separate from the photo/share controls in both page states. */
 /* 반응형 광고는 실제로 렌더될 때 컨테이너 전체 폭보다 좁게 나올 수 있다 — .ad-slot이
    그냥 block이면 그 광고(ins)가 왼쪽으로 붙어버려 나머지 중앙정렬된 페이지와 어긋나 보인다.
    ins에 직접 margin:auto를 주는 대신 flex 중앙정렬을 쓰는 이유: 애드센스 스크립트가 로드되면
@@ -374,6 +430,11 @@ hr {
 	margin-top: var(--space-5);
 	padding-top: var(--space-3);
 	border-top: 1px dashed rgba(212, 175, 55, 0.25);
+}
+
+.ad-slot > .adsbygoogle {
+	width: 100%;
+	min-width: 0;
 }
 
 .ad-label {
@@ -429,6 +490,7 @@ p {
 	line-height: var(--leading-body);
 	color: var(--text-muted);
 	text-align: left;
+	text-wrap: pretty;
 }
 
 .cross-edition-cta a {
@@ -525,6 +587,7 @@ p {
 	line-height: var(--leading-body);
 	color: var(--text-muted);
 	text-align: center;
+	text-wrap: pretty;
 }
 
 #saveImg {
@@ -539,23 +602,21 @@ p {
 	width: 100%;
 }
 
-/* "저장하기"는 확실한 주 액션으로 보이게 꽉 찬 골드 톤으로, 아래 SNS 공유 줄과는 확실히
-   다르게 만든다 — 예전엔 저장 버튼과 공유 버튼이 똑같은 회색 사각 버튼이라 구분이 안 된다는
-   피드백을 받았다. */
+/* Comparison sharing is primary; saving stays available as a secondary action. */
 #saveImg button {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
 	min-height: 48px;
-	color: #1a1035;
+	color: var(--text-primary);
 	font-weight: var(--weight-bold);
 	width: 100%;
 	padding: 12px;
 	margin: 0;
-	border: 1px solid var(--gold);
+	border: 1px solid var(--gold-dim);
 	border-radius: var(--radius-control);
-	background: linear-gradient(160deg, var(--gold-light), var(--gold));
+	background: transparent;
 	cursor: pointer;
 }
 
@@ -575,9 +636,7 @@ p {
 	transform: scale(0.95);
 }
 
-/* SNS 공유 줄: 저장 버튼과 확실히 구분되도록 아이콘만 있는 작은 원형 버튼들을 나열한다.
-   카카오톡/페이스북/X 공식 공유는 결과 이미지 없이 링크·고정 문구만 보낼 수 있어 의미가
-   없다는 피드백으로 제거 — 실제 카드 이미지 파일을 OS 공유 시트로 보내는 두 버튼만 남는다. */
+/* Keep the comparison command prominent beside the secondary Instagram shortcut. */
 
 .share-row {
 	display: flex;
@@ -633,30 +692,8 @@ p {
 	height: 400px;
 }
 
-/* 클릭 리스너가 실제로 붙기 전까지는 눌러도 반응 없는 상태를 "로딩 중"으로 분명히 보여준다.
-   script.js가 실행되는 즉시(붙일 리스너를 다 붙인 다음) 이 클래스를 제거한다. */
-#uploadedImageContainer.is-initializing #uploadedImage {
-	opacity: 0.35;
-	cursor: default;
-	pointer-events: none;
-}
-
-#initSpinner {
+#uploadedImageContainer[hidden] {
 	display: none;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 36px;
-	height: 36px;
-	margin: -18px 0 0 -18px;
-	border: 3px solid rgba(212, 175, 55, 0.25);
-	border-top-color: var(--gold);
-	border-radius: 50%;
-}
-
-#uploadedImageContainer.is-initializing #initSpinner {
-	display: block;
-	animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -777,13 +814,339 @@ p {
 	background: rgba(13, 8, 24, 0.7);
 	border: 1px solid var(--gold);
 	padding: 20px;
-	width: 80%;
-	max-width: 320px;
+	width: min(360px, calc(100% - 32px));
+	max-width: 360px;
+	max-height: calc(100dvh - 32px);
+	overflow-y: auto;
 	border-radius: var(--radius-control);
 	box-shadow: 0 0 24px rgba(212, 175, 55, 0.4);
 	color: var(--text-primary);
 	opacity: 0;
 	will-change: opacity, transform;
+}
+
+.analysis-photo-stage {
+	position: relative;
+	width: 100%;
+	height: min(280px, 42dvh);
+	overflow: hidden;
+}
+
+.analysis-photo-stage[hidden] {
+	display: none;
+}
+
+#analysisPhoto {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+}
+
+#analysisGeometry {
+	position: absolute;
+	inset: 0;
+}
+
+.analysis-photo-stage::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(transparent 46%, rgba(191, 244, 228, 0.18) 50%, transparent 54%);
+	transform: translateY(-100%);
+	pointer-events: none;
+	visibility: hidden;
+}
+
+.modal[data-stage="1"] .analysis-photo-stage::after {
+	visibility: visible;
+	animation: face-scan 0.7s linear infinite;
+}
+
+@keyframes face-scan {
+	to { transform: translateY(100%); }
+}
+
+.face-motion {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.face-motion path {
+	fill: none;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.face-motion-contour {
+	stroke: var(--gold-light);
+	stroke-width: 1;
+	opacity: 0.8;
+}
+
+.face-motion-point {
+	fill: #bff4e4;
+	stroke: var(--panel-1);
+	stroke-width: 0.75;
+}
+
+.face-motion-shadow {
+	stroke: var(--panel-1);
+	stroke-width: 3;
+}
+
+.face-motion-line {
+	stroke: #bff4e4;
+	stroke-width: 1.2;
+}
+
+.photo-frame > .face-motion {
+	inset: 2px;
+	width: calc(100% - 4px);
+	height: calc(100% - 4px);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.photo-frame img.face-hidden ~ .face-motion {
+	display: none;
+}
+
+#webShareBtn {
+	flex: 1;
+	width: auto;
+	height: auto;
+	min-height: 48px;
+	padding: 12px;
+	gap: var(--space-2);
+	border-radius: var(--radius-control);
+	background: var(--gold);
+	color: var(--panel-1);
+	font-weight: var(--weight-bold);
+	text-wrap: balance;
+}
+
+.result-details {
+	width: 100%;
+	margin-top: var(--space-2);
+}
+
+.result-details > summary {
+	display: grid;
+	gap: var(--space-2);
+	min-height: 44px;
+	padding: 10px 0;
+	background: transparent;
+	color: var(--gold-light);
+	font-size: var(--type-body-strong);
+	font-weight: var(--weight-bold);
+	text-align: left;
+	list-style: none;
+	cursor: pointer;
+}
+
+.result-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.details-action {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	color: var(--gold-light);
+	font-size: var(--type-body);
+}
+
+.details-expand, .details-collapse {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.result-details:not([open]) .details-collapse, .result-details[open] .details-expand {
+	display: none;
+}
+
+.result-details[open] .details-collapse {
+	display: inline;
+}
+
+.result-details > summary:hover {
+	color: var(--text-primary);
+}
+
+.result-details .details-title {
+	display: none;
+}
+
+.result-preview {
+	margin-top: var(--space-5);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--gold-dim);
+}
+
+.result-preview #archetypeBadge {
+	align-items: center;
+	padding: 0;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.result-preview #archetypeName {
+	font-size: var(--type-body-strong);
+	text-shadow: none;
+	text-align: center;
+}
+
+.result-preview #archetypeEyebrow {
+	text-align: center;
+}
+
+.result-preview .standout-match {
+	text-align: center;
+}
+
+.feature-person {
+	width: 100%;
+	margin-top: 28px;
+	padding: 24px 0 16px;
+	border-top: 1px solid var(--gold-dim);
+}
+
+.feature-person-label, .feature-person-credit {
+	display: block;
+	color: var(--text-faint);
+	font-size: var(--type-micro);
+	text-align: center;
+}
+
+.feature-person-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+	margin: 16px auto 12px;
+}
+
+#resultsContainer .reading-item {
+	padding: 20px 0;
+}
+
+#resultsContainer .reading-match {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 16px;
+}
+
+#resultsContainer .reading-match-thumb {
+	width: 64px;
+	height: 80px;
+	flex: 0 0 64px;
+	border: 0;
+	border-radius: 4px;
+	object-fit: cover;
+}
+
+.reading-match-copy {
+	min-width: 0;
+	text-align: left;
+	font-size: var(--type-caption);
+}
+
+.reading-match-copy > :is(span, strong) {
+	display: block;
+}
+
+.reading-match-copy > strong {
+	font-size: var(--type-body);
+	color: var(--gold-light);
+}
+
+.reading-match-label {
+	color: var(--text-faint);
+	font-size: var(--type-micro);
+	margin-bottom: 4px;
+}
+
+.feature-person-row img {
+	width: 64px;
+	height: 80px;
+	flex: 0 0 64px;
+	object-fit: cover;
+	border-radius: 4px;
+}
+
+.feature-person-copy {
+	min-width: 0;
+	text-align: left;
+}
+
+.feature-person-copy > :is(strong, span) {
+	display: block;
+}
+
+.feature-person-copy strong {
+	color: var(--gold-light);
+	font-size: var(--type-body-strong);
+}
+
+.feature-person-copy > :is(span, p) {
+	font-size: var(--type-caption);
+	color: var(--text-primary);
+}
+
+.feature-person-copy p {
+	margin: 4px 0 0;
+}
+
+.result-preview #archetypeDesc {
+	margin: 8px 0 0;
+	padding: 0;
+	background: none;
+	border: 0;
+	text-align: left;
+}
+
+#shareLinkFallback {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+#shareLinkFallback[hidden] {
+	display: none;
+}
+
+#shareLinkInput {
+	flex: 1;
+	min-width: 0;
+	padding: 12px;
+	color: var(--text-primary);
+	background: var(--panel-1);
+	border: 1px solid var(--gold-dim);
+	border-radius: var(--radius-control);
+	font: inherit;
+}
+
+#shareLinkClose {
+	width: 44px;
+	height: 44px;
+	flex: 0 0 44px;
+	background: transparent;
+	color: var(--text-primary);
+	border: 1px solid var(--gold-dim);
+	border-radius: var(--radius-control);
+	cursor: pointer;
+}
+
+#resultDetailsContent {
+	padding-bottom: var(--space-4);
 }
 
 #processTitle {
@@ -909,17 +1272,6 @@ p {
 	color: var(--text-primary);
 }
 
-#resultRate p > span {
-	background-color: var(--gold);
-	color: #1a1035;
-	border-radius: 5px;
-	padding: 10px 0;
-	font-size: var(--type-section);
-	font-weight: var(--weight-bold);
-	margin-bottom: 0.5rem;
-	text-align: center;
-}
-
 /* 신비로운 트레이딩 카드 프레임 */
 /* transform-style: preserve-3d를 mix-blend-mode(아래 #topMatchShine)와 같은 요소에 같이
    걸어두면, 일부 안드로이드 기기(삼성 인터넷 등)의 GPU 컴포지터가 이 카드 전체를 새까맣게
@@ -989,19 +1341,22 @@ p {
 	font-size: var(--type-micro);
 	line-height: 1.35;
 	color: var(--text-faint);
+	text-wrap: pretty;
 }
 .runner-up-similarity {
-	font-family: var(--font-display);
+	font-family: var(--font-body);
 	font-size: var(--type-caption);
 	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
 }
 .runner-ups-note {
 	margin-top: 4px;
 	font-size: var(--type-micro);
 	color: var(--text-faint);
 	text-align: left;
+	text-wrap: pretty;
 }
 .standout-match {
 	display: block;
@@ -1075,6 +1430,7 @@ p {
 	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
+	text-wrap: balance;
 }
 
 #topMatchTitle {
@@ -1271,10 +1627,10 @@ p {
 
 #readingScroll h4 {
 	font-family: var(--font-display);
-	text-align: center;
-	font-size: var(--type-body);
+	text-align: left;
+	font-size: var(--type-subtitle);
 	color: var(--gold-light);
-	margin-bottom: 2px;
+	margin-bottom: 8px;
 	letter-spacing: var(--tracking-body);
 }
 
@@ -1286,9 +1642,9 @@ p {
 .reading-legend {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	gap: 3px;
-	margin-bottom: 10px;
+	align-items: flex-start;
+	gap: 4px;
+	margin-bottom: 12px;
 }
 
 .reading-legend-item {
@@ -1455,7 +1811,7 @@ p {
 	min-width: 0;
 	margin: 0;
 	font-size: inherit;
-	line-height: var(--leading-tight);
+	line-height: var(--leading-body);
 	color: inherit;
 }
 
@@ -1476,10 +1832,10 @@ p {
 	display: block;
 	margin: 3px 0 0;
 	padding: 0;
-	background-color: transparent;
+	background: transparent;
 	border: none;
 	font-size: var(--type-caption);
-	line-height: var(--leading-tight);
+	line-height: var(--leading-body);
 	color: #d9cba0;
 	text-align: left;
 }
@@ -1516,6 +1872,7 @@ p {
 	font-weight: var(--weight-bold);
 	color: var(--gold-light);
 	text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+	text-wrap: balance;
 }
 
 .archetype-icon {
@@ -1533,7 +1890,7 @@ p {
 	margin-top: 4px;
 	font-size: var(--type-caption);
 	color: var(--text-primary);
-	text-align: center;
+	text-align: left;
 }
 
 .pending-reveal {
@@ -1755,12 +2112,70 @@ footer:active {
 
 #privacyNote {
 	margin: 14px auto 0;
-	max-width: 320px;
+	max-width: 400px;
 	font-size: var(--type-micro);
 	line-height: var(--leading-body);
 	color: var(--text-faint);
 	opacity: 0.9;
 	text-align: center;
+	text-wrap: pretty;
+}
+
+#privacyNote > span {
+	display: block;
+}
+
+#privacyNote > span + span {
+	margin-top: var(--space-1);
+}
+
+html:lang(ko) #privacyNote > span {
+	white-space: nowrap;
+}
+
+
+html:lang(ko) body {
+	word-break: keep-all;
+}
+h3, h4 {
+	text-wrap: balance;
+}
+.culture-note summary {
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+.summary-icon {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 18px;
+	transition: transform var(--motion-fast) ease;
+}
+details[open] > summary .summary-icon {
+	transform: rotate(180deg);
+}
+#choosePhotoBtn .btn-icon {
+	width: 20px;
+	height: 20px;
+	flex: 0 0 20px;
+}
+#choosePhotoBtn span {
+	min-width: 0;
+	text-wrap: balance;
+}
+.culture-note p,
+.reading-item p,
+#archetypeDesc,
+#topMatchDesc {
+	text-wrap: pretty;
+	text-align: left;
+}
+#topMatchPercent, .reading-percent {
+	font-family: var(--font-body);
+	font-variant-numeric: tabular-nums;
+}
+::selection {
+	background: var(--gold);
+	color: var(--panel-1);
 }
 
 @media (max-width: 600px) {
@@ -1795,6 +2210,7 @@ footer:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.progress-bar-inner { animation-duration: 1.6s; }
+	.progress-bar-inner { animation: none; }
+	.modal[data-stage="1"] .analysis-photo-stage::after { animation: none; visibility: hidden; }
 	.pending-reveal { transition: none; }
 }
