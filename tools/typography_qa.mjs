@@ -68,13 +68,14 @@ try {
             count: document.querySelectorAll(".adsbygoogle").length,
             outsideResults: !ad.closest("#resultsContainer"),
             afterPrivacy: ad.getBoundingClientRect().top > note.getBoundingClientRect().bottom,
+            beforeMethod: ad.getBoundingClientRect().bottom <= document.querySelector(".method-note").getBoundingClientRect().top,
             width: ad.querySelector("ins").getBoundingClientRect().width,
             privacyOverflow: note.scrollWidth > note.clientWidth + 1,
             lines: [...note.children].map(el => ({ height: el.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(el).lineHeight) })),
           };
         });
         assert.equal(bottom.count, 1);
-        assert.ok(bottom.outsideResults && bottom.afterPrivacy && bottom.width > 0 && !bottom.privacyOverflow, JSON.stringify(bottom));
+        assert.ok(bottom.outsideResults && (state === "entry" ? bottom.beforeMethod : bottom.afterPrivacy) && bottom.width > 0 && !bottom.privacyOverflow, JSON.stringify(bottom));
         if (edition === "kr") assert.ok(bottom.lines.length === 2 && bottom.lines.every(line => line.height <= line.lineHeight + 1), JSON.stringify(bottom));
         if (state === "result") assert.equal(report.readings, 6);
         if (state === "entry") {
