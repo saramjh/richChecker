@@ -29,7 +29,10 @@ try {
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     await page.setRequestInterception(true);
     page.on("request", request => /googletagmanager|google-analytics|googlesyndication|doubleclick/.test(request.url()) ? request.abort() : request.continue());
-    await page.goto(`http://127.0.0.1:${port}/?type=1`, { waitUntil: "domcontentloaded" });
+    const baseUrl = process.env.PUBLIC_QA === "1"
+      ? `https://saramjh.github.io/${edition === "kr" ? "richChecker" : "richChecker-us"}/`
+      : `http://127.0.0.1:${port}/`;
+    await page.goto(`${baseUrl}?controls=20261012`, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => !document.getElementById("bootOverlay"));
     await page.evaluate(() => document.fonts.ready.then(() => true));
     const client = await page.createCDPSession();
@@ -136,6 +139,19 @@ try {
       assert.ok(await page.$eval(`#${id}`, el => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height >= 44));
     }
     assert.equal(await page.$eval("#bottomAd", el => el.getBoundingClientRect().height), 0);
+    await page.evaluate(() => {
+      window.qaShareDescriptor = Object.getOwnPropertyDescriptor(navigator, "share");
+      window.qaSharePayload = null;
+      Object.defineProperty(navigator, "share", { configurable: true, value: async payload => { window.qaSharePayload = { url: payload.url, active: navigator.userActivation.isActive }; } });
+    });
+    await page.click("#webShareBtn");
+    await page.waitForFunction(() => window.qaSharePayload !== null);
+    const shared = await page.evaluate(() => window.qaSharePayload);
+    assert.ok(shared.active && new URL(shared.url).searchParams.get("via") === "share", JSON.stringify(shared));
+    await page.evaluate(() => {
+      if (window.qaShareDescriptor) Object.defineProperty(navigator, "share", window.qaShareDescriptor);
+      else delete navigator.share;
+    });
     await cosmeticFilter.evaluate(el => el.remove());
     assert.ok(await page.$eval("#resultDetails", el => !!(el.compareDocumentPosition(document.querySelector(".result-actions")) & Node.DOCUMENT_POSITION_FOLLOWING)));
     assert.equal(await page.$eval(".details-expand", el => getComputedStyle(el).display), "none");

@@ -120,7 +120,7 @@ try {
       prepareShareArtifact = async () => null;
       Object.defineProperty(navigator, "canShare", { configurable: true, value: () => true });
       Object.defineProperty(navigator, "share", { configurable: true, value: payload => {
-        qa.native.push({ url: payload.url, files: payload.files?.length || 0, active: navigator.userActivation.isActive });
+        qa.native.push({ url: payload.url, text: payload.text, files: payload.files?.length || 0, active: navigator.userActivation.isActive });
         return qa.mode ? Promise.reject(new DOMException("QA outcome", qa.mode)) : Promise.resolve();
       } });
       qa.events = [];
@@ -134,6 +134,11 @@ try {
     assert.equal(share.events.filter(e => e.name === "share_click").length, 1);
     await page.evaluate(() => { qa.events = []; preparedShareBlob = new Blob(["QA file payload"], { type: "image/png" }); });
     await page.click("#webShareBtn");
+    await page.waitForFunction(() => qa.events.some(e => e.name === "share_success"));
+    assert.equal(await page.evaluate(() => qa.native.at(-1).files), 0);
+    assert.ok(await page.evaluate(() => qa.native.at(-1).text.includes(qa.native.at(-1).url)));
+    await page.evaluate(() => { qa.events = []; });
+    await page.click("#instagramShareBtn");
     await page.waitForFunction(() => qa.events.some(e => e.name === "share_success"));
     assert.equal(await page.evaluate(() => qa.native.at(-1).files), 1);
     for (const [mode, outcome] of [["AbortError", "share_cancel"], ["NotAllowedError", "share_error"]]) {
