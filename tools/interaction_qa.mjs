@@ -103,7 +103,7 @@ try {
     await page.waitForFunction(() => !document.querySelector("#topMatchPhotos .face-motion"));
     assert.equal(await page.$eval("#resultDetails", el => el.open), false);
     assert.equal(await page.$$eval("#resultDetails .reading-item", items => items.length), 6);
-    const order = await page.evaluate(() => ["#topMatch", "#faceHideToggle", "#webShareBtn", "#resultDetails"].map(selector => document.querySelector(selector).getBoundingClientRect().top));
+    const order = await page.evaluate(() => ["#topMatch", "#resultDetails", "#faceHideToggle", "#webShareBtn"].map(selector => document.querySelector(selector).getBoundingClientRect().top));
     assert.ok(order.every((top, i) => i === 0 || top > order[i - 1]), JSON.stringify(order));
     await page.click("#resultDetails > summary");
     await page.$eval("#resultDetails", el => el.scrollIntoView());

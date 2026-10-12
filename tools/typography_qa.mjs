@@ -131,6 +131,12 @@ try {
     await page.click("#resultDetails > summary");
     assert.equal(await page.$eval("#resultDetails", el => el.open), true);
     await audit("result");
+    const cosmeticFilter = await page.addStyleTag({ content: ".share-row, .ad-slot { display: none !important; }" });
+    for (const id of ["webShareBtn", "instagramShareBtn"]) {
+      assert.ok(await page.$eval(`#${id}`, el => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height >= 44));
+    }
+    assert.equal(await page.$eval("#bottomAd", el => el.getBoundingClientRect().height), 0);
+    await cosmeticFilter.evaluate(el => el.remove());
     assert.ok(await page.$eval("#resultDetails", el => !!(el.compareDocumentPosition(document.querySelector(".result-actions")) & Node.DOCUMENT_POSITION_FOLLOWING)));
     assert.equal(await page.$eval(".details-expand", el => getComputedStyle(el).display), "none");
     assert.notEqual(await page.$eval(".details-collapse", el => getComputedStyle(el).display), "none");

@@ -638,7 +638,7 @@ p {
 
 /* Keep the comparison command prominent beside the secondary Instagram shortcut. */
 
-.share-row {
+.result-compare-actions {
 	display: flex;
 	justify-content: center;
 	gap: var(--space-2);
@@ -646,7 +646,7 @@ p {
 	margin: 0 auto;
 }
 
-.share-row button {
+.result-compare-actions button {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -660,19 +660,19 @@ p {
 	cursor: pointer;
 }
 
-.share-row button .btn-icon {
+.result-compare-actions button .btn-icon {
 	width: 18px;
 	height: 18px;
 }
 
-.share-row button:hover {
+.result-compare-actions button:hover {
 	background: rgba(212, 175, 55, 0.15);
 	border-color: var(--gold);
 	transition: transform 0.1s ease;
 	transform: scale(0.99);
 }
 
-.share-row button:active {
+.result-compare-actions button:active {
 	transform: scale(0.95);
 }
 
