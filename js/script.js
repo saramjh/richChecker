@@ -309,6 +309,16 @@ function waitForUiPaint() {
 		else setTimeout(resolve, 16)
 	})
 }
+// Keep the selected photo as a browser-local Blob URL instead of copying the
+// full original into a Base64 string. Retain it for result/share rendering,
+// and revoke it only when the photo is replaced or explicitly reset.
+let selectedPhotoUrl = null
+function releaseSelectedPhotoUrl() {
+	if (!selectedPhotoUrl) return
+	URL.revokeObjectURL(selectedPhotoUrl)
+	selectedPhotoUrl = null
+}
+
 document.getElementById("uploadImage").addEventListener("change", function () {
 	const file = this.files[0]
 	if (!file) return
@@ -319,58 +329,60 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	const loadingSessionId = showLoadingModal()
 	trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
 	trackSharedVisitUpload()
-	const readerStartedAt = performance.now()
-	const reader = new FileReader()
 
-	reader.onerror = async function () {
-		trackEvent("upload_error", { error_type: "file_read", source, file_size_kb: fileSizeKb })
-		await hideLoadingModal(loadingSessionId)
-		showToast("사진 파일을 읽지 못했습니다. 다른 사진으로 다시 시도해주세요.")
-	}
+	uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
+		await waitForUiPaint()
+		const uploadedImage = document.getElementById("uploadedImage")
+		const uploadContainer = document.getElementById("uploadedImageContainer")
+		uploadContainer.hidden = true
+		document.getElementById("photoSlot").hidden = false
+		clearResults()
 
-	reader.onload = function (e) {
-		const readerReadyAt = performance.now()
-		const fileReadMs = Math.round(readerReadyAt - readerStartedAt)
-		const dataUrl = e.target.result
-		uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
-			await waitForUiPaint()
-			const uploadedImage = document.getElementById("uploadedImage")
-			const uploadContainer = document.getElementById("uploadedImageContainer")
-			uploadContainer.hidden = true
-			document.getElementById("photoSlot").hidden = false
-			clearResults()
+		let photoUrl
+		try {
+			photoUrl = URL.createObjectURL(file)
+		} catch (err) {
+			console.error(err)
+			releaseSelectedPhotoUrl()
+			trackEvent("upload_error", { error_type: "object_url", source, file_size_kb: fileSizeKb })
+			await hideLoadingModal(loadingSessionId)
+			showToast("사진에 접근할 수 없습니다. 기기에 저장된 사진으로 다시 시도해주세요.")
+			return
+		}
 
-			const imageReadyStartedAt = performance.now()
-			try {
-				await setImageSourceAndWait(uploadedImage, dataUrl)
-				uploadContainer.classList.add("has-photo")
-				uploadContainer.hidden = false
-				document.getElementById("photoSlot").hidden = true
-			} catch (err) {
-				console.error(err)
-				trackEvent("upload_error", {
-					error_type: "image_decode",
-					source,
-					file_size_kb: fileSizeKb,
-					file_read_ms: fileReadMs,
-				})
-				await hideLoadingModal(loadingSessionId)
-				showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
-				return
-			}
-
-			const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
-			const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
-			await processImage({
+		const imageReadyStartedAt = performance.now()
+		try {
+			await setImageSourceAndWait(uploadedImage, photoUrl)
+		} catch (err) {
+			console.error(err)
+			URL.revokeObjectURL(photoUrl)
+			releaseSelectedPhotoUrl()
+			trackEvent("upload_error", {
+				error_type: "image_decode",
 				source,
 				file_size_kb: fileSizeKb,
-				file_read_ms: fileReadMs,
-				image_ready_ms: imageReadyMs,
-				image_megapixels: imageMegapixels,
-			}, loadingSessionId)
-		})
-	}
-	reader.readAsDataURL(file)
+			})
+			await hideLoadingModal(loadingSessionId)
+			showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
+			return
+		}
+
+		// The previous image is no longer referenced after clearResults().
+		releaseSelectedPhotoUrl()
+		selectedPhotoUrl = photoUrl
+		uploadContainer.classList.add("has-photo")
+		uploadContainer.hidden = false
+		document.getElementById("photoSlot").hidden = true
+
+		const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
+		const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
+		await processImage({
+			source,
+			file_size_kb: fileSizeKb,
+			image_ready_ms: imageReadyMs,
+			image_megapixels: imageMegapixels,
+		}, loadingSessionId)
+	})
 })
 
 // data/embeddings.json: tools/precompute.html(MediaPipe 기반)로 미리 계산해둔
@@ -1469,6 +1481,7 @@ function commitIntroState() {
 	document.body.classList.remove("result-mode")
 	uploadContainer.hidden = true
 	uploadedImage.removeAttribute("src")
+	releaseSelectedPhotoUrl()
 	document.getElementById("photoSlot").hidden = false
 	uploadContainer.classList.remove("has-photo")
 	document.getElementById("uploadImage").value = ""

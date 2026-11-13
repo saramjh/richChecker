@@ -8,7 +8,14 @@ function requireText(text, label) {
 }
 
 requireText("function setImageSourceAndWait(img, src)", "source-specific image readiness gate")
-requireText("await setImageSourceAndWait(uploadedImage, dataUrl)", "new image load before analysis")
+requireText("await setImageSourceAndWait(uploadedImage, photoUrl)", "Blob URL image load before analysis")
+requireText("URL.createObjectURL(file)", "memory-safe mobile photo access")
+requireText("function releaseSelectedPhotoUrl()", "Blob URL lifecycle ownership")
+requireText("URL.revokeObjectURL(selectedPhotoUrl)", "release prior or reset photo URL")
+requireText("releaseSelectedPhotoUrl()", "selected photo URL release")
+if (script.includes("new FileReader()") || script.includes("readAsDataURL(")) {
+  throw new Error("Avoid Base64 FileReader copies of full-size Android photos")
+}
 requireText("let mediapipeModulesPromise = null", "module promise dedupe")
 requireText("let faceLandmarkerPromise = null", "landmarker promise dedupe")
 requireText("let coreWarmupPromise = null", "eager core warmup dedupe")
@@ -66,7 +73,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20261009-bottom1')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20261113-android-upload')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImageContainer" hidden') || !index.includes('id="choosePhotoBtn" type="button"')) {
   throw new Error("Initial photo entry must keep the native CTA and hide the undecoded photo")
@@ -112,11 +119,15 @@ if (uploadStart < 0 || uploadEnd < 0) throw new Error("Could not isolate upload 
 const uploadBlock = script.slice(uploadStart, uploadEnd)
 const clearInputPos = uploadBlock.indexOf('this.value = ""')
 const loaderPos = uploadBlock.indexOf("const loadingSessionId = showLoadingModal()")
-const readerPos = uploadBlock.indexOf("const reader = new FileReader()")
-const readyPos = uploadBlock.indexOf("await setImageSourceAndWait(uploadedImage, dataUrl)")
+const objectUrlPos = uploadBlock.indexOf("photoUrl = URL.createObjectURL(file)")
+const readyPos = uploadBlock.indexOf("await setImageSourceAndWait(uploadedImage, photoUrl)")
 const analysisPos = uploadBlock.indexOf("await processImage(")
-if (!(clearInputPos >= 0 && loaderPos > clearInputPos && readerPos > loaderPos && readyPos > readerPos && analysisPos > readyPos)) {
-  throw new Error("Upload flow must show processing immediately, then read/decode the selected image before analysis")
+if (!(clearInputPos >= 0 && loaderPos > clearInputPos && objectUrlPos > loaderPos && readyPos > objectUrlPos && analysisPos > readyPos)) {
+  throw new Error("Upload flow must show processing immediately, then decode the selected Blob URL before analysis")
+}
+const oldUrlReleasedPos = uploadBlock.indexOf("releaseSelectedPhotoUrl()\n\t\tselectedPhotoUrl = photoUrl")
+if (!(oldUrlReleasedPos > readyPos && oldUrlReleasedPos < analysisPos)) {
+  throw new Error("Decoded replacement photo must release the previous URL before analysis")
 }
 const sourceGateStart = script.indexOf("function setImageSourceAndWait(img, src)")
 const sourceGateEnd = script.indexOf("\n\n// 이미지 업로드 시 처리", sourceGateStart)
