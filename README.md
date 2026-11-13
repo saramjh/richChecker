@@ -84,9 +84,10 @@
 - 핵심 결과 유사도는 애니메이션 값이 아니라 실제 계산값을 즉시 렌더링하며, 로딩 전환 cleanup은 GSAP 완료 콜백이 멈춰도 timeout fallback으로 반드시 종료됩니다.
 - 결과 광고는 핵심 결과 렌더가 완료된 뒤 비동기로 초기화하며, AdSense 슬롯 크기/네트워크 오류는 분석 성공 상태에 영향을 주지 않습니다.
 - analysis_complete는 결과 UI 렌더가 성공한 뒤에만 기록하며, 한 시도에서 analysis_complete와 analysis_error가 동시에 기록되지 않도록 보호합니다.
-- 분석 이벤트에는 source, entry_ref, model_warm, data_warm, 파일/이미지 크기와 각 단계 처리시간을 포함합니다.
+- 분석 이벤트에는 source, entry_ref, model_warm, data_warm, **범주형 사진 포맷·크기 구간**, 이미지 크기 및 각 단계 처리시간을 포함합니다. 파일명·원본 바이트·Blob URL은 GA4에 전송하지 않습니다.
 - same-origin 유입은 rich-tester, rich-face-test, 글로벌 소개 글, 한국/글로벌 edition으로 분류하며 외부 referrer URL 자체는 이벤트 파라미터로 보내지 않습니다.
 - node tools/runtime_contract.mjs가 새 이미지 source gate, 같은 파일 재선택, 업로드 직렬화, bounded detection retry, 첫 업로드 snapshot, promise dedupe, 결과 렌더 후 completion, referrer/성능 계측 계약을 CI에서 검증합니다.
+- 파일 MIME은 기기에 따라 비어 있거나 부정확할 수 있어 실제 이미지를 디코딩해 확인합니다. 빈 파일·SVG·과대 파일·과대 픽셀을 차단하며, 오류 단계별 안내와 로딩 종료를 보장합니다. 상세 QA와 GA4 등록 제약: docs/ANDROID_UPLOAD_READ_FAILURE_20261113.md.
 
 ## 에디션 간 연결
 

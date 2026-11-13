@@ -273,10 +273,12 @@ document.getElementById("uploadedImage").addEventListener("keydown", (event) => 
 
 // 이미지가 실제 픽셀 크기까지 준비되기 전에 MediaPipe를 시작하면 느린 모바일에서
 // naturalWidth/Height가 0인 캔버스가 만들어질 수 있다. src 설정 후 decode/load 완료를 보장한다.
-function setImageSourceAndWait(img, src) {
+function setImageSourceAndWait(img, src, timeoutMs = 20000) {
 	return new Promise((resolve, reject) => {
 		let settled = false
+		let timeoutId
 		const cleanup = () => {
+			clearTimeout(timeoutId)
 			img.removeEventListener("load", onLoad)
 			img.removeEventListener("error", onError)
 		}
@@ -295,6 +297,11 @@ function setImageSourceAndWait(img, src) {
 		// 반드시 새 src를 넣기 전에 그 새 리소스의 load/error를 기다린다.
 		img.addEventListener("load", onLoad)
 		img.addEventListener("error", onError)
+		timeoutId = setTimeout(() => {
+			const error = new Error("Image decode timed out")
+			error.code = "IMAGE_TIMEOUT"
+			finish(error)
+		}, timeoutMs)
 		img.src = src
 	})
 }
@@ -309,6 +316,41 @@ function waitForUiPaint() {
 		else setTimeout(resolve, 16)
 	})
 }
+// The browser-supplied MIME type can be empty or based on the extension, not the
+// actual bytes. These are bounded diagnostics, never a substitute for decoding.
+const UPLOAD_MIME_GROUPS = Object.freeze({
+	"image/jpeg": "jpeg", "image/png": "png", "image/webp": "webp",
+	"image/avif": "avif", "image/heic": "heic", "image/heif": "heic",
+	"image/gif": "gif", "image/bmp": "bmp", "image/x-ms-bmp": "bmp",
+	"image/tiff": "tiff",
+})
+const UPLOAD_EXTENSION_GROUPS = Object.freeze({
+	jpg: "jpeg", jpeg: "jpeg", png: "png", webp: "webp",
+	avif: "avif", heic: "heic", heif: "heic", gif: "gif",
+	bmp: "bmp", tif: "tiff", tiff: "tiff",
+})
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+const MAX_IMAGE_PIXELS = 50_000_000
+
+function uploadFormatGroup(file) {
+	const mime = (file.type || "").toLowerCase()
+	const name = file.name || ""
+	const extension = name.includes(".") ? name.split(".").pop().toLowerCase() : ""
+	if (mime === "image/svg+xml" || extension === "svg") return "svg"
+	if (UPLOAD_MIME_GROUPS[mime]) return UPLOAD_MIME_GROUPS[mime]
+	if (!mime || mime === "application/octet-stream") return UPLOAD_EXTENSION_GROUPS[extension] || "unknown"
+	return mime.startsWith("image/") ? "other_image" : "non_image"
+}
+
+function uploadSizeBand(bytes) {
+	if (!bytes) return "empty"
+	if (bytes < 1024 * 1024) return "under_1mib"
+	if (bytes < 5 * 1024 * 1024) return "1_5mib"
+	if (bytes < 15 * 1024 * 1024) return "5_15mib"
+	if (bytes <= MAX_UPLOAD_BYTES) return "15_50mib"
+	return "over_50mib"
+}
+
 // Keep the selected photo as a browser-local Blob URL instead of copying the
 // full original into a Base64 string. Retain it for result/share rendering,
 // and revoke it only when the photo is replaced or explicitly reset.
@@ -325,13 +367,29 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	this.value = ""
 
 	const source = lastPhotoPickerSource
-	const fileSizeKb = Math.round(file.size / 1024)
+	const uploadContext = {
+		source,
+		upload_format: uploadFormatGroup(file),
+		upload_size_band: uploadSizeBand(file.size),
+	}
 	const loadingSessionId = showLoadingModal()
-	trackEvent("upload_started", { source, file_size_kb: fileSizeKb })
+	trackEvent("upload_started", { ...uploadContext, stage: "selected" })
 	trackSharedVisitUpload()
 
 	uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
 		await waitForUiPaint()
+		let rejection
+		if (file.size === 0) rejection = ["empty_file", "선택한 사진 파일이 비어 있습니다. 다른 사진으로 다시 시도해주세요."]
+		else if (file.size > MAX_UPLOAD_BYTES) rejection = ["file_too_large", "사진 파일이 50MB를 초과합니다. 크기를 줄인 사진으로 다시 시도해주세요."]
+		else if (uploadContext.upload_format === "svg" || uploadContext.upload_format === "non_image") {
+			rejection = ["unsupported_type", "JPG, PNG 또는 WebP 사진을 선택해주세요."]
+		}
+		if (rejection) {
+			trackEvent("upload_error", { ...uploadContext, error_type: rejection[0], stage: "preflight" })
+			await hideLoadingModal(loadingSessionId)
+			showToast(rejection[1])
+			return
+		}
 		const uploadedImage = document.getElementById("uploadedImage")
 		const uploadContainer = document.getElementById("uploadedImageContainer")
 		uploadContainer.hidden = true
@@ -344,7 +402,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		} catch (err) {
 			console.error(err)
 			releaseSelectedPhotoUrl()
-			trackEvent("upload_error", { error_type: "object_url", source, file_size_kb: fileSizeKb })
+			trackEvent("upload_error", { ...uploadContext, error_type: "object_url", stage: "object_url" })
 			await hideLoadingModal(loadingSessionId)
 			showToast("사진에 접근할 수 없습니다. 기기에 저장된 사진으로 다시 시도해주세요.")
 			return
@@ -353,17 +411,29 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		const imageReadyStartedAt = performance.now()
 		try {
 			await setImageSourceAndWait(uploadedImage, photoUrl)
+			if (uploadedImage.naturalWidth * uploadedImage.naturalHeight > MAX_IMAGE_PIXELS) {
+				const error = new Error("Image pixel budget exceeded")
+				error.code = "IMAGE_TOO_LARGE"
+				throw error
+			}
 		} catch (err) {
 			console.error(err)
 			URL.revokeObjectURL(photoUrl)
 			releaseSelectedPhotoUrl()
-			trackEvent("upload_error", {
-				error_type: "image_decode",
-				source,
-				file_size_kb: fileSizeKb,
-			})
+			uploadedImage.removeAttribute("src")
+			uploadContainer.classList.remove("has-photo")
+			const errorType = err?.code === "IMAGE_TIMEOUT" ? "image_timeout"
+				: err?.code === "IMAGE_TOO_LARGE" ? "too_many_pixels" : "image_decode"
+			trackEvent("upload_error", { ...uploadContext, error_type: errorType, stage: "decode" })
 			await hideLoadingModal(loadingSessionId)
-			showToast("사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요.")
+			const message = errorType === "image_timeout"
+				? "사진을 읽는 시간이 오래 걸립니다. 기기에 저장된 JPG 사진으로 다시 시도해주세요."
+				: errorType === "too_many_pixels"
+					? "사진 해상도가 너무 높습니다. 크기를 줄이거나 잘라서 다시 시도해주세요."
+					: uploadContext.upload_format === "heic"
+						? "HEIC 사진을 이 브라우저에서 열지 못했습니다. JPG로 저장한 뒤 다시 시도해주세요."
+						: "사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요."
+			showToast(message)
 			return
 		}
 
@@ -377,8 +447,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
 		const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
 		await processImage({
-			source,
-			file_size_kb: fileSizeKb,
+			...uploadContext,
 			image_ready_ms: imageReadyMs,
 			image_megapixels: imageMegapixels,
 		}, loadingSessionId)
@@ -562,10 +631,17 @@ async function processImage(context = {}, loadingSessionId = null) {
 
 	// 업로드 직후 준비된 픽셀을 첫 await 전에 고정한다. 모델/WASM 초기화 중 DOM의
 	// <img> src가 바뀌더라도 이번 분석은 사용자가 선택한 바로 그 사진을 계속 사용해야 한다.
-	const detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))
-
 	const activeLoadingSessionId = loadingSessionId || showLoadingModal()
-	displayLoadingFace(detectionCanvas, activeLoadingSessionId)
+	let detectionCanvas
+	try {
+		detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))
+		displayLoadingFace(detectionCanvas, activeLoadingSessionId)
+	} catch (err) {
+		stage = "canvas_snapshot"
+		fail("canvas_snapshot", "사진을 분석용 이미지로 준비하지 못했습니다. 크기를 줄여 다시 시도해주세요.", err)
+		await hideLoadingModal(activeLoadingSessionId)
+		return
+	}
 	trackEvent("analysis_started", eventParams())
 
 	try {

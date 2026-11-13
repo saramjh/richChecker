@@ -43,3 +43,45 @@ FileReader 전체 복사 대신 URL.createObjectURL(file)의 브라우저 내부
 Android Chrome의 동일 조건 upload_started, upload_error (object_url/image_decode),
 analysis_started, analysis_complete를 향후 날짜별로 대조한다.
 모바일 브라우저별 표본 크기와 서로 다른 이용자 수를 분리하고, 운영 성공률을 입증하지 않고 개선 효과를 주장하지 않는다.
+
+## 추가 안정성 점검: 파일 형식·기기·단계 (2026-11-13)
+
+사진 처리 경로: 브라우저 선택 → 로컬 Blob URL → 이미지 디코딩 → 픽셀 한도 검사 → 캔버스 → 기기 내 MediaPipe 분석 → 결과/공유. **사진 파일 자체는 서버에 업로드되지 않는다.**
+
+### 브라우저 형식 매트릭스
+
+실제 사진을 각 형식으로 변환하여 macOS 데스크톱 Chrome의 Android 모바일 화면/사용자 에이전트에서 테스트했다. 이는 Android 실기기나 iOS Safari의 코덱 지원 결과가 아니다.
+
+| 형식·상황 | 결과 |
+|---|---|
+| JPEG, PNG, WebP, AVIF, GIF, BMP | 이미지 디코딩과 분석 입력 성공 |
+| HEIC, TIFF | 현재 테스트 Chrome에서는 image_decode 오류; HEIC는 JPG 재저장 안내 |
+| 손상된 JPEG | image_decode |
+| 0바이트 이미지 | empty_file / preflight |
+| SVG, PDF | unsupported_type / preflight |
+| MIME 없는 JPEG, octet-stream JPEG | 실제 이미지이면 디코딩 허용 |
+| 50MiB 초과 파일, 5천만 픽셀 초과 이미지 | file_too_large, too_many_pixels |
+| Blob URL 생성·디코딩 시간 초과·캔버스 오류 | object_url, image_timeout, canvas_snapshot |
+| 재선택과 초기화 | 이전 Blob URL 해제 |
+
+총 20개 브라우저 회귀 시나리오 통과, JS 예외 0개. 별도로 실제 MediaPipe 얼굴 분석의 전체 흐름도 통과했다. 일부 인위적 오류는 브라우저 후킹으로 재현했으며 실제 Android 하드웨어 실패율 개선은 아직 확인되지 않았다.
+
+### 진단 이벤트와 개인정보
+
+- upload_started: stage=selected, upload_format, upload_size_band
+- upload_error: error_type + stage (preflight / object_url / decode) + 동일한 형식·크기 구간
+- analysis_started, analysis_error, analysis_complete: 분석 처리 단계와 진단용 형식·크기 구간 전달
+- format 값은 jpeg/png/webp/avif/heic/gif/bmp/tiff/svg/other_image/unknown/non_image처럼 제한된 카테고리. size 값은 empty/under_1mib/1_5mib/5_15mib/15_50mib/over_50mib.
+- 파일명, 원본 바이트, 사진 이미지, Blob URL, 네이티브 오류 메시지는 분석 이벤트로 전송하지 않는다. MIME/확장자 기반 카테고리는 실제 파일 바이트 형식에 대한 확정 판정이 아니며, 최종 판정은 브라우저의 실제 디코딩이다.
+
+### GA4 현재 등록 상태와 운영 제한
+
+속성 457170548에서 error_type, stage, entry_context의 이벤트 범위 맞춤 측정기준 등록을 실제 확인했다. 새 upload_format, upload_size_band 등록을 시도했으나 OAuth 토큰의 Analytics Admin 쓰기 범위가 부족해 HTTP 403 / ACCESS_TOKEN_SCOPE_INSUFFICIENT가 반환됐다. **새 카테고리는 코드에서 전송하더라도 GA4 일반 보고서에서 아직 조회할 수 없다.**
+
+관리자/편집자가 GA4 관리 → 데이터 표시 → 맞춤 정의 → 맞춤 측정기준 만들기에서 이벤트 범위 upload_format 및 upload_size_band를 각각 등록하거나, 연결을 Admin 쓰기 스코프로 다시 승인해야 한다. 새 정의는 소급 적용되지 않고 통상 24~48시간 처리 지연이 있다.
+
+그 전에는 기존 error_type, stage 및 GA4 기본 deviceCategory, operatingSystem, browser, sessionSourceMedium을 이용해 오류·완료 사용자 수와 이벤트 수를 나란히 살필 수 있다. 이벤트 8회/시작 9회를 사용자 단위의 검증된 실패율로 주장하지 않는다.
+
+### QA 재실행
+
+로컬 정적 서버를 시작하고 RICHCHECKER_QA_URL과 실제 형식별 fixture 디렉터리 RICHCHECKER_QA_FIXTURES를 설정한 뒤 node tools/upload_format_qa.mjs를 실행한다. 기존 Puppeteer/Chrome 개발 환경을 재사용하며 새로운 프로덕션 의존성이나 외부 업로드 서버는 없다. 실기기 Android Chrome·iOS Safari에서 제조사 파일 제공자별 정상/실패 확인은 별도 후속 항목이다.

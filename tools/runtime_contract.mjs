@@ -7,9 +7,19 @@ function requireText(text, label) {
   if (!script.includes(text)) throw new Error("Missing runtime contract: " + label)
 }
 
-requireText("function setImageSourceAndWait(img, src)", "source-specific image readiness gate")
+requireText("function setImageSourceAndWait(img, src, timeoutMs = 20000)", "bounded image decode gate")
 requireText("await setImageSourceAndWait(uploadedImage, photoUrl)", "Blob URL image load before analysis")
 requireText("URL.createObjectURL(file)", "memory-safe mobile photo access")
+requireText("function uploadFormatGroup(file)", "bounded format classification for privacy-safe diagnostics")
+requireText("function uploadSizeBand(bytes)", "bounded size buckets rather than raw sizes")
+requireText('trackEvent("upload_started", { ...uploadContext, stage: "selected" })', "upload started with diagnostic categories")
+requireText('stage: "preflight"', "invalid or oversized file classified before decode")
+requireText('error_type: "object_url", stage: "object_url"', "object URL error stage")
+requireText('error_type: errorType, stage: "decode"', "decode error stage with HEIC guidance")
+requireText('error.code = "IMAGE_TIMEOUT"', "bounded decode wait for stalled providers")
+requireText('MAX_IMAGE_PIXELS = 50_000_000', "avoid oversized bitmap canvas")
+requireText('fail("canvas_snapshot"', "canvas snapshot failure handles loader cleanup")
+
 requireText("function releaseSelectedPhotoUrl()", "Blob URL lifecycle ownership")
 requireText("URL.revokeObjectURL(selectedPhotoUrl)", "release prior or reset photo URL")
 requireText("releaseSelectedPhotoUrl()", "selected photo URL release")
@@ -73,7 +83,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20261113-android-upload')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20261113-upload-diagnostics')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImageContainer" hidden') || !index.includes('id="choosePhotoBtn" type="button"')) {
   throw new Error("Initial photo entry must keep the native CTA and hide the undecoded photo")
@@ -90,8 +100,8 @@ if (script.includes("window.onload = function ()")) {
   throw new Error("Do not mutate upload state from window.onload; it races the first user selection")
 }
 const resetImageClears = script.match(/uploadedImage\.removeAttribute\("src"\)/g) || []
-if (resetImageClears.length !== 1) {
-  throw new Error("Only explicit reset should clear the selected image")
+if (resetImageClears.length !== 2) {
+  throw new Error("Decode failure and explicit reset must clear the selected image")
 }
 requireText("uploadContainer.hidden = true", "photo frame hidden on reset and before decode")
 requireText("uploadContainer.hidden = false", "decoded photo frame restored")
@@ -100,7 +110,7 @@ const processStart = script.indexOf("async function processImage(")
 const processEnd = script.indexOf("\n// Lucide", processStart)
 if (processStart < 0 || processEnd < 0) throw new Error("Could not isolate processImage")
 const processBlock = script.slice(processStart, processEnd)
-const snapshotPos = processBlock.indexOf('const detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))')
+const snapshotPos = processBlock.indexOf('detectionCanvas = toDetectionCanvas(document.getElementById("uploadedImage"))')
 const moduleWaitPos = processBlock.indexOf('modules = await timed("modules_ready"')
 const modelWaitPos = processBlock.indexOf('landmarker = await timed("model_ready"')
 if (snapshotPos < 0 || moduleWaitPos < 0 || modelWaitPos < 0 || snapshotPos >= moduleWaitPos || snapshotPos >= modelWaitPos) {
@@ -129,7 +139,7 @@ const oldUrlReleasedPos = uploadBlock.indexOf("releaseSelectedPhotoUrl()\n\t\tse
 if (!(oldUrlReleasedPos > readyPos && oldUrlReleasedPos < analysisPos)) {
   throw new Error("Decoded replacement photo must release the previous URL before analysis")
 }
-const sourceGateStart = script.indexOf("function setImageSourceAndWait(img, src)")
+const sourceGateStart = script.indexOf("function setImageSourceAndWait(img, src, timeoutMs = 20000)")
 const sourceGateEnd = script.indexOf("\n\n// 이미지 업로드 시 처리", sourceGateStart)
 const sourceGateBlock = script.slice(sourceGateStart, sourceGateEnd)
 const listenerPos = sourceGateBlock.indexOf('img.addEventListener("load", onLoad)')
