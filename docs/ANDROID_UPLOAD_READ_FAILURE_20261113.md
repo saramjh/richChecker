@@ -85,3 +85,11 @@ analysis_started, analysis_complete를 향후 날짜별로 대조한다.
 ### QA 재실행
 
 로컬 정적 서버를 시작하고 RICHCHECKER_QA_URL과 실제 형식별 fixture 디렉터리 RICHCHECKER_QA_FIXTURES를 설정한 뒤 node tools/upload_format_qa.mjs를 실행한다. 기존 Puppeteer/Chrome 개발 환경을 재사용하며 새로운 프로덕션 의존성이나 외부 업로드 서버는 없다. 실기기 Android Chrome·iOS Safari에서 제조사 파일 제공자별 정상/실패 확인은 별도 후속 항목이다.
+
+## 2026-11-14 — 디코딩 실패 후 실제 파일 헤더 기반 안내 보완
+
+- Android 클라우드 사진 제공자가 파일명·MIME을 JPEG로 표시해도 실제 바이트는 HEIC/TIFF일 수 있다. 이는 **가능한 실패 사례**이며 11월 13일 외부 사용자 오류의 원인으로 확정된 것은 아니다.
+- 디코딩 성공 경로는 변경하지 않는다. `image_decode` 실패 시에만 `File.slice(0, 16).arrayBuffer()`로 브라우저 로컬의 16바이트 서명을 제한적으로 검사해 HEIC/TIFF인 경우 JPG/PNG로 다시 저장하도록 맞춤 안내한다.
+- 파일 제공자가 헤더를 읽지 못하거나 읽기가 지연되면 250ms 후 기존 일반 안내로 진행한다. 파일 전체 읽기/복사, 두 번째 디코더, 이미지 서버 업로드, 새로운 분석 이벤트 차원은 추가하지 않는다. 이벤트 `error_type=image_decode, stage=decode`는 기존 분류 그대로 유지한다.
+- 테스트에는 실제 포맷 샘플과 JPEG로 잘못 표기된 HEIC/TIFF 서명, 헤더 읽기 예외·영구 대기, 기존 Blob URL 정리, 모델 분석 실패 안내를 포함한다.
+- **주의:** 이 변경은 재시도 안내의 정확성과 안정성을 보강하며 Android 실기기 코덱 지원이나 외부 사용자의 업로드 성공률을 보증하지 않는다. 정확한 원인을 확정하려면 해당 기기/사진 제공자에서 개인정보를 수집하지 않는 재현과 완료 영수증이 여전히 필요하다.

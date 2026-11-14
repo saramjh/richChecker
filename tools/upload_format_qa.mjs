@@ -219,6 +219,52 @@ try {
     } finally { await page.close(); }
   }
 
+  // Android photo providers sometimes report JPEG metadata for HEIC/TIFF bytes.
+  // Recovery text must describe the actual signature after a failed decode.
+  for (const [label, signature, hint] of [
+    ["mislabelled-heic", [0,0,0,24,102,116,121,112,104,101,105,99], "HEIC"],
+    ["mislabelled-tiff", [73,73,42,0,0,0,0,0,0,0,0,0], "TIFF"],
+  ]) {
+    const page = await setup();
+    try {
+      await page.evaluate(({ signature }) => {
+        const file = new File([new Uint8Array(signature)], "camera.jpg", { type: "image/jpeg" });
+        const dt = new DataTransfer(); dt.items.add(file);
+        const input = document.getElementById("uploadImage");
+        input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, { signature });
+      await page.waitForFunction((hint) =>
+        qa.events.some(e => e.name === "upload_error" && e.error_type === "image_decode") &&
+        document.getElementById("toast").textContent.includes(hint), { timeout: 15000 }, hint);
+      const data = await outcome(page);
+      assert.equal(data.events.find(e => e.name === "upload_started").upload_format, "jpeg");
+      assert.equal(data.events.find(e => e.name === "upload_error").stage, "decode");
+      assert.equal(data.created, data.revoked, "Failed photo must release object URL");
+      observations.push({ filename: label, result: "specific recovery guidance" });
+    } finally { await page.close(); }
+  }
+
+  for (const fault of ["throw", "stall"]) {
+    const page = await setup();
+    try {
+      await page.evaluate((fault) => {
+        File.prototype.slice = fault === "throw"
+          ? () => { throw new Error("QA inaccessible cloud-provider header"); }
+          : () => ({ arrayBuffer: () => new Promise(() => {}) });
+        const file = new File([new Uint8Array([1,2,3,4])], "camera.jpg", { type: "image/jpeg" });
+        const dt = new DataTransfer(); dt.items.add(file);
+        const input = document.getElementById("uploadImage");
+        input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, fault);
+      await page.waitForFunction(() =>
+        qa.events.some(e => e.name === "upload_error" && e.error_type === "image_decode") &&
+        document.getElementById("toast").textContent.includes("JPG, PNG 또는 WebP"), { timeout: 5000 });
+      const data = await outcome(page);
+      assert.equal(data.created, data.revoked, "Unreadable provider must release Blob");
+      observations.push({ filename: "provider header " + fault, result: "bounded generic recovery" });
+    } finally { await page.close(); }
+  }
+
   const nonImage = await setup();
   try {
     await nonImage.evaluate(() => {

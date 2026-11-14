@@ -351,6 +351,31 @@ function uploadSizeBand(bytes) {
 	return "over_50mib"
 }
 
+// Some Android cloud providers label HEIC/TIFF bytes as JPEG. On a failed
+// decode only, inspect 16 local header bytes to give an accurate recovery
+// instruction. Never read the full photo or send bytes to analytics.
+async function failedDecodeFormatHint(file, declaredFormat) {
+	if (declaredFormat === "heic" || declaredFormat === "tiff") return declaredFormat
+	let timer
+	try {
+		const header = await Promise.race([
+			file.slice(0, 16).arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+			new Promise((resolve) => { timer = setTimeout(() => resolve(null), 250) }),
+		])
+		if (!header) return declaredFormat
+		const tag = (start) => String.fromCharCode(...header.slice(start, start + 4))
+		if (header.length >= 12 && tag(4) === "ftyp" &&
+			["heic", "heix", "hevc", "hevx", "heis", "heim"].includes(tag(8))) return "heic"
+		if (header.length >= 4 &&
+			((tag(0) === "II*\0") || (tag(0) === "MM\0*"))) return "tiff"
+	} catch {
+		// A failed cloud-provider byte read must not delay or block the retry UI.
+	} finally {
+		clearTimeout(timer)
+	}
+	return declaredFormat
+}
+
 // Keep the selected photo as a browser-local Blob URL instead of copying the
 // full original into a Base64 string. Retain it for result/share rendering,
 // and revoke it only when the photo is replaced or explicitly reset.
@@ -426,13 +451,17 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 				: err?.code === "IMAGE_TOO_LARGE" ? "too_many_pixels" : "image_decode"
 			trackEvent("upload_error", { ...uploadContext, error_type: errorType, stage: "decode" })
 			await hideLoadingModal(loadingSessionId)
+			const formatHint = errorType === "image_decode"
+				? await failedDecodeFormatHint(file, uploadContext.upload_format) : uploadContext.upload_format
 			const message = errorType === "image_timeout"
 				? "사진을 읽는 시간이 오래 걸립니다. 기기에 저장된 JPG 사진으로 다시 시도해주세요."
 				: errorType === "too_many_pixels"
 					? "사진 해상도가 너무 높습니다. 크기를 줄이거나 잘라서 다시 시도해주세요."
-					: uploadContext.upload_format === "heic"
+					: formatHint === "heic"
 						? "HEIC 사진을 이 브라우저에서 열지 못했습니다. JPG로 저장한 뒤 다시 시도해주세요."
-						: "사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요."
+						: formatHint === "tiff"
+							? "TIFF 사진을 이 브라우저에서 열지 못했습니다. JPG 또는 PNG로 저장한 뒤 다시 시도해주세요."
+							: "사진을 표시할 수 없습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해주세요."
 			showToast(message)
 			return
 		}
