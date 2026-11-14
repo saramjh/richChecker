@@ -11,6 +11,7 @@ requireText("function setImageSourceAndWait(img, src, timeoutMs = 20000)", "boun
 requireText("await setImageSourceAndWait(uploadedImage, photoUrl)", "Blob URL image load before analysis")
 requireText("URL.createObjectURL(file)", "memory-safe mobile photo access")
 requireText("function uploadFormatGroup(file)", "bounded format classification for privacy-safe diagnostics")
+requireText("async function failedDecodeFormatHint(file, declaredFormat)", "privacy-safe failure-only file header recovery hint")
 requireText("function uploadSizeBand(bytes)", "bounded size buckets rather than raw sizes")
 requireText('trackEvent("upload_started", { ...uploadContext, stage: "selected" })', "upload started with diagnostic categories")
 requireText('stage: "preflight"', "invalid or oversized file classified before decode")
@@ -83,7 +84,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20261113-upload-diagnostics')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20261114-decode-hint')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImageContainer" hidden') || !index.includes('id="choosePhotoBtn" type="button"')) {
   throw new Error("Initial photo entry must keep the native CTA and hide the undecoded photo")
