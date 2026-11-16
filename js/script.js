@@ -376,6 +376,74 @@ async function failedDecodeFormatHint(file, declaredFormat) {
 	return declaredFormat
 }
 
+// Android's Image element and native ImageBitmap can take different decode
+// paths for a provider-backed File. Only after the existing <img> path fails,
+// attempt one bounded local decode and normalize the pixels to an ordinary
+// JPEG Blob. No Base64 copies, remote upload, third-party codec or extra work
+// on the normal success path.
+const MAX_NATIVE_RECOVERY_BYTES = 20 * 1024 * 1024
+const MAX_NATIVE_RECOVERY_SIDE = 2200
+async function recoverPhotoBlobWithNativeBitmap(file, timeoutMs = 7000) {
+	if (file.size > MAX_NATIVE_RECOVERY_BYTES || typeof createImageBitmap !== "function") return null
+	let accepted = true
+	let bitmap
+	let canvas
+	let timer
+	let encodeTimer
+	try {
+		const pending = Promise.resolve()
+			.then(() => createImageBitmap(file, { imageOrientation: "from-image" }))
+			.then((result) => {
+				if (!accepted) {
+					result.close()
+					return null
+				}
+				return result
+			})
+		bitmap = await Promise.race([
+			pending,
+			new Promise((resolve) => {
+				timer = setTimeout(() => {
+					accepted = false
+					resolve(null)
+				}, timeoutMs)
+			}),
+		])
+		if (!bitmap || !bitmap.width || !bitmap.height ||
+			bitmap.width * bitmap.height > MAX_IMAGE_PIXELS) return null
+
+		const scale = Math.min(1, MAX_NATIVE_RECOVERY_SIDE / Math.max(bitmap.width, bitmap.height))
+		canvas = document.createElement("canvas")
+		canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+		canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+		const ctx = canvas.getContext("2d")
+		if (!ctx) return null
+		ctx.fillStyle = "#fff"
+		ctx.fillRect(0, 0, canvas.width, canvas.height)
+		ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+		// Release the decoded native bitmap before the async JPEG encode.
+		bitmap.close()
+		bitmap = null
+		const blob = await Promise.race([
+			new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92)),
+			new Promise((resolve) => { encodeTimer = setTimeout(() => resolve(null), 5000) }),
+		])
+		return blob && blob.size > 0 && blob.size <= MAX_NATIVE_RECOVERY_BYTES ? blob : null
+	} catch {
+		// The original upload_error path owns the retry message and cleanup.
+		return null
+	} finally {
+		accepted = false
+		clearTimeout(timer)
+		clearTimeout(encodeTimer)
+		if (bitmap) bitmap.close()
+		if (canvas) {
+			canvas.width = 0
+			canvas.height = 0
+		}
+	}
+}
+
 // Keep the selected photo as a browser-local Blob URL instead of copying the
 // full original into a Base64 string. Retain it for result/share rendering,
 // and revoke it only when the photo is replaced or explicitly reset.
@@ -434,8 +502,26 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		}
 
 		const imageReadyStartedAt = performance.now()
+		let decodeRecovered = false
 		try {
-			await setImageSourceAndWait(uploadedImage, photoUrl)
+			try {
+				await setImageSourceAndWait(uploadedImage, photoUrl)
+			} catch (initialError) {
+				uploadedImage.removeAttribute("src")
+				const nativeBlob = await recoverPhotoBlobWithNativeBitmap(file)
+				if (!nativeBlob) throw initialError
+
+				const recoveredUrl = URL.createObjectURL(nativeBlob)
+				try {
+					await setImageSourceAndWait(uploadedImage, recoveredUrl, 8000)
+				} catch {
+					URL.revokeObjectURL(recoveredUrl)
+					throw initialError
+				}
+				URL.revokeObjectURL(photoUrl)
+				photoUrl = recoveredUrl
+				decodeRecovered = true
+			}
 			if (uploadedImage.naturalWidth * uploadedImage.naturalHeight > MAX_IMAGE_PIXELS) {
 				const error = new Error("Image pixel budget exceeded")
 				error.code = "IMAGE_TOO_LARGE"
@@ -475,6 +561,9 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 
 		const imageReadyMs = Math.round(performance.now() - imageReadyStartedAt)
 		const imageMegapixels = Math.round((uploadedImage.naturalWidth * uploadedImage.naturalHeight) / 10000) / 100
+		if (decodeRecovered) {
+			trackEvent("upload_decode_recovered", { ...uploadContext, stage: "decode_fallback", recovery_method: "image_bitmap" })
+		}
 		await processImage({
 			...uploadContext,
 			image_ready_ms: imageReadyMs,

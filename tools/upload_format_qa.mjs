@@ -265,6 +265,88 @@ try {
     } finally { await page.close(); }
   }
 
+  // Android Chrome can fail to decode a provider-backed Blob URL using an
+  // Image element even when its native ImageBitmap path accepts the same bytes.
+  // Exercise the real fallback with a JPEG file, not a fake decoded bitmap.
+  const recoveredPage = await setup();
+  try {
+    await recoveredPage.evaluate(() => {
+      const originalWait = setImageSourceAndWait;
+      let waits = 0;
+      setImageSourceAndWait = (img, src, timeout) =>
+        ++waits === 1 ? Promise.reject(new Error("QA ImageElement provider decode failed"))
+          : originalWait(img, src, timeout);
+    });
+    await (await recoveredPage.$("#uploadImage")).uploadFile(path.join(fixtures, "face.jpg"));
+    const recovered = await outcome(recoveredPage);
+    assert.equal(recovered.processed, 1, "Native ImageBitmap should recover ImageElement decode failure");
+    assert.equal(recovered.created, 2, "Only failed original and recovered Blob URL are created");
+    assert.equal(recovered.revoked, 1, "Failed original URL must be revoked on recovery");
+    assert.equal(recovered.currentPhoto, true, "Recovered image remains available for preview/share");
+    assert.equal(recovered.events.filter(e => e.name === "upload_error").length, 0, "Recovered decode is not counted as a failure");
+    const recoveredEvent = await recoveredPage.evaluate(() => qa.events.filter(e => e.name === "upload_decode_recovered"));
+    assert.equal(recoveredEvent.length, 1, "Recovered native decoding must be observable");
+    assert.ok(!JSON.stringify(recoveredEvent).includes("face.jpg"), "No photo filename in recovery telemetry");
+    await recoveredPage.evaluate(() => commitIntroState());
+    const afterReset = await recoveredPage.evaluate(() => ({ created: qa.created.length, revoked: qa.revoked.length }));
+    assert.deepEqual(afterReset, { created: 2, revoked: 2 }, "Recovered photo URL must be released on reset");
+    observations.push({ filename: "Android native bitmap recovery", result: "processed, no leak" });
+  } finally { await recoveredPage.close(); }
+
+  const failedRecoveryPage = await setup();
+  try {
+    await failedRecoveryPage.evaluate(() => {
+      setImageSourceAndWait = async () => { throw new Error("QA image decoder failed"); };
+      createImageBitmap = async () => { throw new Error("QA bitmap decoder also failed"); };
+    });
+    await (await failedRecoveryPage.$("#uploadImage")).uploadFile(path.join(fixtures, "corrupt.jpg"));
+    const failed = await outcome(failedRecoveryPage);
+    assert.equal(failed.processed, 0, "Failed native bitmap must not enter face analysis");
+    assert.equal(failed.events.find(e => e.name === "upload_error")?.error_type, "image_decode");
+    assert.equal(failed.created, failed.revoked, "Both failed decoder paths must free Blob URLs");
+    observations.push({ filename: "native recovery fails closed", result: "image_decode" });
+  } finally { await failedRecoveryPage.close(); }
+
+  // An Android provider may never settle the secondary native decode.
+  // Bound the attempt, release a late bitmap, and keep the original error.
+  const slowBitmapPage = await setup();
+  try {
+    await slowBitmapPage.evaluate(() => {
+      qa.lateBitmapClosed = 0;
+      setImageSourceAndWait = async () => { throw new Error("QA image element decode fails"); };
+      const realRecovery = recoverPhotoBlobWithNativeBitmap;
+      recoverPhotoBlobWithNativeBitmap = (file) => realRecovery(file, 60);
+      createImageBitmap = async () => {
+        await new Promise(resolve => setTimeout(resolve, 180));
+        return { close() { qa.lateBitmapClosed++; } };
+      };
+    });
+    await (await slowBitmapPage.$("#uploadImage")).uploadFile(path.join(fixtures, "face.jpg"));
+    const result = await outcome(slowBitmapPage);
+    assert.equal(result.events.find(e => e.name === "upload_error")?.error_type, "image_decode");
+    assert.equal(result.created, result.revoked, "Stalled native decoder must release the original URL");
+    await slowBitmapPage.evaluate(() => new Promise(resolve => setTimeout(resolve, 240)));
+    assert.equal(await slowBitmapPage.evaluate(() => qa.lateBitmapClosed), 1, "Late native bitmap must be closed");
+    observations.push({ filename: "bounded slow native provider recovery", result: "image_decode, late bitmap closed" });
+  } finally { await slowBitmapPage.close(); }
+
+  const boundedBitmapPage = await setup();
+  try {
+    const bounded = await boundedBitmapPage.evaluate(async () => {
+      let attempts = 0;
+      let closed = 0;
+      const realBitmap = createImageBitmap;
+      createImageBitmap = () => { attempts++; return Promise.resolve({ width: 12000, height: 12000, close() { closed++; } }); };
+      const massivePixels = await recoverPhotoBlobWithNativeBitmap(new File([new Uint8Array([0xff, 0xd8])], "large.jpg", { type: "image/jpeg" }), 100);
+      const overBudget = new File([new Uint8Array(21 * 1024 * 1024)], "huge.jpg", { type: "image/jpeg" });
+      const skipped = await recoverPhotoBlobWithNativeBitmap(overBudget, 100);
+      createImageBitmap = realBitmap;
+      return { massivePixels, skipped, attempts, closed };
+    });
+    assert.deepEqual(bounded, { massivePixels: null, skipped: null, attempts: 1, closed: 1 }, "Native recovery must enforce pixel/byte budgets");
+    observations.push({ filename: "native bitmap resource limits", result: "pixel/byte budgets, bitmap closed" });
+  } finally { await boundedBitmapPage.close(); }
+
   const nonImage = await setup();
   try {
     await nonImage.evaluate(() => {
