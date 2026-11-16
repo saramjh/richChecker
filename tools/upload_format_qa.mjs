@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
+import { deflateSync } from "node:zlib";
 import path from "node:path";
 import { createRequire } from "node:module";
 
@@ -13,6 +14,38 @@ const browser = await require("puppeteer-core").launch({
 const base = process.env.RICHCHECKER_QA_URL || "http://127.0.0.1:18971/";
 const fixtures = process.env.RICHCHECKER_QA_FIXTURES;
 if (!fixtures) throw new Error("Set RICHCHECKER_QA_FIXTURES to the directory of real format samples");
+function makeClassicTiff(entries, payload = Buffer.alloc(0)) {
+  const dataOffset = 8 + 2 + entries.length * 12 + 4;
+  const bytes = Buffer.alloc(dataOffset + payload.length);
+  bytes.write("II", 0, "ascii"); bytes.writeUInt16LE(42, 2); bytes.writeUInt32LE(8, 4);
+  bytes.writeUInt16LE(entries.length, 8);
+  entries.forEach(([tag, type, count, value], index) => {
+    const at = 10 + index * 12;
+    bytes.writeUInt16LE(tag, at); bytes.writeUInt16LE(type, at + 2);
+    bytes.writeUInt32LE(count, at + 4); bytes.writeUInt32LE(value, at + 8);
+  });
+  bytes.writeUInt32LE(0, 10 + entries.length * 12);
+  payload.copy(bytes, dataOffset);
+  return bytes;
+}
+function makeDeflateExpansionBombTiff() {
+  const payload = deflateSync(Buffer.alloc(32 * 1024 * 1024 + 1));
+  return makeClassicTiff([
+    [256,4,1,1], [257,4,1,1], [258,3,1,8], [259,3,1,8], [262,3,1,1],
+    [273,4,1,122], [277,3,1,1], [278,4,1,1], [279,4,1,payload.length],
+  ], payload);
+}
+function makeIfdCountBombTiff() {
+  const bytes = Buffer.alloc(10);
+  bytes.write("II", 0, "ascii"); bytes.writeUInt16LE(42, 2); bytes.writeUInt32LE(8, 4); bytes.writeUInt16LE(65535, 8);
+  return bytes;
+}
+function makeOversizedTileTiff() {
+  return makeClassicTiff([
+    [256,4,1,1], [257,4,1,1], [258,3,1,8], [259,3,1,1], [262,3,1,1],
+    [277,3,1,1], [322,4,1,65535], [323,4,1,65535], [324,4,1,122], [325,4,1,1],
+  ], Buffer.from([0]));
+}
 const cases = [
   ["face.jpg", "jpeg", "processed"],
   ["face.png", "png", "processed"],
@@ -20,7 +53,7 @@ const cases = [
   ["face.avif", "avif", "processed"],
   ["face.gif", "gif", "processed"],
   ["face.bmp", "bmp", "processed"],
-  ["face.tiff", "tiff", "image_decode"],
+  ["face.tiff", "tiff", "processed"],
   ["face.heic", "heic", "processed"],
   ["corrupt.jpg", "jpeg", "image_decode"],
   ["empty.jpg", "jpeg", "empty_file"],
@@ -93,7 +126,7 @@ try {
       assert.equal(starts.length, 1, filename + " should emit one start");
       assert.equal(starts[0].upload_format, format, filename + " format classification");
       assert.ok(starts[0].upload_size_band, filename + " size band");
-      assert.equal(data.processed, expected === "processed" ? 1 : 0, filename + " processing");
+      assert.equal(data.processed, expected === "processed" ? 1 : 0, filename + " processing; outcome=" + JSON.stringify(data));
       assert.equal(failures[0]?.error_type || "processed", expected, filename + " error classification");
       if (failures.length) assert.ok(["preflight", "decode", "object_url"].includes(failures[0].stage), filename + " stage");
       if (filename === "face.heic") {
@@ -270,7 +303,7 @@ try {
       }, fault);
       await page.waitForFunction(() =>
         qa.events.some(e => e.name === "upload_error" && e.error_type === "image_decode") &&
-        document.getElementById("toast").textContent.includes("JPG, PNG 또는 WebP"), { timeout: 5000 });
+        /(JPG|JPEG|PNG|WebP)/i.test(document.getElementById("toast").textContent), { timeout: 5000 });
       const data = await outcome(page);
       assert.equal(data.created, data.revoked, "Unreadable provider must release Blob");
       observations.push({ filename: "provider header " + fault, result: "bounded generic recovery" });
@@ -386,6 +419,104 @@ try {
     observations.push({ filename: "provider JPEG MIME with actual HEIC bytes", result: "converted, analyzed, no personal data" });
   } finally { await realMislabelledHeicPage.close(); }
 
+  // TIFF provider cases: valid LZW, misleading JPEG MIME and excessive pixel
+  // headers must not consume unlimited memory or leak the actual photo.
+  const lzwFixture = path.join(fixtures, "face-lzw.tiff");
+  const deflateFixture = path.join(fixtures, "face-deflate.tiff");
+  for (const [label, name, mime, bytesPath] of [
+    ...(fs.existsSync(lzwFixture) ? [["TIFF LZW compression", "photo.tiff", "image/tiff", lzwFixture]] : []),
+    ...(fs.existsSync(deflateFixture) ? [["TIFF bounded Deflate compression", "photo-deflate.tiff", "image/tiff", deflateFixture]] : []),
+    ["TIFF mislabeled JPEG", "secret-person.jpg", "image/jpeg", path.join(fixtures, "face.tiff")],
+  ]) {
+    const page = await setup();
+    try {
+      await page.evaluate(({ base64, name, mime }) => {
+        const buf = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const f = new File([buf], name, { type: mime });
+        const transfer = new DataTransfer(); transfer.items.add(f);
+        const input = document.getElementById("uploadImage");
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, { base64: fs.readFileSync(bytesPath).toString("base64"), name, mime });
+      await page.waitForFunction(() => qa.processed > 0 || qa.events.some(e => e.name === "upload_error"), {timeout: 20000});
+      const data = await outcome(page);
+      assert.equal(data.processed, 1, label + " must decode; observed=" + JSON.stringify(data));
+      assert.equal(data.events.filter(e => e.name === "upload_error").length, 0);
+      const recovered = await page.evaluate(() => qa.events.find(e => e.name === "upload_decode_recovered"));
+      assert.equal(recovered?.recovery_method, "tiff_worker");
+      assert.ok(!JSON.stringify(recovered).includes("secret-person"));
+      observations.push({ filename: label, result: "decoded via bounded local worker" });
+    } finally { await page.close(); }
+  }
+
+  // A compressed tiny TIFF may announce huge dimensions. The worker must
+  // reject its header before any image decompression or pixel allocation.
+  const bigTiffPage = await setup();
+  try {
+    const state = await bigTiffPage.evaluate(async () => {
+      const bytes = new Uint8Array([
+        73,73,42,0, 8,0,0,0, 2,0,
+        0,1,4,0,1,0,0,0,16,39,0,0,
+        1,1,4,0,1,0,0,0,16,39,0,0,
+        0,0,0,0,
+      ]);
+      return recoverTiffPhotoBlob(new File([bytes], "bomb.tiff", {type:"image/tiff"}), 900);
+    });
+    assert.equal(state, null, "Metadata-advertised 100MP TIFF must be rejected before decompression");
+    observations.push({ filename: "TIFF excessive decompressed pixel header", result: "rejected safely" });
+  } finally { await bigTiffPage.close(); }
+
+  const hungTiffPage = await setup();
+  try {
+    const result = await hungTiffPage.evaluate(async () => {
+      const NativeWorker = Worker;
+      let terminated = 0;
+      Worker = class { constructor(){ } postMessage(){} terminate(){terminated++;} };
+      const file = new File([new Uint8Array([73,73,42,0,8,0,0,0])], "slow.tiff", {type:"image/tiff"});
+      const blob = await recoverTiffPhotoBlob(file, 50);
+      Worker = NativeWorker;
+      return { nullResult: blob === null, terminated };
+    });
+    assert.deepEqual(result, {nullResult:true, terminated:1}, "Unresponsive TIFF worker must terminate on timeout");
+    observations.push({ filename: "TIFF worker stalls", result: "bounded timeout and termination" });
+  } finally { await hungTiffPage.close(); }
+
+  const abortedTiffPage = await setup();
+  try {
+    const result = await abortedTiffPage.evaluate(async () => {
+      const NativeWorker = Worker;
+      let terminated = 0;
+      Worker = class { constructor(){ } postMessage(){} terminate(){terminated++;} };
+      const controller = new AbortController();
+      const file = new File([new Uint8Array([73,73,42,0,8,0,0,0])], "canceled.tiff", {type:"image/tiff"});
+      const pending = recoverTiffPhotoBlob(file, 9000, controller.signal);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      controller.abort();
+      const blob = await pending;
+      Worker = NativeWorker;
+      return { nullResult: blob === null, terminated };
+    });
+    assert.deepEqual(result, {nullResult:true, terminated:1}, "Canceled TIFF conversion must terminate immediately, not wait for the 9s timeout");
+    observations.push({ filename: "TIFF worker cancellation", result: "immediate termination" });
+  } finally { await abortedTiffPage.close(); }
+
+  for (const [label, bytes] of [
+    ["TIFF IFD entry-count bomb", makeIfdCountBombTiff()],
+    ["TIFF oversized tile dimensions", makeOversizedTileTiff()],
+    ["TIFF Deflate expansion bomb", makeDeflateExpansionBombTiff()],
+  ]) {
+    const page = await setup();
+    try {
+      const base64 = bytes.toString("base64");
+      const result = await page.evaluate(async encoded => {
+        const data = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        return recoverTiffPhotoBlob(new File([data], "hostile.tiff", {type:"image/tiff"}), 9000);
+      }, base64);
+      assert.equal(result, null, label + " must be rejected before unsafe allocation");
+      observations.push({ filename: label, result: "bounded rejection" });
+    } finally { await page.close(); }
+  }
+
   const nonImage = await setup();
   try {
     await nonImage.evaluate(() => {
@@ -422,4 +553,11 @@ try {
 
   assert.deepEqual(errors, [], "No uncaught browser JS errors");
   console.log(JSON.stringify({ status: "PASS", tests: observations.length, observations, pageErrors: errors.length, externalRequestsBlocked: blocked.length }, null, 2));
-} finally { await browser.close(); }
+} finally {
+  const child = browser.process();
+  await Promise.race([
+    browser.close().catch(() => {}),
+    new Promise(resolve => setTimeout(resolve, 5000)),
+  ]);
+  if (child && child.exitCode === null && !child.killed) child.kill("SIGTERM");
+}
