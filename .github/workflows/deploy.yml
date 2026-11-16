@@ -39,6 +39,10 @@ jobs:
             echo "checking $f"
             node --check "$f"
           done
+          for f in assets/vendor/tiff-worker.js assets/vendor/utif.js assets/vendor/pako_inflate.min.js; do
+            echo "checking $f"
+            node --check "$f"
+          done
 
       - name: Run matching contract
         run: node tools/matching_contract.mjs

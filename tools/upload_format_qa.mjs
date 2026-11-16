@@ -20,7 +20,7 @@ const cases = [
   ["face.avif", "avif", "processed"],
   ["face.gif", "gif", "processed"],
   ["face.bmp", "bmp", "processed"],
-  ["face.tiff", "tiff", "image_decode"],
+  ["face.tiff", "tiff", "processed"],
   ["face.heic", "heic", "processed"],
   ["corrupt.jpg", "jpeg", "image_decode"],
   ["empty.jpg", "jpeg", "empty_file"],
@@ -270,7 +270,7 @@ try {
       }, fault);
       await page.waitForFunction(() =>
         qa.events.some(e => e.name === "upload_error" && e.error_type === "image_decode") &&
-        document.getElementById("toast").textContent.includes("JPG, PNG 또는 WebP"), { timeout: 5000 });
+        /(JPG|JPEG|PNG|WebP)/i.test(document.getElementById("toast").textContent), { timeout: 5000 });
       const data = await outcome(page);
       assert.equal(data.created, data.revoked, "Unreadable provider must release Blob");
       observations.push({ filename: "provider header " + fault, result: "bounded generic recovery" });
@@ -385,6 +385,85 @@ try {
     assert.ok(!JSON.stringify(state.events).includes("private-client-photo"), "No HEIC filename in analytics");
     observations.push({ filename: "provider JPEG MIME with actual HEIC bytes", result: "converted, analyzed, no personal data" });
   } finally { await realMislabelledHeicPage.close(); }
+
+  // TIFF provider cases: valid LZW, misleading JPEG MIME and excessive pixel
+  // headers must not consume unlimited memory or leak the actual photo.
+  const lzwFixture = path.join(fixtures, "face-lzw.tiff");
+  for (const [label, name, mime, bytesPath] of [
+    ...(fs.existsSync(lzwFixture) ? [["TIFF LZW compression", "photo.tiff", "image/tiff", lzwFixture]] : []),
+    ["TIFF mislabeled JPEG", "secret-person.jpg", "image/jpeg", path.join(fixtures, "face.tiff")],
+  ]) {
+    const page = await setup();
+    try {
+      await page.evaluate(({ base64, name, mime }) => {
+        const buf = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const f = new File([buf], name, { type: mime });
+        const transfer = new DataTransfer(); transfer.items.add(f);
+        const input = document.getElementById("uploadImage");
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, { base64: fs.readFileSync(bytesPath).toString("base64"), name, mime });
+      await page.waitForFunction(() => qa.processed > 0 || qa.events.some(e => e.name === "upload_error"), {timeout: 20000});
+      const data = await outcome(page);
+      assert.equal(data.processed, 1, label + " must decode; observed=" + JSON.stringify(data));
+      assert.equal(data.events.filter(e => e.name === "upload_error").length, 0);
+      const recovered = await page.evaluate(() => qa.events.find(e => e.name === "upload_decode_recovered"));
+      assert.equal(recovered?.recovery_method, "tiff_worker");
+      assert.ok(!JSON.stringify(recovered).includes("secret-person"));
+      observations.push({ filename: label, result: "decoded via bounded local worker" });
+    } finally { await page.close(); }
+  }
+
+  // A compressed tiny TIFF may announce huge dimensions. The worker must
+  // reject its header before any image decompression or pixel allocation.
+  const bigTiffPage = await setup();
+  try {
+    const state = await bigTiffPage.evaluate(async () => {
+      const bytes = new Uint8Array([
+        73,73,42,0, 8,0,0,0, 2,0,
+        0,1,4,0,1,0,0,0,16,39,0,0,
+        1,1,4,0,1,0,0,0,16,39,0,0,
+        0,0,0,0,
+      ]);
+      return recoverTiffPhotoBlob(new File([bytes], "bomb.tiff", {type:"image/tiff"}), 900);
+    });
+    assert.equal(state, null, "Metadata-advertised 100MP TIFF must be rejected before decompression");
+    observations.push({ filename: "TIFF excessive decompressed pixel header", result: "rejected safely" });
+  } finally { await bigTiffPage.close(); }
+
+  const hungTiffPage = await setup();
+  try {
+    const result = await hungTiffPage.evaluate(async () => {
+      const NativeWorker = Worker;
+      let terminated = 0;
+      Worker = class { constructor(){ } postMessage(){} terminate(){terminated++;} };
+      const file = new File([new Uint8Array([73,73,42,0,8,0,0,0])], "slow.tiff", {type:"image/tiff"});
+      const blob = await recoverTiffPhotoBlob(file, 50);
+      Worker = NativeWorker;
+      return { nullResult: blob === null, terminated };
+    });
+    assert.deepEqual(result, {nullResult:true, terminated:1}, "Unresponsive TIFF worker must terminate on timeout");
+    observations.push({ filename: "TIFF worker stalls", result: "bounded timeout and termination" });
+  } finally { await hungTiffPage.close(); }
+
+  const abortedTiffPage = await setup();
+  try {
+    const result = await abortedTiffPage.evaluate(async () => {
+      const NativeWorker = Worker;
+      let terminated = 0;
+      Worker = class { constructor(){ } postMessage(){} terminate(){terminated++;} };
+      const controller = new AbortController();
+      const file = new File([new Uint8Array([73,73,42,0,8,0,0,0])], "canceled.tiff", {type:"image/tiff"});
+      const pending = recoverTiffPhotoBlob(file, 9000, controller.signal);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      controller.abort();
+      const blob = await pending;
+      Worker = NativeWorker;
+      return { nullResult: blob === null, terminated };
+    });
+    assert.deepEqual(result, {nullResult:true, terminated:1}, "Canceled TIFF conversion must terminate immediately, not wait for the 9s timeout");
+    observations.push({ filename: "TIFF worker cancellation", result: "immediate termination" });
+  } finally { await abortedTiffPage.close(); }
 
   const nonImage = await setup();
   try {

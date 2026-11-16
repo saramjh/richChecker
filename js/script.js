@@ -273,12 +273,13 @@ document.getElementById("uploadedImage").addEventListener("keydown", (event) => 
 
 // 이미지가 실제 픽셀 크기까지 준비되기 전에 MediaPipe를 시작하면 느린 모바일에서
 // naturalWidth/Height가 0인 캔버스가 만들어질 수 있다. src 설정 후 decode/load 완료를 보장한다.
-function setImageSourceAndWait(img, src, timeoutMs = 20000) {
+function setImageSourceAndWait(img, src, timeoutMs = 20000, uploadId = uploadRevision) {
 	return new Promise((resolve, reject) => {
 		let settled = false
 		let timeoutId
 		const cleanup = () => {
 			clearTimeout(timeoutId)
+			uploadCancellationHandlers.delete(onCancel)
 			img.removeEventListener("load", onLoad)
 			img.removeEventListener("error", onError)
 		}
@@ -292,6 +293,13 @@ function setImageSourceAndWait(img, src, timeoutMs = 20000) {
 		}
 		const onLoad = () => finish()
 		const onError = () => finish(new Error("Image decode failed"))
+		const onCancel = () => {
+			const error = new Error("Photo upload canceled")
+			error.code = "UPLOAD_CANCELLED"
+			finish(error)
+		}
+		if (uploadId !== uploadRevision) return onCancel()
+		uploadCancellationHandlers.add(onCancel)
 
 		// placeholder가 이미 complete인 상태를 새 사진의 준비 완료로 오인하지 않도록
 		// 반드시 새 src를 넣기 전에 그 새 리소스의 load/error를 기다린다.
@@ -310,6 +318,45 @@ function setImageSourceAndWait(img, src, timeoutMs = 20000) {
 // 이미지 업로드 시 처리. 이전 분석의 finally/전환 애니메이션이 끝나기 전에 다음 분석이
 // DOM을 건드리지 않도록 직렬화한다. 실패 직후 같은 사진을 빠르게 다시 골라도 상태가 섞이지 않는다.
 let uploadTaskChain = Promise.resolve()
+let uploadRevision = 0
+const uploadCancellationHandlers = new Set()
+function cancelOutstandingUploadWaits() {
+	for (const cancel of uploadCancellationHandlers) cancel()
+}
+function awaitActiveUpload(promise, uploadId, timeoutMs = 0, cancelWork = null) {
+	return new Promise((resolve, reject) => {
+		let settled = false
+		let timer
+		const cleanup = () => {
+			clearTimeout(timer)
+			uploadCancellationHandlers.delete(cancel)
+		}
+		const finish = (value, isError) => {
+			if (settled) return
+			settled = true
+			cleanup()
+			if (isError) reject(value)
+			else resolve(value)
+		}
+		const cancel = () => {
+			try { cancelWork?.() } catch {}
+			const error = new Error("Photo upload was canceled")
+			error.code = "UPLOAD_CANCELLED"
+			finish(error, true)
+		}
+		if (uploadId !== uploadRevision) return cancel()
+		uploadCancellationHandlers.add(cancel)
+		if (timeoutMs > 0) {
+			timer = setTimeout(() => {
+				try { cancelWork?.() } catch {}
+				const error = new Error("Photo analysis timed out")
+				error.code = "RESOURCE_TIMEOUT"
+				finish(error, true)
+			}, timeoutMs)
+		}
+		Promise.resolve(promise).then(value => finish(value, false), error => finish(error, true))
+	})
+}
 function waitForUiPaint() {
 	return new Promise((resolve) => {
 		if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
@@ -427,6 +474,75 @@ async function recoverHeicPhotoBlob(file, timeoutMs = 10000) {
 	}
 }
 
+// TIFF is not natively decodable by Android Chrome in several photo providers.
+// Decode only after native display fails, in a locally hosted time-limited worker.
+// The worker caps TIFF dimensions before allocating decompressed pixels.
+const MAX_TIFF_INPUT_BYTES = 12 * 1024 * 1024
+async function recoverTiffPhotoBlob(file, timeoutMs = 9000, signal = null) {
+	if (!file.size || file.size > MAX_TIFF_INPUT_BYTES || typeof Worker !== "function" || signal?.aborted) return null
+	let worker, timer, encodeTimer, sourceCanvas, resultCanvas, abortHandler
+	try {
+		const decoded = await new Promise((resolve) => {
+			let done = false
+			const finish = (result) => {
+				if (done) return
+				done = true
+				signal?.removeEventListener("abort", onAbort)
+				resolve(result)
+			}
+			const onAbort = () => finish(null)
+			signal?.addEventListener("abort", onAbort, { once: true })
+			if (signal?.aborted) return finish(null)
+			worker = new Worker("assets/vendor/tiff-worker.js")
+			worker.onmessage = (event) => finish(event.data)
+			worker.onerror = () => finish(null)
+			timer = setTimeout(() => finish(null), timeoutMs)
+			file.arrayBuffer()
+				.then((buffer) => { if (!done) worker.postMessage(buffer, [buffer]) })
+				.catch(() => finish(null))
+		})
+		if (signal?.aborted || !decoded?.ok || !decoded.width || !decoded.height ||
+			decoded.width * decoded.height > 8_000_000 ||
+			decoded.pixels?.byteLength !== decoded.width * decoded.height * 4) return null
+		// The decode worker is finished; release it before JPEG encoding.
+		worker.terminate()
+		worker = null
+		sourceCanvas = document.createElement("canvas")
+		sourceCanvas.width = decoded.width
+		sourceCanvas.height = decoded.height
+		const sourceContext = sourceCanvas.getContext("2d")
+		if (!sourceContext) return null
+		sourceContext.putImageData(new ImageData(new Uint8ClampedArray(decoded.pixels), decoded.width, decoded.height), 0, 0)
+		const scale = Math.min(1, 2200 / Math.max(decoded.width, decoded.height))
+		resultCanvas = scale < 1 ? document.createElement("canvas") : sourceCanvas
+		if (resultCanvas !== sourceCanvas) {
+			resultCanvas.width = Math.max(1, Math.round(decoded.width * scale))
+			resultCanvas.height = Math.max(1, Math.round(decoded.height * scale))
+			resultCanvas.getContext("2d")?.drawImage(sourceCanvas, 0, 0, resultCanvas.width, resultCanvas.height)
+		}
+		const abortPromise = signal ? new Promise((resolve) => {
+			abortHandler = () => resolve(null)
+			if (signal.aborted) abortHandler()
+			else signal.addEventListener("abort", abortHandler, { once: true })
+		}) : new Promise(() => {})
+		const jpeg = await Promise.race([
+			new Promise((resolve) => resultCanvas.toBlob(resolve, "image/jpeg", 0.88)),
+			new Promise((resolve) => { encodeTimer = setTimeout(() => resolve(null), 5000) }),
+			abortPromise,
+		])
+		return !signal?.aborted && jpeg?.type === "image/jpeg" && jpeg.size > 0 && jpeg.size <= MAX_NATIVE_RECOVERY_BYTES ? jpeg : null
+	} catch {
+		return null
+	} finally {
+		clearTimeout(timer)
+		clearTimeout(encodeTimer)
+		if (abortHandler) signal?.removeEventListener("abort", abortHandler)
+		worker?.terminate()
+		if (resultCanvas && resultCanvas !== sourceCanvas) { resultCanvas.width = 0; resultCanvas.height = 0 }
+		if (sourceCanvas) { sourceCanvas.width = 0; sourceCanvas.height = 0 }
+	}
+}
+
 // Android's Image element and native ImageBitmap can take different decode
 // paths for a provider-backed File. Only after the existing <img> path fails,
 // attempt one bounded local decode and normalize the pixels to an ordinary
@@ -509,6 +625,9 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	const file = this.files[0]
 	if (!file) return
 	this.value = ""
+	const thisUpload = ++uploadRevision
+	cancelOutstandingUploadWaits()
+	const isCurrentUpload = () => thisUpload === uploadRevision
 
 	const source = lastPhotoPickerSource
 	const uploadContext = {
@@ -521,7 +640,9 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 	trackSharedVisitUpload()
 
 	uploadTaskChain = uploadTaskChain.catch(() => {}).then(async () => {
+		if (!isCurrentUpload()) return
 		await waitForUiPaint()
+		if (!isCurrentUpload()) return
 		let rejection
 		if (file.size === 0) rejection = ["empty_file", "선택한 사진 파일이 비어 있습니다. 다른 사진으로 다시 시도해주세요."]
 		else if (file.size > MAX_UPLOAD_BYTES) rejection = ["file_too_large", "사진 파일이 50MB를 초과합니다. 크기를 줄인 사진으로 다시 시도해주세요."]
@@ -558,19 +679,33 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 		let detectedFormat = uploadContext.upload_format
 		try {
 			try {
-				await setImageSourceAndWait(uploadedImage, photoUrl)
+				await awaitActiveUpload(setImageSourceAndWait(uploadedImage, photoUrl, 20000, thisUpload), thisUpload)
 			} catch (initialError) {
+				if (!isCurrentUpload()) {
+					uploadedImage.removeAttribute("src")
+					URL.revokeObjectURL(photoUrl)
+					return
+				}
 				uploadedImage.removeAttribute("src")
-				detectedFormat = await failedDecodeFormatHint(file, uploadContext.upload_format)
-				const nativeBlob = detectedFormat === "heic"
-					? await recoverHeicPhotoBlob(file)
-					: await recoverPhotoBlobWithNativeBitmap(file)
+				detectedFormat = await awaitActiveUpload(failedDecodeFormatHint(file, uploadContext.upload_format), thisUpload)
+				const recoveryController = detectedFormat === "tiff" && typeof AbortController === "function" ? new AbortController() : null
+				const recovery = detectedFormat === "heic"
+					? recoverHeicPhotoBlob(file)
+					: detectedFormat === "tiff"
+						? recoverTiffPhotoBlob(file, 9000, recoveryController?.signal)
+						: recoverPhotoBlobWithNativeBitmap(file)
+				const nativeBlob = await awaitActiveUpload(recovery, thisUpload, 0, () => recoveryController?.abort())
+				if (!isCurrentUpload()) {
+					URL.revokeObjectURL(photoUrl)
+					return
+				}
 				if (!nativeBlob) throw initialError
 				if (detectedFormat === "heic") recoveryMethod = "heic_decoder"
+				if (detectedFormat === "tiff") recoveryMethod = "tiff_worker"
 
 				const recoveredUrl = URL.createObjectURL(nativeBlob)
 				try {
-					await setImageSourceAndWait(uploadedImage, recoveredUrl, 8000)
+					await awaitActiveUpload(setImageSourceAndWait(uploadedImage, recoveredUrl, 8000, thisUpload), thisUpload)
 				} catch {
 					URL.revokeObjectURL(recoveredUrl)
 					throw initialError
@@ -579,14 +714,23 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 				photoUrl = recoveredUrl
 				decodeRecovered = true
 			}
+			if (!isCurrentUpload()) {
+				URL.revokeObjectURL(photoUrl)
+				uploadedImage.removeAttribute("src")
+				return
+			}
 			if (uploadedImage.naturalWidth * uploadedImage.naturalHeight > MAX_IMAGE_PIXELS) {
 				const error = new Error("Image pixel budget exceeded")
 				error.code = "IMAGE_TOO_LARGE"
 				throw error
 			}
 		} catch (err) {
-			console.error(err)
 			URL.revokeObjectURL(photoUrl)
+			if (!isCurrentUpload()) {
+				uploadedImage.removeAttribute("src")
+				return
+			}
+			console.error(err)
 			releaseSelectedPhotoUrl()
 			uploadedImage.removeAttribute("src")
 			uploadContainer.classList.remove("has-photo")
@@ -625,7 +769,7 @@ document.getElementById("uploadImage").addEventListener("change", function () {
 			...uploadContext,
 			image_ready_ms: imageReadyMs,
 			image_megapixels: imageMegapixels,
-		}, loadingSessionId)
+		}, loadingSessionId, thisUpload)
 	})
 })
 
@@ -770,7 +914,7 @@ async function detectFaceWithRetry(landmarker, initialCanvas) {
 	return { detection: null, canvas: attempts[attempts.length - 1], attempts: attempts.length }
 }
 
-async function processImage(context = {}, loadingSessionId = null) {
+async function processImage(context = {}, loadingSessionId = null, uploadId = uploadRevision) {
 	const startedAt = performance.now()
 	const attemptNumber = ++analysisAttemptCounter
 	const modelWarm = Boolean(faceLandmarkerInstance)
@@ -789,7 +933,7 @@ async function processImage(context = {}, loadingSessionId = null) {
 		...extra,
 	})
 	const fail = (errorType, message, err) => {
-		if (outcomeTracked) return
+		if (outcomeTracked || uploadId !== uploadRevision || activeLoadingSessionId !== loadingRunId) return
 		outcomeTracked = true
 		if (err) console.error(err)
 		trackEvent("analysis_error", eventParams({ error_type: errorType, stage }))
@@ -798,7 +942,7 @@ async function processImage(context = {}, loadingSessionId = null) {
 	const timed = async (name, task) => {
 		const phaseStartedAt = performance.now()
 		try {
-			return await task()
+			return await awaitActiveUpload(task(), uploadId, 30000)
 		} finally {
 			timings[name + "_ms"] = Math.round(performance.now() - phaseStartedAt)
 		}
@@ -958,7 +1102,7 @@ async function processImage(context = {}, loadingSessionId = null) {
 		if (resultsVisible) window.scrollTo({ top: 0, left: 0, behavior: "auto" })
 		await hideLoadingModal(activeLoadingSessionId)
 		if (resultsVisible && activeLoadingSessionId === loadingRunId) revealRenderedResults()
-		else if (typeof gsap !== "undefined") gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "transform,opacity" })
+		else if (activeLoadingSessionId === loadingRunId && uploadId === uploadRevision && typeof gsap !== "undefined") gsap.set(["#introSection", "#uploadedImageContainer"], { clearProps: "transform,opacity" })
 	}
 }
 
@@ -1721,6 +1865,11 @@ function initHoloEffect(cardEl) {
 // Reset owns every result -> intro state mutation. Keeping this in one commit function prevents
 // layout, scroll, share-cache and animation cleanup from drifting apart over time.
 function commitIntroState() {
+	// Invalidate any queued or blocked cloud-provider decode before resetting UI.
+	uploadRevision += 1
+	cancelOutstandingUploadWaits()
+	loadingRunId += 1
+	void hideLoadingModal(loadingRunId, true)
 	const uploadedImage = document.getElementById("uploadedImage")
 	const uploadContainer = document.getElementById("uploadedImageContainer")
 	const introEl = document.getElementById("introSection")
@@ -1852,7 +2001,7 @@ function showLoadingModal() {
 	return runId
 }
 
-async function hideLoadingModal(runId = loadingRunId) {
+async function hideLoadingModal(runId = loadingRunId, immediate = false) {
 	const modal = document.getElementById("loadingModal")
 	const content = modal.querySelector(".modal-content")
 	const reducedMotion = prefersReducedMotion()
@@ -1871,7 +2020,7 @@ async function hideLoadingModal(runId = loadingRunId) {
 		if (typeof gsap !== "undefined") gsap.set([modal, content, "#portalFlash"], { clearProps: "opacity,transform" })
 	}
 
-	if (reducedMotion || typeof gsap === "undefined") {
+	if (immediate || reducedMotion || typeof gsap === "undefined") {
 		finalize()
 		return
 	}
