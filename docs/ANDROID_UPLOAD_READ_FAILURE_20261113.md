@@ -93,3 +93,25 @@ analysis_started, analysis_complete를 향후 날짜별로 대조한다.
 - 파일 제공자가 헤더를 읽지 못하거나 읽기가 지연되면 250ms 후 기존 일반 안내로 진행한다. 파일 전체 읽기/복사, 두 번째 디코더, 이미지 서버 업로드, 새로운 분석 이벤트 차원은 추가하지 않는다. 이벤트 `error_type=image_decode, stage=decode`는 기존 분류 그대로 유지한다.
 - 테스트에는 실제 포맷 샘플과 JPEG로 잘못 표기된 HEIC/TIFF 서명, 헤더 읽기 예외·영구 대기, 기존 Blob URL 정리, 모델 분석 실패 안내를 포함한다.
 - **주의:** 이 변경은 재시도 안내의 정확성과 안정성을 보강하며 Android 실기기 코덱 지원이나 외부 사용자의 업로드 성공률을 보증하지 않는다. 정확한 원인을 확정하려면 해당 기기/사진 제공자에서 개인정보를 수집하지 않는 재현과 완료 영수증이 여전히 필요하다.
+
+## 2026-11-16 — Android Chrome 반복 디코딩 실패에 대한 기능 복구 경로
+
+### 실제 운영 관측 / 확정 범위
+
+PMS GA4 2026-11-15(KST) 직접 조회에서 Android Chrome mobile 측정 사용자 1명의 `06시` 업로드 시작 15회, `image_decode` 오류 13회(`stage=decode`), 분석 완료 2회를 관측했다. 11/14 수정 배포 뒤에도 반복 실패하므로 기존 에러 안내 보강만으로 해결된 상태가 아니다. 파일 형식/용량, 이미지 제공자, 동일 파일 반복 여부는 제공자 접근 및 GA4 측정기준 한계상 **알 수 없다**. 따라서 HEIC/클라우드 사진을 실제 원인이라고 주장하지 않는다.
+
+### 코드 변경
+
+기존 `<img src=blob:...>` 디코딩은 정상 업로드 경로로 그대로 유지한다. 그 디코딩/로드가 실패한 **경우에만 한 번** 기존 `File`을 `createImageBitmap(file, {imageOrientation: "from-image"})`로 읽고, 브라우저 메모리에서 최대 한 변 2200px의 JPEG Blob으로 정규화한 뒤 기존 이미지 표시·캔버스·MediaPipe·결과 렌더링 경로에 재투입한다.
+
+- 보조 경로는 원본 파일 최대 20MiB, 디코딩된 최대 5000만 픽셀, 네이티브 디코딩 대기 최대 7초, Canvas JPEG 인코딩 최대 5초. 원본 전체 Base64 복사, 서버 업로드, 새 WASM 코덱, 불필요한 일반 경로 메모리 추가는 없다.
+- 대체경로 성공 시 원래 Blob URL은 즉시 해제하고, 새 URL은 원본 사진과 동일하게 사진 교체/리셋 시 해제한다. 실패 시에는 두 경로 모두 정리하고 기존 `upload_error` 및 파일 형식별 안내를 유지한다. 시간초과 후 늦게 도착한 `ImageBitmap`도 `close()`로 정리한다.
+- 대체경로에서 실제 브라우저 이미지 표시·해상도 검사까지 성공한 경우에만 `upload_decode_recovered` 이벤트를 기록한다. 이벤트에는 제한된 업로드 형식/크기 그룹과 방법 이름만 포함한다. 사진·파일명·원본 바이트·Blob URL은 GA4로 전송하지 않는다.
+
+### 품질·외부 검증의 경계
+
+- **TDD RED:** 기존 구현에서 정상 JPEG 바이트인데 ImageElement만 실패하도록 재현하면 `processImage=0` 및 `image_decode`.
+- **GREEN:** 같은 브라우저·JPEG 조건에서 네이티브 Bitmap → JPEG Blob 복구 후 분석 시작, 기존 URL 해제, 리셋 후 모든 URL 해제, 복구 이벤트1건·`upload_error=0`.
+- 손상된 JPEG/미지원 HEIC·TIFF의 안전한 오류 처리, 비동기 늦은 Bitmap close, 20MiB/50Mpx 차단, Photo URL 재선택·초기화, 이미지 디코드 제한, 미지원 API 등의 회귀가 기존 계약과 함께 유지돼야 한다.
+- **실제 MediaPipe E2E:** 모의 `processImage`를 쓰지 않고 ImageElement 실패를 유도한 다음 정상 JPEG → `upload_decode_recovered` → `analysis_started` → `analysis_complete` 및 실제 결과 표시를 확인한다.
+- Chrome 모바일 UA/뷰포트 **에뮬레이션은 물리 Android 기기의 외부 사진 제공자 오류를 입증하지 못한다.** 실제 문제 파일·제공자에서 재현하고 독립적 완료 결과가 확인되기 전까지 Android P0는 OPEN으로 유지한다. 일별 집계 이벤트만으로 업로드 실패율을 계산하지 않는다.
