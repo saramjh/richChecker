@@ -266,6 +266,13 @@ try {
     assert.equal(canceled, "UPLOAD_CANCELLED");
     return {processed:v.processed,loadingVisible:v.loadingVisible,canceled};
   });
-} finally { await browser.close(); }
+} finally {
+  const child = browser.process();
+  await Promise.race([
+    browser.close().catch(() => {}),
+    new Promise(resolve => setTimeout(resolve, 5000)),
+  ]);
+  if (child && child.exitCode === null && !child.killed) child.kill("SIGTERM");
+}
 console.log(JSON.stringify({ status: results.every(r => r.pass) ? "PASS" : "FAIL", tests: results.length, results }, null, 2));
 if (results.some(r => !r.pass)) process.exitCode = 1;

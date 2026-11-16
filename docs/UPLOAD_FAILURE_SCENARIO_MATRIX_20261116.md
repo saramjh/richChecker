@@ -9,10 +9,13 @@ Scope: Richchecker browser-based, on-device photo analysis. This is a **bounded,
 | JPEG, PNG, WebP, AVIF, GIF, BMP | Browser-local decode and enter analysis; no extra HEIC converter download on JPEG | Real format fixture / Chrome mobile viewport browser QA |
 | HEIC/HEIF not natively decodable | Only on first decode failure, local HEIC conversion, then analysis | Real HEIC fixture plus unmocked MediaPipe face-analysis E2E |
 | HEIC bytes mislabeled as JPEG by cloud provider | Verify first 16 bytes after failure and recover as HEIC | Real full HEIC bytes under fake JPEG name + MIME |
-| TIFF uncompressed or LZW | TIFF worker parses image dimensions before decompressing, converts to local JPEG, enters analysis | Real big-endian TIFF and LZW fixture plus unmocked MediaPipe E2E |
+| TIFF uncompressed, LZW or Deflate | TIFF worker parses image dimensions before decompressing, converts to local JPEG, enters analysis | Real big-endian, LZW and Deflate fixtures plus unmocked MediaPipe E2E |
 | TIFF bytes mislabeled as JPEG | Signature-based TIFF worker recovery | Real TIFF bytes under misleading JPEG name + MIME |
 | Malformed HEIC/TIFF and corrupt JPEG | No fabricated completion, one terminal upload error, photo URL cleanup | Invalid/corrupt samples and signature-only stubs |
 | Huge TIFF compressed dimension claim | Refuse before TIFF pixel allocation | Synthetic 100MP TIFF IFD metadata / bounded worker |
+| TIFF IFD entry-count bomb | Reject before parsing arbitrary tag tables | 65,535-entry synthetic IFD |
+| TIFF oversized tile dimensions | Reject before tile allocation | 65,535×65,535 tile metadata |
+| TIFF Deflate expansion bomb | Cap streaming inflate output to the validated target strip/tile size | 32MiB+1 expansion fixture rejected by bounded pako inflater |
 | TIFF worker stalls | Terminate stalled worker within configured time, no deadlock | Worker with nonresponding postMessage / 50ms test deadline |
 | TIFF worker canceled by new selection or reset | AbortSignal terminates worker immediately; stale pixels never reach analysis | State tests assert signal abort on selection/reset; worker abort QA asserts termination |
 | TIFF/HEIC above 12MiB, TIFF above 8MP, images above 50MiB or 50MP | Exclude from automatic conversion or fail with actionable bounded error | Source limits; 50MiB / 50MP / native bitmap rejection tests (not all formats physically tested) |
@@ -38,7 +41,7 @@ Scope: Richchecker browser-based, on-device photo analysis. This is a **bounded,
 
 ## Latest verification
 
-On both KR and US builds: 34/34 format/failure cases and 9/9 state-transition cases passed. Unmocked MediaPipe E2E passed for representative JPEG, HEIC and TIFF images; a no-face image produced `face_not_detected` with the loader released. These runs used macOS Chrome with Android 14 / Pixel 8 user-agent and mobile viewport emulation, not a physical Android handset.
+On both KR and US builds: 38/38 format/failure cases and 9/9 state-transition cases passed, including TIFF IFD-count, oversized-tile and Deflate-expansion bombs. Unmocked MediaPipe E2E passed for representative JPEG, HEIC and TIFF images; a no-face image produced `face_not_detected` with the loader released. These runs used macOS Chrome with Android 14 / Pixel 8 user-agent and mobile viewport emulation, not a physical Android handset.
 
 ## Reproduction
 

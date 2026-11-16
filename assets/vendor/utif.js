@@ -165,7 +165,7 @@ UTIF.decode._decompress = function(img,ifds, data, off, len, cmpr, tgt, toff, fo
 	else if(cmpr==5) UTIF.decode._decodeLZW(data, off, tgt, toff);
 	else if(cmpr==6) UTIF.decode._decodeOldJPEG(img, data, off, len, tgt, toff);
 	else if(cmpr==7) UTIF.decode._decodeNewJPEG(img, data, off, len, tgt, toff);
-	else if(cmpr==8) {  var src = new Uint8Array(data.buffer,off,len);  var bin = pako["inflate"](src);  for(var i=0; i<bin.length; i++) tgt[toff+i]=bin[i];  }
+	else if(cmpr==8) {  var src = new Uint8Array(data.buffer,off,len);  var maxOutputLength = tgt.length-toff;  if(img["t322"]==null) {  var bps = Math.min(32,img["t258"]?img["t258"][0]:1), noc = img["t258"]?img["t258"].length:(img["t277"]?img["t277"][0]:1), rows = img["t278"]?Math.min(img["t278"][0],img.height):img.height;  maxOutputLength = Math.min(maxOutputLength,Math.ceil(img.width*bps*noc/8)*rows);  }  var bin = pako["inflate"](src,{maxOutputLength:maxOutputLength});  for(var i=0; i<bin.length; i++) tgt[toff+i]=bin[i];  }
 	else if(cmpr==32767) UTIF.decode._decodeARW(img, data, off, len, tgt, toff);
 	else if(cmpr==32773) UTIF.decode._decodePackBits(data, off, len, tgt, toff);
 	else if(cmpr==32809) UTIF.decode._decodeThunder (data, off, len, tgt, toff);

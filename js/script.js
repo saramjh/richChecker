@@ -493,7 +493,7 @@ async function recoverTiffPhotoBlob(file, timeoutMs = 9000, signal = null) {
 			const onAbort = () => finish(null)
 			signal?.addEventListener("abort", onAbort, { once: true })
 			if (signal?.aborted) return finish(null)
-			worker = new Worker("assets/vendor/tiff-worker.js")
+			worker = new Worker("assets/vendor/tiff-worker.js?v=20261116-tiff-bounds")
 			worker.onmessage = (event) => finish(event.data)
 			worker.onerror = () => finish(null)
 			timer = setTimeout(() => finish(null), timeoutMs)
