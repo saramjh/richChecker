@@ -21,7 +21,7 @@ const cases = [
   ["face.gif", "gif", "processed"],
   ["face.bmp", "bmp", "processed"],
   ["face.tiff", "tiff", "image_decode"],
-  ["face.heic", "heic", "image_decode"],
+  ["face.heic", "heic", "processed"],
   ["corrupt.jpg", "jpeg", "image_decode"],
   ["empty.jpg", "jpeg", "empty_file"],
   ["vector.svg", "svg", "unsupported_type"],
@@ -96,7 +96,16 @@ try {
       assert.equal(data.processed, expected === "processed" ? 1 : 0, filename + " processing");
       assert.equal(failures[0]?.error_type || "processed", expected, filename + " error classification");
       if (failures.length) assert.ok(["preflight", "decode", "object_url"].includes(failures[0].stage), filename + " stage");
-      if (filename === "face.heic") assert.match(data.toast, /HEIC|JPG/, "HEIC specific recovery guidance");
+      if (filename === "face.heic") {
+        assert.equal(data.processed, 1, "Actual HEIC pixels must be analyzed in-browser");
+        const decoded = await page.evaluate(() => qa.events.find(e => e.name === "upload_decode_recovered"));
+        assert.equal(decoded?.recovery_method, "heic_decoder", "HEIC conversion must use the explicit decoder");
+      }
+      if (filename === "face.jpg") {
+        const loaded = await page.evaluate(() =>
+          performance.getEntriesByType("resource").some(e => e.name.includes("heic2any.min.js")));
+        assert.equal(loaded, false, "Normal JPEG must never download the HEIC decoder");
+      }
       if (expected !== "processed") assert.equal(data.created, data.revoked, filename + " failure must not retain Blob");
       observations.push({ filename, format, result: expected, stage: failures[0]?.stage || "analysis" });
     } finally { await page.close(); }
@@ -239,7 +248,10 @@ try {
       const data = await outcome(page);
       assert.equal(data.events.find(e => e.name === "upload_started").upload_format, "jpeg");
       assert.equal(data.events.find(e => e.name === "upload_error").stage, "decode");
-      assert.equal(data.created, data.revoked, "Failed photo must release object URL");
+      // The self-hosted HEIC decoder maintains one page-lifetime worker Blob
+      // URL; the selected photo URL itself must still be revoked on failure.
+      assert.equal(data.created - data.revoked, label === "mislabelled-heic" ? 1 : 0,
+        "Failed photo must be released (one library worker URL may remain)");
       observations.push({ filename: label, result: "specific recovery guidance" });
     } finally { await page.close(); }
   }
@@ -346,6 +358,33 @@ try {
     assert.deepEqual(bounded, { massivePixels: null, skipped: null, attempts: 1, closed: 1 }, "Native recovery must enforce pixel/byte budgets");
     observations.push({ filename: "native bitmap resource limits", result: "pixel/byte budgets, bitmap closed" });
   } finally { await boundedBitmapPage.close(); }
+
+  // Android's Files/Photos picker can describe HEIC bytes as a JPEG.
+  // Accept the actual HEIC content (not just a 12-byte signature stub),
+  // run the existing local face-analysis input, and never expose filenames.
+  const realMislabelledHeicPage = await setup();
+  try {
+    await realMislabelledHeicPage.evaluate((base64) => {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const file = new File([bytes], "private-client-photo.jpg", { type: "image/jpeg" });
+      const dt = new DataTransfer(); dt.items.add(file);
+      const input = document.getElementById("uploadImage");
+      input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, fs.readFileSync(path.join(fixtures, "face.heic")).toString("base64"));
+    await realMislabelledHeicPage.waitForFunction(() => qa.processed === 1, { timeout: 20000 });
+    const state = await realMislabelledHeicPage.evaluate(() => ({
+      processed: qa.processed,
+      events: qa.events,
+      imageWidth: document.getElementById("uploadedImage").naturalWidth,
+      imageHeight: document.getElementById("uploadedImage").naturalHeight,
+    }));
+    assert.equal(state.imageWidth, 640);
+    assert.equal(state.imageHeight, 640);
+    assert.equal(state.events.find(e => e.name === "upload_decode_recovered")?.recovery_method, "heic_decoder");
+    assert.equal(state.events.filter(e => e.name === "upload_error").length, 0);
+    assert.ok(!JSON.stringify(state.events).includes("private-client-photo"), "No HEIC filename in analytics");
+    observations.push({ filename: "provider JPEG MIME with actual HEIC bytes", result: "converted, analyzed, no personal data" });
+  } finally { await realMislabelledHeicPage.close(); }
 
   const nonImage = await setup();
   try {
