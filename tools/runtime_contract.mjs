@@ -12,6 +12,7 @@ requireText("await setImageSourceAndWait(uploadedImage, photoUrl)", "Blob URL im
 requireText("URL.createObjectURL(file)", "memory-safe mobile photo access")
 requireText("function uploadFormatGroup(file)", "bounded format classification for privacy-safe diagnostics")
 requireText("async function failedDecodeFormatHint(file, declaredFormat)", "privacy-safe failure-only file header recovery hint")
+requireText("async function recoverHeicPhotoBlob(file, timeoutMs = 10000)", "local HEIC decode for unsupported photos")
 requireText("async function recoverPhotoBlobWithNativeBitmap(file, timeoutMs = 7000)", "native failure-only bounded ImageBitmap fallback")
 requireText("function uploadSizeBand(bytes)", "bounded size buckets rather than raw sizes")
 requireText('trackEvent("upload_started", { ...uploadContext, stage: "selected" })', "upload started with diagnostic categories")
@@ -85,7 +86,7 @@ requireText('timings.matching_ms', "matching timing")
 requireText('timings.render_ms', "render timing")
 requireText('id="topMatchPercent">${match.similarityDisplay}%', "static similarity value")
 
-if (!index.includes('js/script.js?v=20261116-native-decode-recovery')) throw new Error("Missing versioned runtime script URL")
+if (!index.includes('js/script.js?v=20261116-heic-recovery')) throw new Error("Missing versioned runtime script URL")
 
 if (!index.includes('id="uploadedImageContainer" hidden') || !index.includes('id="choosePhotoBtn" type="button"')) {
   throw new Error("Initial photo entry must keep the native CTA and hide the undecoded photo")
